@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Linear-inspired light theme — clean, minimal, elegant */
+    --background: 0 0% 99%;           /* #FCFCFD — near-white */
+    --foreground: 240 6% 10%;         /* #18181B — soft black */
+
+    --card: 0 0% 100%;                /* pure white */
+    --card-foreground: 240 6% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 10%;
+
+    --primary: 238 58% 58%;           /* #5E6AD2 — Linear's brand violet */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 5% 96%;          /* very light gray */
+    --secondary-foreground: 240 6% 10%;
+
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;   /* #6B6F76 */
+
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+
+    --destructive: 358 68% 57%;       /* #E5484D */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 92%;               /* near-invisible border */
+    --input: 0 0% 90%;
+    --ring: 238 58% 58%;
+    --radius: 0.5rem;
+
+    --sidebar: 240 5% 97%;            /* #F5F5F6 */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Thin, near-invisible scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}

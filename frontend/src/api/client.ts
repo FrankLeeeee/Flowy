@@ -1,0 +1,98 @@
+import axios from 'axios';
+import { Settings, Project, Task, Runner, TaskLog } from '../types';
+
+const api = axios.create({ baseURL: '/api' });
+
+export async function fetchSettings(): Promise<Settings> {
+  const { data } = await api.get<Settings>('/settings');
+  return data;
+}
+
+export async function fetchRunnerSecret(): Promise<{ registrationSecret: string }> {
+  const { data } = await api.get<{ registrationSecret: string }>('/settings/runner-secret');
+  return data;
+}
+
+export async function updateSettings(partial: Partial<Settings>): Promise<Settings> {
+  const { data } = await api.put<Settings>('/settings', partial);
+  return data;
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────
+
+export async function fetchProjects(): Promise<Project[]> {
+  const { data } = await api.get<Project[]>('/projects');
+  return data;
+}
+
+export async function createProject(body: { name: string; key: string; description?: string }): Promise<Project> {
+  const { data } = await api.post<Project>('/projects', body);
+  return data;
+}
+
+export async function updateProject(id: string, body: { name?: string; description?: string }): Promise<Project> {
+  const { data } = await api.put<Project>(`/projects/${id}`, body);
+  return data;
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  await api.delete(`/projects/${id}`);
+}
+
+// ── Tasks ─────────────────────────────────────────────────────────────────
+
+export async function fetchTasks(filters?: {
+  project?: string; status?: string; priority?: string; runner?: string; search?: string;
+}): Promise<Task[]> {
+  const { data } = await api.get<Task[]>('/tasks', { params: filters });
+  return data;
+}
+
+export async function createTask(body: {
+  projectId: string; title: string; description?: string; priority?: string; labels?: string[];
+}): Promise<Task> {
+  const { data } = await api.post<Task>('/tasks', body);
+  return data;
+}
+
+export async function getTask(id: string): Promise<Task> {
+  const { data } = await api.get<Task>(`/tasks/${id}`);
+  return data;
+}
+
+export async function updateTask(id: string, body: {
+  title?: string; description?: string; status?: string; priority?: string;
+  labels?: string[]; runnerId?: string | null; aiProvider?: string | null;
+}): Promise<Task> {
+  const { data } = await api.put<Task>(`/tasks/${id}`, body);
+  return data;
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await api.delete(`/tasks/${id}`);
+}
+
+export async function assignTask(id: string, body: { runnerId: string; aiProvider: string }): Promise<Task> {
+  const { data } = await api.post<Task>(`/tasks/${id}/assign`, body);
+  return data;
+}
+
+export async function fetchTaskLogs(id: string): Promise<TaskLog[]> {
+  const { data } = await api.get<TaskLog[]>(`/tasks/${id}/logs`);
+  return data;
+}
+
+// ── Runners ───────────────────────────────────────────────────────────────
+
+export async function fetchRunners(): Promise<Runner[]> {
+  const { data } = await api.get<Runner[]>('/runners');
+  return data;
+}
+
+export async function deleteRunner(id: string): Promise<void> {
+  await api.delete(`/runners/${id}`);
+}
+
+export async function refreshRunnerProviders(id: string): Promise<void> {
+  await api.post(`/runners/${id}/refresh-providers`);
+}
