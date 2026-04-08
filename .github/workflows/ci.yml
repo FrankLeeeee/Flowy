@@ -21,7 +21,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          rm package-lock.json
+          npm install
 
       - name: Run unit tests
         run: npm test
