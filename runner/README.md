@@ -8,6 +8,7 @@ A daemon that connects to the Flowy hub and executes tasks using AI CLI tools on
 - One or more AI CLI tools installed:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — `claude`
   - [Codex](https://github.com/openai/codex) — `codex`
+  - [Cursor Agent](https://docs.cursor.com/agent) — `agent`
 
 ## Build
 
@@ -40,12 +41,11 @@ npm run build
 npm start -- --name <name> --url <hub-url> [options]
 ```
 
-Or install globally to use the `my-hub-runner` command directly:
+Or install globally to use the `flowy-runner` command directly:
 
 ```bash
-npm run build
-npm link
-my-hub-runner --name <name> --url <hub-url> [options]
+npm install -g @frankleeeee/flowy-runner
+flowy-runner --name <name> --url <hub-url> [options]
 ```
 
 ### Required flags
@@ -87,7 +87,7 @@ npm start -- --name my-laptop --url http://localhost:3001
 cd runner
 npm run build
 npm link
-my-hub-runner --name office-server --url https://hub.example.com --secret my-secret
+flowy-runner --name office-server --url https://hub.example.com --secret my-secret
 ```
 
 ## How it works
@@ -98,13 +98,14 @@ my-hub-runner --name office-server --url https://hub.example.com --secret my-sec
 
 3. **Poll** — Every 5 seconds (configurable), the runner polls the hub for tasks assigned to it with status `todo`.
 
-4. **Detect CLIs** — On startup, the runner checks the local machine for supported commands (`claude`, `codex`) and registers only the providers it finds.
+4. **Detect CLIs** — On startup, the runner checks the local machine for supported commands (`claude`, `codex`, `agent`) and registers only the providers it finds.
 
 5. **Execute** — When a task is picked up, the runner spawns the appropriate AI CLI tool as a child process:
    | Provider | Command |
    |----------|---------|
    | `claude-code` | `claude -p "<task description>"` |
-   | `codex` | `codex -q "<task description>"` |
+   | `codex` | `codex exec "<task description>"` |
+   | `cursor-agent` | `agent --print --force "<task description>"` |
 
 6. **Stream output** — Output is buffered and sent back to the hub every 2 seconds so you can monitor progress in real time from the web UI.
 

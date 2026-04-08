@@ -18,6 +18,14 @@ describe('buildCommand', () => {
     });
   });
 
+  it('builds the Cursor Agent command in headless mode with file writes', () => {
+    expect(buildCommand('cursor-agent', 'Refactor module')).toEqual({
+      cmd: 'agent',
+      args: ['--print', '--force', 'Refactor module'],
+      streamOutput: true,
+    });
+  });
+
   it('throws for unsupported providers', () => {
     expect(() => buildCommand('unknown', 'Prompt')).toThrow('Unknown AI provider: unknown');
   });

@@ -10,6 +10,7 @@ const CONFIG_DIR = path.join(os.homedir(), '.config', 'my-hub');
 const SUPPORTED_PROVIDERS = [
   { id: 'claude-code', command: 'claude' },
   { id: 'codex', command: 'codex' },
+  { id: 'cursor-agent', command: 'agent' },
 ] as const;
 
 export function parseArgs(argv: string[]): RunnerConfig {
@@ -55,7 +56,7 @@ export function parseArgs(argv: string[]): RunnerConfig {
   const providers = detectAvailableProviders();
   if (providers.length === 0) {
     console.error('No supported AI CLIs were detected on this machine.');
-    console.error('Install one of: claude, codex');
+    console.error('Install one of: claude, codex, agent');
     process.exit(1);
   }
 

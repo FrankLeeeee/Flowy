@@ -9,6 +9,7 @@ import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 const AI_LABELS: Record<AiProvider, string> = {
   'claude-code': 'Claude Code',
   'codex': 'Codex',
+  'cursor-agent': 'Cursor Agent',
 };
 
 export default function AssignTaskModal({
