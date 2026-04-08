@@ -35,11 +35,11 @@ The GitHub Pages workflow:
 
 - installs dependencies with `npm ci`
 - builds the VitePress site
-- uploads the generated static files
-- deploys them through GitHub Pages
+- publishes the generated static files to the `gh/pages` branch
 
 ## Notes for Pages
 
 - The VitePress base path is derived from the repository name
+- GitHub Pages should be configured to serve from the `gh/pages` branch root
 - project pages are served from `/<repo-name>/`
 - user or org pages are served from `/`
