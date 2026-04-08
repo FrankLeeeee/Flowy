@@ -6,6 +6,7 @@ import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 const AI_LABELS: Record<AiProvider, string> = {
   'claude-code': 'Claude Code',
   'codex': 'Codex',
+  'cursor-agent': 'Cursor Agent',
 };
 
 function timeAgo(iso: string | null): string {

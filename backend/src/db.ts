@@ -61,7 +61,7 @@ function migrate(): void {
       priority      TEXT NOT NULL DEFAULT 'none'
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
-      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex') OR ai_provider IS NULL),
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
       started_at    TEXT,
@@ -106,7 +106,7 @@ function migrateTaskStatuses(): void {
       priority      TEXT NOT NULL DEFAULT 'none'
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
-      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex') OR ai_provider IS NULL),
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
       started_at    TEXT,

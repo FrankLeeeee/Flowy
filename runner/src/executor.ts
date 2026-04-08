@@ -22,6 +22,8 @@ export function buildCommand(aiProvider: string, prompt: string): {
         args: ['exec', prompt, '--sandbox', 'workspace-write', '--color', 'never'],
         streamOutput: true,
       };
+    case 'cursor-agent':
+      return { cmd: 'agent', args: ['-p', prompt], streamOutput: true };
     default:
       throw new Error(`Unknown AI provider: ${aiProvider}`);
   }

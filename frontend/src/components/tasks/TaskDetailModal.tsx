@@ -61,7 +61,7 @@ const STATUS_ICON: Record<TaskStatus, { icon: React.ReactNode; color: string }> 
 };
 
 const AI_LABELS: Record<AiProvider, string> = {
-  'claude-code': 'Claude Code', codex: 'Codex',
+  'claude-code': 'Claude Code', codex: 'Codex', 'cursor-agent': 'Cursor Agent',
 };
 
 function fmtTime(iso: string | null): string {
