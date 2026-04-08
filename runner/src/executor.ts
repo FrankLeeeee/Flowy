@@ -8,7 +8,7 @@ export interface ExecutionResult {
 }
 
 /** Build the CLI command + args for a given AI provider. */
-function buildCommand(aiProvider: string, prompt: string): {
+export function buildCommand(aiProvider: string, prompt: string): {
   cmd: string;
   args: string[];
   streamOutput: boolean;
