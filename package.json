@@ -6,13 +6,15 @@
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend && npm run build --workspace=runner",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "test": "vitest run"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "vitepress": "^1.6.4"
+    "vitepress": "^1.6.4",
+    "vitest": "^3.2.4"
   }
 }

@@ -4,6 +4,8 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import { RunnerConfig } from './types';
 
+export const childProcess = { spawnSync };
+
 const CONFIG_DIR = path.join(os.homedir(), '.config', 'my-hub');
 const SUPPORTED_PROVIDERS = [
   { id: 'claude-code', command: 'claude' },
@@ -77,7 +79,7 @@ export function detectAvailableProviders(): string[] {
 
 function isCommandAvailable(command: string): boolean {
   const checker = process.platform === 'win32' ? 'where' : 'which';
-  const result = spawnSync(checker, [command], { stdio: 'ignore' });
+  const result = childProcess.spawnSync(checker, [command], { stdio: 'ignore' });
   return result.status === 0;
 }
 
