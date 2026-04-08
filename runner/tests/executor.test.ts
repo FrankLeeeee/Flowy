@@ -18,10 +18,10 @@ describe('buildCommand', () => {
     });
   });
 
-  it('builds the Cursor Agent command with streaming enabled', () => {
+  it('builds the Cursor Agent command in headless mode with file writes', () => {
     expect(buildCommand('cursor-agent', 'Refactor module')).toEqual({
       cmd: 'agent',
-      args: ['-p', 'Refactor module'],
+      args: ['--print', '--force', 'Refactor module'],
       streamOutput: true,
     });
   });

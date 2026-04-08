@@ -105,7 +105,7 @@ flowy-runner --name office-server --url https://hub.example.com --secret my-secr
    |----------|---------|
    | `claude-code` | `claude -p "<task description>"` |
    | `codex` | `codex exec "<task description>"` |
-   | `cursor-agent` | `agent -p "<task description>"` |
+   | `cursor-agent` | `agent --print --force "<task description>"` |
 
 6. **Stream output** — Output is buffered and sent back to the hub every 2 seconds so you can monitor progress in real time from the web UI.
 

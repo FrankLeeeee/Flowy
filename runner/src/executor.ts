@@ -23,7 +23,7 @@ export function buildCommand(aiProvider: string, prompt: string): {
         streamOutput: true,
       };
     case 'cursor-agent':
-      return { cmd: 'agent', args: ['-p', prompt], streamOutput: true };
+      return { cmd: 'agent', args: ['--print', '--force', prompt], streamOutput: true };
     default:
       throw new Error(`Unknown AI provider: ${aiProvider}`);
   }
