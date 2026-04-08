@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - 'docs/**'
-      - '.github/workflows/github-pages.yml'
-      - 'package.json'
-      - 'package-lock.json'
+      - "docs/**"
+      - ".github/workflows/github-pages.yml"
+      - "package.json"
+      - "package-lock.json"
   workflow_dispatch:
 
 permissions:
@@ -45,6 +45,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/.vitepress/dist
-          publish_branch: gh/pages
           force_orphan: true
           enable_jekyll: false
