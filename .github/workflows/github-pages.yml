@@ -38,7 +38,9 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          rm package-lock.json
+          npm install
 
       - name: Build docs site
         env:
