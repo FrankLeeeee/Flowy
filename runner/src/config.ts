@@ -33,11 +33,11 @@ export function parseArgs(argv: string[]): RunnerConfig {
   }
 
   if (!name || !url) {
-    console.error('Usage: my-hub-runner --name <name> --url <backend-url> [options]');
+    console.error('Usage: flowy-runner --name <name> --url <hub-url> [options]');
     console.error('');
     console.error('Required:');
     console.error('  --name          Runner name');
-    console.error('  --url           Backend URL (e.g. http://localhost:3001)');
+    console.error('  --url           Hub URL (e.g. http://localhost:3001)');
     console.error('');
     console.error('Options:');
     console.error('  --poll-interval Poll interval in seconds (default: 5)');

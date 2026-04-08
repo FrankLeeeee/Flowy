@@ -11,7 +11,7 @@ import { initDb }      from './db';
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
 
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors(process.env.NODE_ENV === 'production' ? {} : { origin: 'http://localhost:5173' }));
 app.use(express.json());
 
 initDb();
@@ -23,14 +23,14 @@ app.use('/api/runners',  runnersRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-// In production, serve the Vite build
+// In production, serve the bundled frontend
 if (process.env.NODE_ENV === 'production') {
-  const dist = path.join(__dirname, '../../frontend/dist');
+  const dist = path.join(__dirname, 'public');
   app.use(express.static(dist));
   app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
 }
 
 app.listen(PORT, () => {
-  console.log(`My-Hub backend  → http://localhost:${PORT}`);
-  console.log(`Settings        → ${path.join(os.homedir(), '.config', 'my-hub', 'settings.json')}`);
+  console.log(`Flowy → http://localhost:${PORT}`);
+  console.log(`Data  → ${path.join(os.homedir(), '.config', 'my-hub')}`);
 });
