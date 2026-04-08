@@ -1,10 +1,13 @@
 {
-  "name": "my-hub-runner",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@frankleeeee/flowy-runner",
+  "version": "0.1.0",
+  "description": "CLI daemon that connects to a Flowy hub and executes AI tasks locally",
   "bin": {
-    "my-hub-runner": "./dist/cli.js"
+    "flowy-runner": "./dist/cli.js"
   },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/cli.ts --",
     "build": "tsc",
@@ -17,5 +20,9 @@
     "@types/node": "^20.11.30",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.3"
-  }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
 }

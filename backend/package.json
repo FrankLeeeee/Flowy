@@ -1,11 +1,17 @@
 {
-  "name": "my-hub-backend",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@frankleeeee/flowy",
+  "version": "0.1.0",
+  "description": "AI task orchestration hub — manage and dispatch tasks to local AI CLI runners",
+  "bin": {
+    "flowy": "./dist/cli.js"
+  },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/cli.js"
   },
   "dependencies": {
     "axios": "^1.6.8",
@@ -23,5 +29,9 @@
     "@types/uuid": "^9.0.8",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.3"
-  }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
 }

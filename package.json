@@ -1,12 +1,13 @@
 {
-  "name": "my-hub",
+  "name": "flowy-monorepo",
   "private": true,
   "workspaces": ["backend", "frontend", "runner"],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend && npm run build --workspace=runner",
+    "build": "npm run build:flowy && npm run build:runner",
+    "build:flowy": "npm run build --workspace=frontend && npm run build --workspace=backend && cp -r frontend/dist backend/dist/public",
     "build:runner": "npm run build --workspace=runner",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
