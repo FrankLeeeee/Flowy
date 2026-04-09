@@ -17,13 +17,13 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+  id-token: write # REQUIRED
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -48,12 +48,12 @@ jobs:
 
       - name: Publish @frankleeeee/flowy
         if: inputs.package == 'flowy' || inputs.package == 'both'
-        run: npm publish --workspace=backend --access public ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: npm publish --workspace=backend --provenance --access public ${{ inputs.dry_run && '--dry-run' || '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @frankleeeee/flowy-runner
         if: inputs.package == 'flowy-runner' || inputs.package == 'both'
-        run: npm publish --workspace=runner --access public ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: npm publish --workspace=runner --provenance --access public ${{ inputs.dry_run && '--dry-run' || '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
