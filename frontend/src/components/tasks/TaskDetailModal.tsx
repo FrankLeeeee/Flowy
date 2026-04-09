@@ -13,7 +13,7 @@ import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Pencil, UserPlus, Trash2, Circle, CheckCircle2, XCircle, Clock, Archive, Download, AlertTriangle, Tag, ArrowRight, X } from 'lucide-react';
+import { Pencil, UserPlus, Trash2, Circle, CheckCircle2, XCircle, Clock, Archive, Download, AlertTriangle, Tag, ArrowRight, X, Expand } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: 'backlog', label: 'Backlog' },
@@ -64,6 +64,22 @@ const AI_LABELS: Record<AiProvider, string> = {
   'claude-code': 'Claude Code', codex: 'Codex', 'cursor-agent': 'Cursor Agent',
 };
 
+const TERMINAL_STATUSES: TaskStatus[] = ['done', 'failed', 'cancelled'];
+
+const OUTPUT_MARKDOWN_CLASSNAME = `rounded-lg border border-border/60 bg-foreground/[0.02] p-4 text-[13px] leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none
+  prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+  prose-h1:text-[16px] prose-h2:text-[15px] prose-h3:text-[14px]
+  prose-p:text-muted-foreground prose-p:my-1.5
+  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+  prose-strong:text-foreground prose-strong:font-semibold
+  prose-code:text-[12px] prose-code:font-mono prose-code:bg-foreground/[0.06] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+  prose-pre:bg-[#16161a] prose-pre:text-gray-300 prose-pre:rounded-lg prose-pre:text-[12px] prose-pre:leading-relaxed
+  prose-li:text-muted-foreground prose-li:my-0.5
+  prose-ul:my-1.5 prose-ol:my-1.5
+  prose-table:text-[12px] prose-th:text-foreground prose-th:font-medium prose-td:text-muted-foreground
+  prose-hr:border-border/40
+  prose-blockquote:border-border/60 prose-blockquote:text-muted-foreground/70`;
+
 function fmtTime(iso: string | null): string {
   if (!iso) return '-';
   return new Date(iso + 'Z').toLocaleString();
@@ -87,6 +103,7 @@ export default function TaskDetailModal({
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
+  const [outputFullscreenOpen, setOutputFullscreenOpen] = useState(false);
 
   const loadLogs = useCallback(async () => {
     try { setLogs(await fetchTaskLogs(task.id)); } catch { /* ignore */ }
@@ -111,6 +128,9 @@ export default function TaskDetailModal({
     ? labelsText.split(',').map((label: string) => label.trim()).filter(Boolean)
     : JSON.parse(task.labels || '[]');
   const statusConfig = STATUS_ICON[task.status];
+  const output = task.output?.trim() ?? '';
+  const hasOutput = output.length > 0;
+  const canViewFullscreenOutput = hasOutput && TERMINAL_STATUSES.includes(task.status);
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
@@ -314,41 +334,42 @@ export default function TaskDetailModal({
           </div>
 
           {/* Output */}
-          {task.output && (
+          {hasOutput && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Output</h3>
-                <button
-                  onClick={() => {
-                    const blob = new Blob([task.output!], { type: 'text/markdown;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${task.task_key}-output.md`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground/75 transition-colors duration-150 hover:text-foreground"
-                >
-                  <Download className="h-3 w-3" />
-                  Download
-                </button>
+                <div className="flex items-center gap-3">
+                  {canViewFullscreenOutput && (
+                    <button
+                      type="button"
+                      onClick={() => setOutputFullscreenOpen(true)}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground/75 transition-colors duration-150 hover:text-foreground"
+                    >
+                      <Expand className="h-3 w-3" />
+                      Full screen
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const blob = new Blob([output], { type: 'text/markdown;charset=utf-8' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${task.task_key}-output.md`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground/75 transition-colors duration-150 hover:text-foreground"
+                  >
+                    <Download className="h-3 w-3" />
+                    Download
+                  </button>
+                </div>
               </div>
               <ScrollArea className="h-64">
-                <div className="rounded-lg border border-border/60 bg-foreground/[0.02] p-4 text-[13px] leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none
-                  prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
-                  prose-h1:text-[16px] prose-h2:text-[15px] prose-h3:text-[14px]
-                  prose-p:text-muted-foreground prose-p:my-1.5
-                  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                  prose-strong:text-foreground prose-strong:font-semibold
-                  prose-code:text-[12px] prose-code:font-mono prose-code:bg-foreground/[0.06] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-                  prose-pre:bg-[#16161a] prose-pre:text-gray-300 prose-pre:rounded-lg prose-pre:text-[12px] prose-pre:leading-relaxed
-                  prose-li:text-muted-foreground prose-li:my-0.5
-                  prose-ul:my-1.5 prose-ol:my-1.5
-                  prose-table:text-[12px] prose-th:text-foreground prose-th:font-medium prose-td:text-muted-foreground
-                  prose-hr:border-border/40
-                  prose-blockquote:border-border/60 prose-blockquote:text-muted-foreground/70">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{task.output}</ReactMarkdown>
+                <div className={OUTPUT_MARKDOWN_CLASSNAME}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
                 </div>
               </ScrollArea>
             </div>
@@ -398,6 +419,34 @@ export default function TaskDetailModal({
           </Button>
         </div>
       </DialogContent>
+
+      <Dialog open={outputFullscreenOpen} onOpenChange={setOutputFullscreenOpen}>
+        <DialogContent className="h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden border-border/50 bg-background p-0 shadow-float sm:rounded-xl">
+          <DialogHeader className="border-b border-border/40 px-6 py-5 pr-14">
+            <div className="flex items-center gap-2.5 text-[11px] font-medium text-muted-foreground/75">
+              <span className="font-mono tracking-wide">{task.task_key}</span>
+              <span className={cn('inline-flex items-center gap-1', statusConfig.color)}>
+                {statusConfig.icon}
+                {STATUS_OPTIONS.find((item) => item.value === task.status)?.label}
+              </span>
+            </div>
+            <DialogTitle className="mt-2 text-[15px] font-semibold tracking-[-0.02em] text-foreground">
+              {task.title}
+            </DialogTitle>
+            <DialogDescription className="text-[12px] text-muted-foreground/80">
+              Full-screen task output
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 min-h-0 bg-muted/20">
+            <div className="mx-auto w-full max-w-5xl px-6 py-6">
+              <div className={cn(OUTPUT_MARKDOWN_CLASSNAME, 'min-h-full bg-background shadow-soft')}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
+              </div>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
