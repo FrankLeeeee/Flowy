@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Circle, FolderKanban, Tag, ArrowRight, X } from 'lucide-react';
+import { Circle, FolderKanban, Tag, ArrowRight, X, Sparkles } from 'lucide-react';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'none', label: 'No Priority' },
@@ -29,8 +29,9 @@ const PRIORITY_STYLES: Record<TaskPriority, { dot: string; tone: string }> = {
 const LABEL_OPTIONS = ['Bug', 'Feature', 'Improvement', 'Documentation', 'Design'];
 
 export default function CreateTaskModal({
-  projects, defaultProjectId, onSubmit, onClose,
+  open, projects, defaultProjectId, onSubmit, onClose,
 }: {
+  open: boolean;
   projects: Project[];
   defaultProjectId?: string;
   onSubmit: (data: { projectId: string; title: string; description: string; priority: TaskPriority; labels: string[] }) => void;
@@ -43,6 +44,7 @@ export default function CreateTaskModal({
   const [labelsText, setLabelsText] = useState('');
 
   const labels = labelsText.split(',').map((label) => label.trim()).filter(Boolean);
+  const selectedProject = projects.find((project) => project.id === projectId);
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
@@ -64,20 +66,33 @@ export default function CreateTaskModal({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="overflow-hidden border-border/80 bg-card p-0 shadow-soft sm:max-w-xl">
-        <DialogHeader className="border-b border-border/40 px-5 pb-3 pt-4">
-          <DialogTitle className="sr-only">New Task</DialogTitle>
-          <DialogDescription className="sr-only">Create a new task.</DialogDescription>
-          <div className="flex items-center gap-2 text-[12px] text-muted-foreground/70">
-            <Circle className="h-3.5 w-3.5" />
-            <span>New Task</span>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <DialogContent className="overflow-hidden border-border/40 dark:border-border/60 bg-card p-0 shadow-float sm:max-w-2xl">
+        <DialogHeader className="border-b border-border/40 bg-primary/[0.06] px-6 pb-4 pt-5">
+          <DialogTitle className="sr-only">Create a new task</DialogTitle>
+          <DialogDescription className="sr-only">Create a new task with title, description, project, priority, and labels.</DialogDescription>
+          <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary ring-1 ring-primary/10">
+            <Sparkles className="h-3 w-3" />
+            New Task
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Add a task to the queue</h2>
+              <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">
+                Keep it concise now. Add more context only if it helps the next handoff.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground/85 ring-1 ring-primary/10 shadow-soft">
+              <Circle className="h-3 w-3 text-primary" />
+              <span>{selectedProject?.name ?? 'Select project'}</span>
+            </div>
           </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="space-y-4 px-5 py-4">
-            <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+          <div className="space-y-3 px-6 py-4">
+            <div className="rounded-[18px] border border-primary/10 bg-primary/[0.03] px-4 py-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">Title</p>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -88,20 +103,24 @@ export default function CreateTaskModal({
               />
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+            <div className="rounded-[18px] border border-border/60 bg-background/90 px-4 py-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
+                <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars</span>
+              </div>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={5}
-                placeholder="Add description..."
-                className="min-h-[108px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
+                rows={4}
+                placeholder="Add supporting context, expected outcome, or constraints..."
+                className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
 
             {labels.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {labels.map((label) => (
-                  <Badge key={label} variant="secondary" className="gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium">
+                  <Badge key={label} variant="secondary" className="gap-1 rounded-full border border-primary/10 bg-primary/8 px-2.5 py-1 text-[10px] font-medium text-foreground">
                     {label}
                     <button
                       type="button"
@@ -116,9 +135,9 @@ export default function CreateTaskModal({
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-border/40 px-5 py-3">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/40 bg-foreground/[0.015] px-6 py-3">
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
+              <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
                 <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
                 <SelectValue placeholder="Project" />
               </SelectTrigger>
@@ -132,7 +151,7 @@ export default function CreateTaskModal({
             </Select>
 
             <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-              <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
+              <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
                 <span className={cn('h-2 w-2 rounded-full', PRIORITY_STYLES[priority].dot)} />
                 <SelectValue>
                   {PRIORITIES.find((item) => item.value === priority)?.label}
@@ -152,11 +171,11 @@ export default function CreateTaskModal({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" className="h-8 gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none hover:bg-foreground/[0.08]">
+                <Button type="button" variant="outline" className="h-8 gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft hover:bg-accent">
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   Labels
                   {labels.length > 0 && (
-                    <span className="rounded-full bg-foreground/[0.08] px-1.5 py-0.5 text-[10px] text-foreground/70">
+                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                       {labels.length}
                     </span>
                   )}
@@ -183,10 +202,12 @@ export default function CreateTaskModal({
             </DropdownMenu>
           </div>
 
-          <DialogFooter className="border-t border-border/40 px-5 py-3 sm:justify-between sm:space-x-0">
-            <div />
+          <DialogFooter className="border-t border-border/40 px-6 py-3 sm:justify-between sm:space-x-0">
+            <div className="text-[11px] text-muted-foreground/80">
+              {title.trim() ? 'Ready to create.' : 'Add a title to continue.'}
+            </div>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground">
+              <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                 Cancel
               </Button>
               <Button type="submit" disabled={!projectId || !title.trim()} className="rounded-full px-4 text-[11px]">

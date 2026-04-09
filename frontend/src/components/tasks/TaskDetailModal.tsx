@@ -35,20 +35,20 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 const LABEL_OPTIONS = ['Bug', 'Feature', 'Improvement', 'Documentation', 'Design'];
 
 const PRIORITY_STYLES: Record<TaskPriority, { dot: string; tone: string }> = {
-  none: { dot: 'bg-slate-300', tone: 'text-foreground/55' },
-  low: { dot: 'bg-sky-400', tone: 'text-sky-700' },
-  medium: { dot: 'bg-amber-400', tone: 'text-amber-700' },
-  high: { dot: 'bg-orange-500', tone: 'text-orange-700' },
-  urgent: { dot: 'bg-rose-500', tone: 'text-rose-700' },
+  none: { dot: 'bg-slate-300 dark:bg-slate-600', tone: 'text-foreground/55' },
+  low: { dot: 'bg-sky-400', tone: 'text-sky-700 dark:text-sky-400' },
+  medium: { dot: 'bg-amber-400', tone: 'text-amber-700 dark:text-amber-400' },
+  high: { dot: 'bg-orange-500', tone: 'text-orange-700 dark:text-orange-400' },
+  urgent: { dot: 'bg-rose-500', tone: 'text-rose-700 dark:text-rose-400' },
 };
 
 const STATUS_DOTS: Record<TaskStatus, string> = {
-  backlog: 'bg-zinc-400',
-  todo: 'bg-zinc-500',
+  backlog: 'bg-zinc-400 dark:bg-zinc-500',
+  todo: 'bg-zinc-500 dark:bg-zinc-400',
   in_progress: 'bg-yellow-500',
   failed: 'bg-red-500',
   done: 'bg-emerald-500',
-  cancelled: 'bg-zinc-300',
+  cancelled: 'bg-zinc-300 dark:bg-zinc-600',
 };
 
 const STATUS_ICON: Record<TaskStatus, { icon: React.ReactNode; color: string }> = {
@@ -70,8 +70,9 @@ function fmtTime(iso: string | null): string {
 }
 
 export default function TaskDetailModal({
-  task, runner, onUpdate, onAssign, onDelete, onClose,
+  open, task, runner, onUpdate, onAssign, onDelete, onClose,
 }: {
+  open: boolean;
   task: Task;
   runner?: Runner;
   onUpdate: (t: Task) => void;
@@ -125,11 +126,11 @@ export default function TaskDetailModal({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 flex flex-col">
         <DialogHeader className="px-6 py-5 border-b border-border/40">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-[11px] font-mono text-muted-foreground/50 tracking-wide">{task.task_key}</span>
+            <span className="text-[11px] font-mono tracking-wide text-muted-foreground/75">{task.task_key}</span>
             <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium', statusConfig.color)}>
               {statusConfig.icon}
               {STATUS_OPTIONS.find((s) => s.value === task.status)?.label}
@@ -272,7 +273,7 @@ export default function TaskDetailModal({
             <div>
               <h2 className="text-[15px] font-semibold text-foreground leading-snug">{task.title}</h2>
               {task.description && (
-                <p className="text-[13px] text-muted-foreground mt-2 whitespace-pre-wrap leading-relaxed">{task.description}</p>
+                <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground/90">{task.description}</p>
               )}
             </div>
           )}
@@ -288,7 +289,7 @@ export default function TaskDetailModal({
 
           {/* Runner Info */}
           <div className="bg-foreground/[0.02] border border-border/60 rounded-lg p-4">
-            <h3 className="text-[12px] font-medium text-muted-foreground/70 uppercase tracking-[0.04em] mb-2">Runner Assignment</h3>
+              <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Runner Assignment</h3>
             {runner ? (
               <div className="flex items-center gap-3">
                 <span className="text-[13px] font-medium text-foreground">{runner.name}</span>
@@ -300,12 +301,12 @@ export default function TaskDetailModal({
                 )}
               </div>
             ) : (
-              <p className="text-[13px] text-muted-foreground/50">Not assigned</p>
+              <p className="text-[13px] text-muted-foreground/75">Not assigned</p>
             )}
           </div>
 
           {/* Timestamps */}
-          <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/50">
+          <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/75">
             <div>Created: {fmtTime(task.created_at)}</div>
             <div>Updated: {fmtTime(task.updated_at)}</div>
             {task.started_at && <div>Started: {fmtTime(task.started_at)}</div>}
@@ -316,7 +317,7 @@ export default function TaskDetailModal({
           {task.output && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[12px] font-medium text-muted-foreground/70 uppercase tracking-[0.04em]">Output</h3>
+                <h3 className="text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Output</h3>
                 <button
                   onClick={() => {
                     const blob = new Blob([task.output!], { type: 'text/markdown;charset=utf-8' });
@@ -327,7 +328,7 @@ export default function TaskDetailModal({
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground transition-colors duration-150"
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground/75 transition-colors duration-150 hover:text-foreground"
                 >
                   <Download className="h-3 w-3" />
                   Download
@@ -356,15 +357,15 @@ export default function TaskDetailModal({
           {/* Logs */}
           {logs.length > 0 && (
             <div>
-              <h3 className="text-[12px] font-medium text-muted-foreground/70 uppercase tracking-[0.04em] mb-2">Execution Logs</h3>
+              <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Execution Logs</h3>
               <ScrollArea className="h-40">
                 <div className="space-y-1">
                   {logs.map((log) => (
                     <div key={log.id} className="flex items-start gap-2 text-[11px]">
-                      <span className="text-muted-foreground/40 whitespace-nowrap">{fmtTime(log.created_at)}</span>
+                      <span className="whitespace-nowrap text-muted-foreground/70">{fmtTime(log.created_at)}</span>
                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-foreground/[0.04] text-muted-foreground">{log.event}</span>
                       {log.data && log.event !== 'output' && (
-                        <span className="text-muted-foreground/50 truncate">{log.data.slice(0, 100)}</span>
+                        <span className="truncate text-muted-foreground/75">{log.data.slice(0, 100)}</span>
                       )}
                     </div>
                   ))}
@@ -377,12 +378,12 @@ export default function TaskDetailModal({
 
         <div className="flex gap-2 px-6 py-4 border-t border-border/40 bg-background shrink-0">
           {!editing && (
-            <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="h-7 text-[12px] text-muted-foreground hover:text-foreground">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="h-7 text-[12px] text-muted-foreground/85 hover:text-foreground">
               <Pencil className="h-3 w-3 mr-1.5" />
               Edit
             </Button>
           )}
-          <Button size="sm" variant="ghost" onClick={onAssign} className="h-7 text-[12px] text-muted-foreground hover:text-foreground">
+          <Button size="sm" variant="ghost" onClick={onAssign} className="h-7 text-[12px] text-muted-foreground/85 hover:text-foreground">
             <UserPlus className="h-3 w-3 mr-1.5" />
             {runner ? 'Reassign' : 'Assign'}
           </Button>

@@ -5,20 +5,20 @@ import { SignalHigh, SignalMedium, SignalLow, AlertTriangle, Minus, Circle, Chec
 
 const STATUSES: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'failed', 'done', 'cancelled'];
 
-const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string; color: string }> = {
-  backlog:     { icon: <Archive className="h-3.5 w-3.5" />,      label: 'Backlog',     color: 'text-foreground/30' },
-  todo:        { icon: <Circle className="h-3.5 w-3.5" />,       label: 'Todo',        color: 'text-foreground/40' },
-  in_progress: { icon: <Clock className="h-3.5 w-3.5" />,        label: 'In Progress', color: 'text-yellow-500' },
-  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed',     color: 'text-red-500' },
-  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done',        color: 'text-emerald-500' },
-  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />,      label: 'Cancelled',   color: 'text-foreground/25' },
+const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string; color: string; pill: string }> = {
+  backlog:     { icon: <Archive className="h-3.5 w-3.5" />,      label: 'Backlog',     color: 'text-slate-600 dark:text-slate-400', pill: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/15' },
+  todo:        { icon: <Circle className="h-3.5 w-3.5" />,       label: 'Todo',        color: 'text-sky-600 dark:text-sky-400', pill: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/15' },
+  in_progress: { icon: <Clock className="h-3.5 w-3.5" />,        label: 'In Progress', color: 'text-amber-600 dark:text-amber-400', pill: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/15' },
+  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed',     color: 'text-rose-600 dark:text-rose-400', pill: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-rose-500/15' },
+  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done',        color: 'text-emerald-600 dark:text-emerald-400', pill: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/15' },
+  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />,      label: 'Cancelled',   color: 'text-zinc-500 dark:text-zinc-400', pill: 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 ring-zinc-500/15' },
 };
 
 const PRIORITY_CONFIG: Record<TaskPriority, { icon: React.ReactNode; color: string }> = {
-  urgent: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-red-500' },
-  high:   { icon: <SignalHigh className="h-3.5 w-3.5" />,    color: 'text-orange-500' },
-  medium: { icon: <SignalMedium className="h-3.5 w-3.5" />,  color: 'text-yellow-500' },
-  low:    { icon: <SignalLow className="h-3.5 w-3.5" />,     color: 'text-blue-400' },
+  urgent: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-rose-600 dark:text-rose-400' },
+  high:   { icon: <SignalHigh className="h-3.5 w-3.5" />,    color: 'text-orange-600 dark:text-orange-400' },
+  medium: { icon: <SignalMedium className="h-3.5 w-3.5" />,  color: 'text-amber-600 dark:text-amber-400' },
+  low:    { icon: <SignalLow className="h-3.5 w-3.5" />,     color: 'text-sky-600 dark:text-sky-400' },
   none:   { icon: <Minus className="h-3.5 w-3.5" />,         color: 'text-foreground/20' },
 };
 
@@ -73,16 +73,16 @@ function StatusGroup({
     >
       {/* Group header */}
       <div className={cn(
-        'flex items-center gap-2 px-4 py-2 border-b border-border/40',
+        'flex items-center gap-2 px-4 py-2.5 border-b border-border/40 bg-muted/50',
         dragOver && 'border-primary/20',
       )}>
         <span className={cn(config.color)}>{config.icon}</span>
-        <span className="text-[12px] font-medium text-foreground">{config.label}</span>
-        <span className="text-[11px] text-muted-foreground/40 font-medium">{tasks.length}</span>
+        <span className="text-[12px] font-semibold text-foreground">{config.label}</span>
+        <span className={cn('ml-auto inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', config.pill)}>{tasks.length}</span>
       </div>
 
       {/* Rows */}
-      {tasks.map((task) => {
+      {tasks.map((task, index) => {
         const runner = task.runner_id ? runnerMap.get(task.runner_id) : undefined;
         const priority = PRIORITY_CONFIG[task.priority];
 
@@ -90,29 +90,33 @@ function StatusGroup({
           <div
             key={task.id}
             draggable
+            style={{ '--motion-delay': `${index * 28 + 80}ms` } as React.CSSProperties}
             onDragStart={(e) => {
               e.dataTransfer.setData('application/task-id', task.id);
               e.dataTransfer.effectAllowed = 'move';
               requestAnimationFrame(() => {
-                (e.target as HTMLElement).style.opacity = '0.4';
+                const target = e.currentTarget;
+                target.style.opacity = '0.45';
+                target.dataset.dragging = 'true';
               });
             }}
             onDragEnd={(e) => {
-              (e.target as HTMLElement).style.opacity = '1';
+              e.currentTarget.style.opacity = '1';
+              delete e.currentTarget.dataset.dragging;
             }}
             onClick={() => onTaskClick(task)}
-            className="grid grid-cols-[20px_1fr_80px_100px_80px] gap-2 px-4 py-2.5 items-center cursor-grab active:cursor-grabbing hover:bg-foreground/[0.02] transition-colors duration-100 border-b border-border/30 last:border-b-0"
+            className="motion-card interactive-row grid grid-cols-[20px_1fr_80px_100px_80px] gap-2 px-4 py-2.5 items-center cursor-grab active:cursor-grabbing hover:bg-primary/[0.035] motion-safe:hover:translate-x-0.5 data-[dragging=true]:scale-[0.995] border-b border-border/30 last:border-b-0"
           >
-            <GripVertical className="h-3 w-3 text-muted-foreground/20 hover:text-muted-foreground/50 transition-colors" />
+            <GripVertical className="h-3 w-3 text-muted-foreground/45 transition-colors hover:text-muted-foreground/75" />
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="text-[11px] font-mono text-muted-foreground/50 shrink-0">{task.task_key}</span>
+              <span className="shrink-0 text-[11px] font-mono text-muted-foreground/75">{task.task_key}</span>
               <span className="text-[13px] font-medium text-foreground truncate">{task.title}</span>
             </div>
             <div className={cn('flex items-center', priority.color)}>
               {priority.icon}
             </div>
             <span className="text-[12px] text-muted-foreground truncate">{runner?.name ?? '-'}</span>
-            <span className="text-[11px] text-muted-foreground/50 text-right">{timeAgo(task.updated_at)}</span>
+            <span className="text-right text-[11px] text-muted-foreground/75">{timeAgo(task.updated_at)}</span>
           </div>
         );
       })}
@@ -120,7 +124,7 @@ function StatusGroup({
       {/* Empty drop target */}
       {tasks.length === 0 && (
         <div className={cn(
-          'px-4 py-4 text-center text-[12px] text-muted-foreground/30 transition-colors duration-150',
+          'px-4 py-4 text-center text-[12px] text-muted-foreground/65 transition-colors duration-150',
           dragOver && 'text-primary/50',
         )}>
           {dragOver ? 'Drop here' : 'No tasks'}
@@ -160,9 +164,9 @@ export default function TaskListView({
   };
 
   return (
-    <div className="rounded-lg border border-border/80 bg-card overflow-hidden">
+    <div className="surface-tint rounded-[20px] border border-border/40 dark:border-border/60 overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-[20px_1fr_80px_100px_80px] gap-2 px-4 py-2 text-[11px] font-medium text-muted-foreground/60 uppercase tracking-[0.04em] border-b border-border/60">
+      <div className="grid grid-cols-[20px_1fr_80px_100px_80px] gap-2 border-b border-border/60 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground/80">
         <span />
         <span>Issue</span>
         <span>Priority</span>
@@ -183,7 +187,7 @@ export default function TaskListView({
           />
         ))}
         {tasks.length === 0 && (
-          <div className="px-4 py-16 text-center text-[13px] text-muted-foreground/50">No tasks found</div>
+          <div className="px-4 py-16 text-center text-[13px] text-muted-foreground/75">No tasks found</div>
         )}
       </div>
     </div>

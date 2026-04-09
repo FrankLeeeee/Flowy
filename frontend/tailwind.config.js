@@ -38,9 +38,9 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
-        'soft':      '0 1px 2px rgba(0,0,0,0.04)',
-        'elevated':  '0 4px 12px rgba(0,0,0,0.06)',
-        'float':     '0 8px 24px rgba(0,0,0,0.08)',
+        'soft':      '0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+        'elevated':  '0 0 0 1px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.06)',
+        'float':     '0 0 0 1px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.08)',
       },
       transitionDuration: {
         '150': '150ms',
