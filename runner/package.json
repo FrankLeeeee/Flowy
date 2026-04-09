@@ -1,6 +1,6 @@
 {
   "name": "@frankleeeee/flowy-runner",
-  "version": "0.1.1",
+  "version": "1.0.1",
   "description": "CLI daemon that connects to a Flowy hub and executes AI tasks locally",
   "bin": {
     "flowy-runner": "./dist/cli.js"
