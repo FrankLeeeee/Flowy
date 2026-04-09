@@ -49,11 +49,7 @@ jobs:
       - name: Publish @frankleeeee/flowy
         if: inputs.package == 'flowy' || inputs.package == 'both'
         run: npm publish --workspace=backend --provenance --access public ${{ inputs.dry_run && '--dry-run' || '' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @frankleeeee/flowy-runner
         if: inputs.package == 'flowy-runner' || inputs.package == 'both'
         run: npm publish --workspace=runner --provenance --access public ${{ inputs.dry_run && '--dry-run' || '' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
