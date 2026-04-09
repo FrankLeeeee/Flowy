@@ -28,14 +28,15 @@ export default function KanbanBoard({
   return (
     <div className="flex gap-3 overflow-x-auto pb-4">
       {COLUMNS.map((status) => (
-        <KanbanColumn
-          key={status}
-          status={status}
-          tasks={grouped.get(status) ?? []}
-          runners={runners}
-          onTaskClick={onTaskClick}
-          onDrop={handleDrop}
-        />
+        <div key={status} className="motion-section shrink-0" style={{ '--motion-delay': `${COLUMNS.indexOf(status) * 45 + 40}ms` } as React.CSSProperties}>
+          <KanbanColumn
+            status={status}
+            tasks={grouped.get(status) ?? []}
+            runners={runners}
+            onTaskClick={onTaskClick}
+            onDrop={handleDrop}
+          />
+        </div>
       ))}
     </div>
   );

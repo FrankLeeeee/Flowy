@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Bot, Plus, Terminal, Shield, CheckCircle2, Copy } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Bot, Plus, Terminal, Shield, CheckCircle2, Copy, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Runners() {
@@ -21,6 +21,8 @@ export default function Runners() {
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [savedSecurity, setSavedSecurity] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
+  const [copiedInstallCommand, setCopiedInstallCommand] = useState(false);
+  const [copiedRegisterCommand, setCopiedRegisterCommand] = useState(false);
   const [tab, setTab] = useState<'runners' | 'security'>('runners');
 
   const loadData = useCallback(async () => {
@@ -86,18 +88,35 @@ export default function Runners() {
     }
   };
 
+  const handleCopyRunnerCommand = async (value: string, kind: 'install' | 'register') => {
+    try {
+      await navigator.clipboard.writeText(value);
+      if (kind === 'install') {
+        setCopiedInstallCommand(true);
+        setTimeout(() => setCopiedInstallCommand(false), 2000);
+      } else {
+        setCopiedRegisterCommand(true);
+        setTimeout(() => setCopiedRegisterCommand(false), 2000);
+      }
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to copy runner command');
+    }
+  };
+
   const onlineCount = runners.filter((r) => r.status === 'online' || r.status === 'busy').length;
   const offlineCount = runners.filter((r) => r.status === 'offline').length;
-  const runnerCommand = `my-hub-runner \\
+  const installCommand = 'npm install -g @frankleeeee/flowy-runner';
+  const runnerCommand = `flowy-runner \\
   --name "my-device" \\
   --url http://YOUR_HOST:3001${registrationSecret ? ` \\
   --secret ${registrationSecret}` : ''}`;
 
   if (loading) {
     return (
-      <div className="p-6 space-y-5">
+      <div className="p-6 space-y-5 motion-section" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <Skeleton className="h-6 w-24" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44 rounded-lg" />)}
         </div>
       </div>
@@ -107,19 +126,29 @@ export default function Runners() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/12">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 status-glow" />
+            Fleet overview
+          </div>
           <h1 className="text-[15px] font-semibold text-foreground">Runners</h1>
-          <p className="text-[12px] text-muted-foreground/60 mt-0.5">
+          <p className="mt-0.5 text-[12px] text-muted-foreground/85">
             {tab === 'runners' ? (
               <>
                 <span className="text-emerald-500">{onlineCount} online</span>
-                {offlineCount > 0 && <span className="ml-2 text-muted-foreground/40">{offlineCount} offline</span>}
+                {offlineCount > 0 && <span className="ml-2 text-muted-foreground/70">{offlineCount} offline</span>}
               </>
             ) : (
               'Manage runner registration security'
             )}
           </p>
+          {tab === 'runners' && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/10">{onlineCount} live runners</span>
+              <span className="inline-flex items-center rounded-full bg-card px-2 py-1 font-semibold text-foreground ring-1 ring-primary/8">{busyTasks.size} executing now</span>
+            </div>
+          )}
         </div>
         {tab === 'runners' && (
           <Button size="sm" onClick={() => setShowSetup(true)} className="h-8 text-[13px] shadow-soft">
@@ -131,22 +160,26 @@ export default function Runners() {
 
       {error && <div className="mb-4 bg-red-500/[0.06] text-red-500 px-3 py-2 rounded-md text-[13px]">{error}</div>}
 
-      <div className="flex items-center gap-1 mb-6 border-b border-border/50">
+      <div className="motion-section inline-flex items-center gap-1 mb-6 rounded-full border border-border/60 bg-card p-1 shadow-soft" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
         <button
+          type="button"
           onClick={() => setTab('runners')}
+          aria-pressed={tab === 'runners'}
           className={cn(
-            'flex items-center gap-1.5 px-3 pb-2.5 text-[13px] font-medium border-b-2 transition-colors duration-150 -mb-px',
-            tab === 'runners' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground/60 hover:text-muted-foreground'
+            'interactive-lift flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors duration-150',
+            tab === 'runners' ? 'bg-primary/10 text-primary shadow-soft' : 'text-muted-foreground/75 hover:text-foreground'
           )}
         >
           <Bot className="h-3.5 w-3.5" />
           Runners
         </button>
         <button
+          type="button"
           onClick={() => setTab('security')}
+          aria-pressed={tab === 'security'}
           className={cn(
-            'flex items-center gap-1.5 px-3 pb-2.5 text-[13px] font-medium border-b-2 transition-colors duration-150 -mb-px',
-            tab === 'security' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground/60 hover:text-muted-foreground'
+            'interactive-lift flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors duration-150',
+            tab === 'security' ? 'bg-primary/10 text-primary shadow-soft' : 'text-muted-foreground/75 hover:text-foreground'
           )}
         >
           <Shield className="h-3.5 w-3.5" />
@@ -154,122 +187,182 @@ export default function Runners() {
         </button>
       </div>
 
-      {tab === 'security' ? (
-        <div className="max-w-2xl">
-          <div className="mb-6">
-            <h1 className="text-[15px] font-semibold text-foreground">Security</h1>
-            <p className="text-[12px] text-muted-foreground/60 mt-0.5">Manage runner registration access and shared secrets</p>
-          </div>
+      <div key={tab} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
+        {tab === 'security' ? (
+          <div className="max-w-2xl">
+            <div className="mb-6">
+              <h1 className="text-[15px] font-semibold text-foreground">Security</h1>
+              <p className="mt-0.5 text-[12px] text-muted-foreground/85">Manage runner registration access and shared secrets</p>
+            </div>
 
-          <div className="rounded-lg border border-border/80 bg-card shadow-soft overflow-hidden">
-            <div className="h-0.5 bg-foreground/10" />
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Shield className="h-4 w-4 text-muted-foreground/40" />
-                <h2 className="font-semibold text-[13px] text-foreground">Runner Security</h2>
+            <div className="motion-card rounded-lg border border-border/80 bg-card shadow-soft overflow-hidden" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
+              <div className="h-0.5 bg-foreground/10" />
+              <div className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Shield className="h-4 w-4 text-muted-foreground/65" />
+                  <h2 className="font-semibold text-[13px] text-foreground">Runner Security</h2>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Registration Secret</Label>
+                  <div className="flex flex-wrap items-center gap-2 max-w-xl">
+                    <Input
+                      type="password"
+                      value={registrationSecret}
+                      onChange={(e) => setRegistrationSecret(e.target.value)}
+                      placeholder="Enter a secret..."
+                      className="h-9 max-w-md flex-1 min-w-[220px]"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void handleCopySecret()}
+                      disabled={!registrationSecret}
+                      className="h-9 text-[12px]"
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1.5" />
+                      {copiedSecret ? 'Copied' : 'Copy'}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/75">Required for runner registration. Leave empty for open access.</p>
+                </div>
+                <div className="mt-5 flex items-center gap-3">
+                  <Button onClick={() => void handleSaveSecurity()} disabled={savingSecurity} className="h-8 text-[13px]">
+                    {savingSecurity ? 'Saving...' : 'Save configurations'}
+                  </Button>
+                  {savedSecurity && (
+                    <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                      <CheckCircle2 className="h-3 w-3" /> Saved
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Registration Secret</Label>
-                <div className="flex items-center gap-2 max-w-xl">
-                  <Input
-                    type="password"
-                    value={registrationSecret}
-                    onChange={(e) => setRegistrationSecret(e.target.value)}
-                    placeholder="Enter a secret..."
-                    className="h-9 max-w-md"
-                  />
+            </div>
+          </div>
+        ) : (
+          <>
+            {runners.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Bot className="h-10 w-10 text-foreground/10 mb-4" />
+                <p className="text-[14px] font-medium text-muted-foreground/80">No runners registered</p>
+                <p className="mt-1 mb-5 text-[12px] text-muted-foreground/70">Add a runner to start executing tasks</p>
+                <Button onClick={() => setShowSetup(true)} size="sm" className="h-8 text-[13px]">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Add Runner
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {runners.map((runner, index) => (
+                  <div key={runner.id} style={{ '--motion-delay': `${index * 45 + 80}ms` } as React.CSSProperties}>
+                    <RunnerCard
+                      runner={runner}
+                      currentTask={busyTasks.get(runner.id)}
+                      onDelete={handleDelete}
+                      onRefresh={handleRefresh}
+                      refreshing={refreshingRunnerId === runner.id}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <Dialog open={showSetup} onOpenChange={(open) => { if (!open) setShowSetup(false); }}>
+        <DialogContent className="overflow-hidden border-border/40 bg-card p-0 shadow-float sm:max-w-2xl">
+          <DialogHeader className="border-b border-border/40 bg-primary/[0.06] px-6 pb-4 pt-5">
+            <DialogTitle className="sr-only">Add a runner</DialogTitle>
+            <DialogDescription className="sr-only">Get the command needed to register a runner on another machine.</DialogDescription>
+            <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary ring-1 ring-primary/10">
+              <Sparkles className="h-3 w-3" />
+              New Runner
+            </div>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Connect another machine</h2>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex flex-col">
+            <div className="space-y-3 px-6 py-4">
+              <div className="rounded-[18px] border border-primary/10 bg-primary/[0.03] px-4 py-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">Step 1</p>
+                  <span className="text-[10px] text-primary/65">Install package</span>
+                </div>
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <p className="text-[12px] leading-5 text-muted-foreground/85">
+                    Install the runner globally on the target machine.
+                  </p>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => void handleCopySecret()}
-                    disabled={!registrationSecret}
-                    className="h-9 text-[12px]"
+                    size="sm"
+                    onClick={() => void handleCopyRunnerCommand(installCommand, 'install')}
+                    className="h-7 rounded-full px-3 text-[11px] shadow-none"
                   >
-                    <Copy className="h-3.5 w-3.5 mr-1.5" />
-                    {copiedSecret ? 'Copied' : 'Copy'}
+                    <Copy className="mr-1.5 h-3 w-3" />
+                    {copiedInstallCommand ? 'Copied' : 'Copy'}
                   </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground/50">Required for runner registration. Leave empty for open access.</p>
+                <pre className="overflow-x-auto rounded-[14px] bg-[#16161a] px-4 py-3 font-mono text-[12px] leading-relaxed text-gray-300">
+{installCommand}
+                </pre>
               </div>
-              <div className="mt-5 flex items-center gap-3">
-                <Button onClick={() => void handleSaveSecurity()} disabled={savingSecurity} className="h-8 text-[13px]">
-                  {savingSecurity ? 'Saving...' : 'Save configurations'}
-                </Button>
-                {savedSecurity && (
-                  <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                    <CheckCircle2 className="h-3 w-3" /> Saved
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          {runners.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Bot className="h-10 w-10 text-foreground/10 mb-4" />
-              <p className="text-[14px] font-medium text-muted-foreground/60">No runners registered</p>
-              <p className="text-[12px] text-muted-foreground/40 mt-1 mb-5">Add a runner to start executing tasks</p>
-              <Button onClick={() => setShowSetup(true)} size="sm" className="h-8 text-[13px]">
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Add Runner
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {runners.map((runner) => (
-                <RunnerCard
-                  key={runner.id}
-                  runner={runner}
-                  currentTask={busyTasks.get(runner.id)}
-                  onDelete={handleDelete}
-                  onRefresh={handleRefresh}
-                  refreshing={refreshingRunnerId === runner.id}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
 
-      {showSetup && (
-        <Dialog open onOpenChange={(open) => { if (!open) setShowSetup(false); }}>
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold">
-                <Terminal className="h-4 w-4 opacity-60" />
-                Add Runner
-              </DialogTitle>
-              <DialogDescription className="text-[13px]">
-                Run this on the target machine after installing the released runner package.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="rounded-lg border border-border/80 bg-card shadow-soft overflow-hidden">
-                <div className="border-b border-border/60 px-4 py-3">
-                  <p className="text-[12px] font-medium text-foreground">Installed package command</p>
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">This assumes <code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">my-hub-runner</code> is already installed on that machine.</p>
+              <div className="rounded-[18px] border border-primary/10 bg-primary/[0.03] px-4 py-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">Step 2</p>
+                  <span className="text-[10px] text-primary/65">Register runner</span>
                 </div>
-                <div className="space-y-3 p-4">
-                  <pre className="bg-[#16161a] text-gray-300 rounded-lg px-4 py-3 text-[12px] overflow-x-auto leading-relaxed font-mono">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <p className="text-[12px] leading-5 text-muted-foreground/85">
+                    Run this after <code className="rounded bg-card px-1 py-0.5 font-mono text-foreground/90">flowy-runner</code> is installed.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleCopyRunnerCommand(runnerCommand, 'register')}
+                    className="h-7 rounded-full px-3 text-[11px] shadow-none"
+                  >
+                    <Copy className="mr-1.5 h-3 w-3" />
+                    {copiedRegisterCommand ? 'Copied' : 'Copy'}
+                  </Button>
+                </div>
+                <pre className="overflow-x-auto rounded-[14px] bg-[#16161a] px-4 py-3 font-mono text-[12px] leading-relaxed text-gray-300">
 {runnerCommand}
-                  </pre>
-                  <div className="grid gap-3 sm:grid-cols-2 text-[11px] text-muted-foreground/60">
-                    <p><code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">--name</code> Unique name for this machine, like <span className="font-mono">office-mac</span></p>
-                    <p><code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">--url</code> URL the runner can use to reach this hub backend</p>
-                    <p>The runner auto-detects installed CLIs on launch: <span className="font-mono">claude, codex</span></p>
-                    <p><code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">--secret</code> {registrationSecret ? 'Included from the current runner security settings' : 'Optional because runner registration is currently open'}</p>
-                  </div>
+                </pre>
+              </div>
+
+              <div className="rounded-[18px] border border-border/60 bg-background/90 px-4 py-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Runner Notes</p>
+                  <Terminal className="h-3.5 w-3.5 text-muted-foreground/65" />
+                </div>
+                <div className="grid gap-3 text-[11px] leading-5 text-muted-foreground/85">
+                  <p><code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">--name</code> Unique name for this machine, like <span className="font-mono text-foreground/85">office-mac</span></p>
+                  <p><code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">--url</code> URL the runner can use to reach this hub backend</p>
+                  <p><code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">--secret</code> {registrationSecret ? 'Included from the current runner security settings' : 'Optional because runner registration is currently open'}</p>
+                  <p>The runner auto-detects installed CLIs on launch: <span className="font-mono text-foreground/85">claude, codex, cursor-agent</span></p>
                 </div>
               </div>
-              <div className="rounded-lg border border-border/80 bg-foreground/[0.02] px-4 py-3 text-[11px] text-muted-foreground/60">
+
+              <div className="rounded-[18px] border border-border/60 bg-foreground/[0.02] px-4 py-3 text-[11px] text-muted-foreground/80">
                 <p>The runner saves its token to <code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">~/.config/my-hub/runner-&lt;name&gt;.json</code> and reuses it on the next launch.</p>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+            <DialogFooter className="border-t border-border/40 px-6 py-3 sm:justify-end">
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" onClick={() => setShowSetup(false)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
+                  Close
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

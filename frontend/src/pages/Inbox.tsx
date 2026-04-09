@@ -81,7 +81,7 @@ export default function Inbox() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-5">
+      <div className="p-6 space-y-5 motion-section" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <Skeleton className="h-6 w-24" />
         <Skeleton className="h-8 w-full" />
         <Skeleton className="h-64 w-full rounded-lg" />
@@ -92,10 +92,18 @@ export default function Inbox() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary ring-1 ring-primary/10">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary status-glow" />
+            Cross-project queue
+          </div>
           <h1 className="text-[15px] font-semibold text-foreground">Inbox</h1>
-          <p className="text-[12px] text-muted-foreground/60 mt-0.5">Active issues across all projects</p>
+          <p className="mt-0.5 text-[12px] text-muted-foreground/85">Active issues across all projects</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="inline-flex items-center rounded-full bg-card px-2 py-1 font-semibold text-foreground ring-1 ring-primary/8">{tasks.length} active tasks</span>
+            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/10">{runners.length} runners available</span>
+          </div>
         </div>
         <Button size="sm" onClick={() => { if (projects.length > 0) setShowCreate(true); }}
           disabled={projects.length === 0} className="h-8 text-[13px] shadow-soft">
@@ -109,7 +117,7 @@ export default function Inbox() {
       )}
 
       {/* Filters + View toggle */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="motion-section mb-6 flex flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
         <Select value={priorityFilter} onValueChange={setPriorityFilter}>
           <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Priority" /></SelectTrigger>
           <SelectContent>
@@ -129,36 +137,38 @@ export default function Inbox() {
           </SelectContent>
         </Select>
         <div className="relative flex-1 min-w-[120px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65" />
           <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
             className="h-8 pl-8 text-[13px] border-border/60" />
         </div>
 
         {/* View toggle */}
-        <div className="flex items-center border border-border/60 rounded-md overflow-hidden ml-auto shrink-0">
-          <button onClick={() => setViewMode('kanban')}
-            className={cn('px-2.5 py-1.5 transition-colors duration-100', viewMode === 'kanban' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground')}>
+        <div className="flex items-center border border-border/60 bg-card rounded-md overflow-hidden ml-auto shrink-0 shadow-soft">
+          <button type="button" onClick={() => setViewMode('kanban')} aria-label="Kanban view"
+            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'kanban' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
             <LayoutGrid className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => setViewMode('list')}
-            className={cn('px-2.5 py-1.5 transition-colors duration-100', viewMode === 'list' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground')}>
+          <button type="button" onClick={() => setViewMode('list')} aria-label="List view"
+            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'list' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
             <List className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        <span className="text-[11px] text-muted-foreground/40 font-medium shrink-0">{tasks.length} active</span>
+        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{tasks.length} active</span>
       </div>
 
       {/* Content */}
-      {viewMode === 'kanban' ? (
-        <KanbanBoard tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
-      ) : (
-        <TaskListView tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
-      )}
+      <div key={viewMode} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
+        {viewMode === 'kanban' ? (
+          <KanbanBoard tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+        ) : (
+          <TaskListView tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+        )}
+      </div>
 
-      {showCreate && <CreateTaskModal projects={projects} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />}
-      {detailTask && <TaskDetailModal task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
-      {assigningTask && <AssignTaskModal taskKey={assigningTask.task_key} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
+      <CreateTaskModal open={showCreate} projects={projects} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
+      {assigningTask && <AssignTaskModal open={!!assigningTask} taskKey={assigningTask.task_key} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
     </div>
   );
 }

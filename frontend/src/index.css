@@ -6,37 +6,82 @@
 
 @layer base {
   :root {
-    /* Linear-inspired light theme — clean, minimal, elegant */
-    --background: 0 0% 99%;           /* #FCFCFD — near-white */
-    --foreground: 240 6% 10%;         /* #18181B — soft black */
+    /* Light theme — clean neutrals with a soft blue accent */
+    --background: 0 0% 98.5%;         /* #FBFBFB — warm neutral white */
+    --foreground: 0 0% 9%;            /* #171717 — near-black */
 
-    --card: 0 0% 100%;                /* pure white */
-    --card-foreground: 240 6% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 10%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 238 58% 58%;           /* #5E6AD2 — Linear's brand violet */
+    --primary: 202 84% 58%;           /* soft light blue accent */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 96%;          /* very light gray */
-    --secondary-foreground: 240 6% 10%;
+    --secondary: 0 0% 96.5%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;   /* #6B6F76 */
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 36%;
 
-    --accent: 240 5% 96%;
-    --accent-foreground: 240 6% 10%;
+    --accent: 204 100% 96%;
+    --accent-foreground: 204 62% 24%;
 
     --destructive: 358 68% 57%;       /* #E5484D */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 92%;               /* near-invisible border */
-    --input: 0 0% 90%;
-    --ring: 238 58% 58%;
+    --border: 0 0% 90%;
+    --input: 0 0% 88%;
+    --ring: 202 84% 58%;
     --radius: 0.5rem;
 
-    --sidebar: 240 5% 97%;            /* #F5F5F6 */
+    --sidebar: 0 0% 97%;
+
+    /* Shared easing curves */
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Theme-aware surface overlay color (white in light, lighter dark in dark) */
+    --surface-overlay: 0 0% 100%;
+    --surface-tint-alpha: 0.7;
+  }
+
+  .dark {
+    /* Dark theme — deep neutrals with a brighter blue accent */
+    --background: 0 0% 9%;            /* #171717 — deep charcoal */
+    --foreground: 0 0% 90%;           /* #E5E5E5 — soft off-white */
+
+    --card: 0 0% 12%;                 /* #1F1F1F — elevated surface */
+    --card-foreground: 0 0% 90%;
+
+    --popover: 0 0% 14%;              /* #242424 — dropdown surface */
+    --popover-foreground: 0 0% 90%;
+
+    --primary: 202 92% 68%;           /* brighter blue for dark surfaces */
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 85%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 68%;     /* brighter mid-gray for dark surfaces */
+
+    --accent: 203 42% 18%;
+    --accent-foreground: 203 100% 88%;
+
+    --destructive: 358 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%;               /* #2E2E2E — subtle dark border */
+    --input: 0 0% 20%;
+    --ring: 202 92% 68%;
+
+    --sidebar: 0 0% 10.5%;            /* slightly lighter than bg */
+
+    --surface-overlay: 0 0% 16%;
+    --surface-tint-alpha: 0.5;
   }
 
   * {
@@ -48,6 +93,114 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: hsl(var(--background));
+  }
+
+  ::selection {
+    background: hsla(202, 84%, 58%, 0.22);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .motion-page {
+    animation: page-enter 420ms var(--ease-out-quart) both;
+  }
+
+  .motion-section {
+    animation: section-enter 460ms var(--ease-out-quart) both;
+    animation-delay: var(--motion-delay, 0ms);
+  }
+
+  .motion-card {
+    animation: card-enter 500ms var(--ease-out-quart) both;
+    animation-delay: var(--motion-delay, 0ms);
+  }
+
+  .motion-switch {
+    animation: content-switch 280ms var(--ease-out-quint) both;
+  }
+
+  .interactive-lift {
+    transition-property: transform, box-shadow, border-color, background-color, color, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease-out-quart);
+  }
+
+  .interactive-row {
+    transition-property: transform, background-color, border-color, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease-out-quart);
+  }
+
+  .surface-tint {
+    background: hsl(var(--card));
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark .surface-tint {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .violet-sheen {
+    background: hsla(202, 84%, 58%, 0.1);
+  }
+
+  .dark .violet-sheen {
+    background: hsla(202, 92%, 68%, 0.12);
+  }
+
+  .status-glow {
+    box-shadow: none;
+    animation: none;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes content-switch {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -65,4 +218,36 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-page,
+  .motion-section,
+  .motion-card,
+  .motion-switch {
+    animation: none !important;
+  }
+
+  .status-glow {
+    animation: none !important;
+  }
 }

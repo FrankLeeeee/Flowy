@@ -13,8 +13,9 @@ const AI_LABELS: Record<AiProvider, string> = {
 };
 
 export default function AssignTaskModal({
-  taskKey, runners, onSubmit, onClose,
+  open, taskKey, runners, onSubmit, onClose,
 }: {
+  open: boolean;
   taskKey: string;
   runners: Runner[];
   onSubmit: (data: { runnerId: string; aiProvider: string }) => void;
@@ -35,7 +36,7 @@ export default function AssignTaskModal({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[15px] font-semibold">Assign {taskKey}</DialogTitle>
@@ -57,7 +58,7 @@ export default function AssignTaskModal({
               <div className="flex items-center gap-2 pt-1">
                 <RunnerStatusBadge status={selectedRunner.status} />
                 {selectedRunner.device_info && (
-                  <span className="text-[11px] text-muted-foreground/50">{selectedRunner.device_info}</span>
+                  <span className="text-[11px] text-muted-foreground/75">{selectedRunner.device_info}</span>
                 )}
               </div>
             )}
@@ -72,7 +73,7 @@ export default function AssignTaskModal({
                   <SelectItem key={p} value={p}>{AI_LABELS[p]}</SelectItem>
                 ))}
                 {availableProviders.length === 0 && runnerId && (
-                  <div className="px-3 py-2 text-[13px] text-muted-foreground/50">No providers available</div>
+                  <div className="px-3 py-2 text-[13px] text-muted-foreground/75">No providers available</div>
                 )}
               </SelectContent>
             </Select>
