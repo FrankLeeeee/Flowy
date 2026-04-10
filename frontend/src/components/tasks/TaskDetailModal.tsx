@@ -439,7 +439,7 @@ export default function TaskDetailModal({
           </DialogHeader>
 
           <ScrollArea className="flex-1 min-h-0 bg-muted/20">
-            <div className="mx-auto w-full max-w-5xl px-6 py-6">
+            <div className="w-full px-6 py-6">
               <div className={cn(OUTPUT_MARKDOWN_CLASSNAME, 'min-h-full bg-background shadow-soft')}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
               </div>
