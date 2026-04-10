@@ -1,6 +1,6 @@
 import { Task, TaskPriority, Runner } from '../../types';
-import { cn } from '@/lib/utils';
-import { SignalHigh, SignalMedium, SignalLow, AlertTriangle, Minus } from 'lucide-react';
+import { cn, formatElapsedTime } from '@/lib/utils';
+import { SignalHigh, SignalMedium, SignalLow, AlertTriangle, Minus, Clock3 } from 'lucide-react';
 
 const PRIORITY_ICON: Record<TaskPriority, { icon: React.ReactNode; color: string; surface: string; bar: string }> = {
   urgent: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-rose-600 dark:text-rose-400', surface: 'from-rose-500/12 via-transparent to-transparent', bar: 'bg-rose-500' },
@@ -17,6 +17,7 @@ export default function TaskCard({
 }) {
   const labels: string[] = JSON.parse(task.labels || '[]');
   const pri = PRIORITY_ICON[task.priority];
+  const elapsed = formatElapsedTime(task.started_at, task.completed_at);
 
   return (
     <button
@@ -67,6 +68,13 @@ export default function TaskCard({
               {task.ai_provider}
             </span>
           )}
+        </div>
+      )}
+
+      {elapsed && (
+        <div className="relative mt-2 flex items-center gap-1.5 pl-1.5 text-[10px] font-medium text-muted-foreground/80">
+          <Clock3 className="h-3 w-3" />
+          <span>Took {elapsed}</span>
         </div>
       )}
     </button>
