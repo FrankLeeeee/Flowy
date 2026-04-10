@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import { Task } from './types';
+import { parseHarnessConfig } from './harnessConfig';
 
 export interface ExecutionResult {
   success: boolean;
@@ -11,19 +12,77 @@ export interface ExecutionResult {
 export function buildCommand(aiProvider: string, prompt: string): {
   cmd: string;
   args: string[];
+  cwd?: string;
   streamOutput: boolean;
 } {
+  return buildCommandWithConfig(aiProvider, prompt);
+}
+
+export function buildCommandWithConfig(aiProvider: string, prompt: string, rawHarnessConfig?: string): {
+  cmd: string;
+  args: string[];
+  cwd?: string;
+  streamOutput: boolean;
+} {
+  const harnessConfig = parseHarnessConfig(rawHarnessConfig);
+
   switch (aiProvider) {
-    case 'claude-code':
-      return { cmd: 'claude', args: ['-p', prompt, "--tools", "all"], streamOutput: true };
-    case 'codex':
+    case 'claude-code': {
+      const config = harnessConfig.claudeCode ?? {};
+      const args = ['-p', '--tools', 'all'];
+
+      if (config.model) args.push('--model', config.model);
+      if (config.mode) args.push('--permission-mode', config.mode);
+      if (config.worktree) args.push('--worktree', config.worktree);
+
+      args.push(prompt);
+
       return {
-        cmd: 'codex',
-        args: ['exec', prompt, '--sandbox', 'workspace-write', '--color', 'never'],
+        cmd: 'claude',
+        args,
+        cwd: config.workspace,
         streamOutput: true,
       };
-    case 'cursor-agent':
-      return { cmd: 'agent', args: ['--print', '--force', prompt], streamOutput: true };
+    }
+    case 'codex': {
+      const config = harnessConfig.codex ?? {};
+      const args = ['exec'];
+
+      if (config.workspace) args.push('--cd', config.workspace);
+      if (config.model) args.push('--model', config.model);
+      if (config.sandbox) {
+        args.push('--sandbox', config.sandbox);
+      } else {
+        args.push('--sandbox', 'workspace-write');
+      }
+      args.push('--color', 'never', prompt);
+
+      return {
+        cmd: 'codex',
+        args,
+        cwd: config.workspace,
+        streamOutput: true,
+      };
+    }
+    case 'cursor-agent': {
+      const config = harnessConfig.cursorAgent ?? {};
+      const args = ['--print', '--force'];
+
+      if (config.workspace) args.push('--workspace', config.workspace);
+      if (config.model) args.push('--model', config.model);
+      if (config.mode) args.push('--mode', config.mode);
+      if (config.sandbox) args.push('--sandbox', config.sandbox);
+      if (config.worktree) args.push('--worktree', config.worktree);
+
+      args.push(prompt);
+
+      return {
+        cmd: 'agent',
+        args,
+        cwd: config.workspace,
+        streamOutput: true,
+      };
+    }
     default:
       throw new Error(`Unknown AI provider: ${aiProvider}`);
   }
@@ -38,7 +97,11 @@ export function executeTask(
   task: Task,
   onOutput: (chunk: string) => void,
 ): { promise: Promise<ExecutionResult>; kill: () => void } {
-  const { cmd, args, streamOutput } = buildCommand(task.ai_provider!, task.description || task.title);
+  const { cmd, args, cwd, streamOutput } = buildCommandWithConfig(
+    task.ai_provider!,
+    task.description || task.title,
+    task.harness_config,
+  );
 
   let child: ChildProcess;
   let fullOutput = '';
@@ -50,6 +113,7 @@ export function executeTask(
 
     child = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
+      cwd,
       env: { ...process.env },
     });
 

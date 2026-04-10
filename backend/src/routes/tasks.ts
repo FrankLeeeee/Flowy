@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
 import { getDb } from '../db';
 import { Task, Project, TaskLog } from '../types';
+import { normalizeHarnessConfig } from '../harnessConfig';
 
 const router = Router();
 
@@ -64,15 +65,15 @@ router.put('/:id', (req: Request, res: Response) => {
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task | undefined;
   if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
 
-  const { title, description, status, priority, labels, runnerId, aiProvider } = req.body as {
+  const { title, description, status, priority, labels, runnerId, aiProvider, harnessConfig } = req.body as {
     title?: string; description?: string; status?: string; priority?: string;
-    labels?: string[]; runnerId?: string | null; aiProvider?: string | null;
+    labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown;
   };
 
   db.prepare(`
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
-      labels = ?, runner_id = ?, ai_provider = ?, updated_at = datetime('now')
+      labels = ?, runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
     title ?? task.title,
@@ -82,6 +83,7 @@ router.put('/:id', (req: Request, res: Response) => {
     labels ? JSON.stringify(labels) : task.labels,
     runnerId !== undefined ? runnerId : task.runner_id,
     aiProvider !== undefined ? aiProvider : task.ai_provider,
+    harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config,
     req.params.id,
   );
 
@@ -98,7 +100,9 @@ router.delete('/:id', (req: Request, res: Response) => {
 
 // POST /api/tasks/:id/assign
 router.post('/:id/assign', (req: Request, res: Response) => {
-  const { runnerId, aiProvider } = req.body as { runnerId?: string; aiProvider?: string };
+  const { runnerId, aiProvider, harnessConfig } = req.body as {
+    runnerId?: string; aiProvider?: string; harnessConfig?: unknown;
+  };
   if (!runnerId || !aiProvider) { res.status(400).json({ error: 'runnerId and aiProvider are required' }); return; }
 
   const db = getDb();
@@ -109,9 +113,9 @@ router.post('/:id/assign', (req: Request, res: Response) => {
   if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
 
   db.prepare(`
-    UPDATE tasks SET runner_id = ?, ai_provider = ?, status = 'todo', updated_at = datetime('now')
+    UPDATE tasks SET runner_id = ?, ai_provider = ?, harness_config = ?, status = 'todo', updated_at = datetime('now')
     WHERE id = ?
-  `).run(runnerId, aiProvider, req.params.id);
+  `).run(runnerId, aiProvider, harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config, req.params.id);
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
   res.json(updated);

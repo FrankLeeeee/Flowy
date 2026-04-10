@@ -58,7 +58,7 @@ export default function Inbox() {
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => {
     await createTask(data); setShowCreate(false); loadData();
   };
-  const handleAssign = async (data: { runnerId: string; aiProvider: string }) => {
+  const handleAssign = async (data: Parameters<typeof assignTask>[1]) => {
     if (!assigningTask) return;
     await assignTask(assigningTask.id, data); setAssigningTask(null); setDetailTask(null); loadData();
   };
@@ -168,7 +168,7 @@ export default function Inbox() {
 
       <CreateTaskModal open={showCreate} projects={projects} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
-      {assigningTask && <AssignTaskModal open={!!assigningTask} taskKey={assigningTask.task_key} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
+      {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
     </div>
   );
 }

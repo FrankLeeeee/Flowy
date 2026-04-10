@@ -71,7 +71,7 @@ export default function ProjectDetail() {
   useEffect(() => { const iv = setInterval(loadData, 10_000); return () => clearInterval(iv); }, [loadData]);
 
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => { await createTask(data); setShowCreate(false); loadData(); };
-  const handleAssign = async (data: { runnerId: string; aiProvider: string }) => { if (!assigningTask) return; await assignTask(assigningTask.id, data); setAssigningTask(null); setDetailTask(null); loadData(); };
+  const handleAssign = async (data: Parameters<typeof assignTask>[1]) => { if (!assigningTask) return; await assignTask(assigningTask.id, data); setAssigningTask(null); setDetailTask(null); loadData(); };
   const handleDelete = async (taskId: string) => { if (!confirm('Delete this task?')) return; await deleteTask(taskId); setDetailTask(null); loadData(); };
   const handleTaskUpdate = (updated: Task) => { setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated); };
   const handleTaskClick = async (task: Task) => { try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); } };
@@ -220,7 +220,7 @@ export default function ProjectDetail() {
 
       <CreateTaskModal open={showCreate} projects={allProjects} defaultProjectId={project.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
-      {assigningTask && <AssignTaskModal open={!!assigningTask} taskKey={assigningTask.task_key} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
+      {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
 
       <Dialog open={showEditProject} onOpenChange={(open) => { if (!open) setShowEditProject(false); }}>
           <DialogContent className="sm:max-w-[380px]">
