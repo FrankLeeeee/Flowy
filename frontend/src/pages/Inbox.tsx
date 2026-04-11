@@ -16,8 +16,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, LayoutGrid, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getToneStyles } from '@/lib/semanticColors';
 
 export default function Inbox() {
+  const brandTone = getToneStyles('brand');
+  const successTone = getToneStyles('success');
+  const neutralTone = getToneStyles('neutral');
+  const dangerTone = getToneStyles('danger');
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
@@ -94,15 +100,15 @@ export default function Inbox() {
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary ring-1 ring-primary/10">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary status-glow" />
+          <div className={cn('mb-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1', brandTone.pill)}>
+            <span className={cn('h-1.5 w-1.5 rounded-full status-glow', brandTone.dot)} />
             Cross-project queue
           </div>
           <h1 className="text-[15px] font-semibold text-foreground">Inbox</h1>
           <p className="mt-0.5 text-[12px] text-muted-foreground/85">Active issues across all projects</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="inline-flex items-center rounded-full bg-card px-2 py-1 font-semibold text-foreground ring-1 ring-primary/8">{tasks.length} active tasks</span>
-            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/10">{runners.length} runners available</span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{tasks.length} active tasks</span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', successTone.pill)}>{runners.length} runners available</span>
           </div>
         </div>
         <Button size="sm" onClick={() => { if (projects.length > 0) setShowCreate(true); }}
@@ -113,7 +119,7 @@ export default function Inbox() {
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-500/[0.06] text-red-500 px-3 py-2 rounded-md text-[13px]">{error}</div>
+        <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>{error}</div>
       )}
 
       {/* Filters + View toggle */}

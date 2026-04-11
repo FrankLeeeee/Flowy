@@ -1,25 +1,26 @@
 import { useState } from 'react';
 import { Task, Runner, TaskStatus, TaskPriority } from '../../types';
 import { cn } from '@/lib/utils';
+import { getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { SignalHigh, SignalMedium, SignalLow, AlertTriangle, Minus, Circle, CheckCircle2, XCircle, Clock, Archive, GripVertical } from 'lucide-react';
 
 const STATUSES: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'failed', 'done', 'cancelled'];
 
-const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string; color: string; pill: string }> = {
-  backlog:     { icon: <Archive className="h-3.5 w-3.5" />,      label: 'Backlog',     color: 'text-slate-600 dark:text-slate-400', pill: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/15' },
-  todo:        { icon: <Circle className="h-3.5 w-3.5" />,       label: 'Todo',        color: 'text-sky-600 dark:text-sky-400', pill: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/15' },
-  in_progress: { icon: <Clock className="h-3.5 w-3.5" />,        label: 'In Progress', color: 'text-amber-600 dark:text-amber-400', pill: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/15' },
-  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed',     color: 'text-rose-600 dark:text-rose-400', pill: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-rose-500/15' },
-  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done',        color: 'text-emerald-600 dark:text-emerald-400', pill: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/15' },
-  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />,      label: 'Cancelled',   color: 'text-zinc-500 dark:text-zinc-400', pill: 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 ring-zinc-500/15' },
+const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string }> = {
+  backlog:     { icon: <Archive className="h-3.5 w-3.5" />, label: 'Backlog' },
+  todo:        { icon: <Circle className="h-3.5 w-3.5" />, label: 'Todo' },
+  in_progress: { icon: <Clock className="h-3.5 w-3.5" />, label: 'In Progress' },
+  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed' },
+  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done' },
+  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Cancelled' },
 };
 
-const PRIORITY_CONFIG: Record<TaskPriority, { icon: React.ReactNode; color: string }> = {
-  urgent: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-rose-600 dark:text-rose-400' },
-  high:   { icon: <SignalHigh className="h-3.5 w-3.5" />,    color: 'text-orange-600 dark:text-orange-400' },
-  medium: { icon: <SignalMedium className="h-3.5 w-3.5" />,  color: 'text-amber-600 dark:text-amber-400' },
-  low:    { icon: <SignalLow className="h-3.5 w-3.5" />,     color: 'text-sky-600 dark:text-sky-400' },
-  none:   { icon: <Minus className="h-3.5 w-3.5" />,         color: 'text-foreground/20' },
+const PRIORITY_CONFIG: Record<TaskPriority, { icon: React.ReactNode }> = {
+  urgent: { icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+  high:   { icon: <SignalHigh className="h-3.5 w-3.5" /> },
+  medium: { icon: <SignalMedium className="h-3.5 w-3.5" /> },
+  low:    { icon: <SignalLow className="h-3.5 w-3.5" /> },
+  none:   { icon: <Minus className="h-3.5 w-3.5" /> },
 };
 
 function timeAgo(iso: string): string {
@@ -41,6 +42,7 @@ function StatusGroup({
 }) {
   const [dragOver, setDragOver] = useState(false);
   const config = STATUS_CONFIG[status];
+  const tone = getTaskStatusStyles(status);
 
   const handleDragOver = (e: React.DragEvent) => {
     if (!e.dataTransfer.types.includes('application/task-id')) return;
@@ -76,15 +78,16 @@ function StatusGroup({
         'flex items-center gap-2 px-4 py-2.5 border-b border-border/40 bg-muted/50',
         dragOver && 'border-primary/20',
       )}>
-        <span className={cn(config.color)}>{config.icon}</span>
+        <span className={cn(tone.icon)}>{config.icon}</span>
         <span className="text-[12px] font-semibold text-foreground">{config.label}</span>
-        <span className={cn('ml-auto inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', config.pill)}>{tasks.length}</span>
+        <span className={cn('ml-auto inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', tone.pill)}>{tasks.length}</span>
       </div>
 
       {/* Rows */}
       {tasks.map((task, index) => {
         const runner = task.runner_id ? runnerMap.get(task.runner_id) : undefined;
         const priority = PRIORITY_CONFIG[task.priority];
+        const priorityTone = getTaskPriorityStyles(task.priority);
 
         return (
           <div
@@ -112,7 +115,7 @@ function StatusGroup({
               <span className="shrink-0 text-[11px] font-mono text-muted-foreground/75">{task.task_key}</span>
               <span className="text-[13px] font-medium text-foreground truncate">{task.title}</span>
             </div>
-            <div className={cn('flex items-center', priority.color)}>
+            <div className={cn('flex items-center', priorityTone.icon)}>
               {priority.icon}
             </div>
             <span className="text-[12px] text-muted-foreground truncate">{runner?.name ?? '-'}</span>

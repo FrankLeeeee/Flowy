@@ -8,7 +8,8 @@ import {
   ClaudeCodeHarnessConfig,
   CursorAgentHarnessConfig,
 } from '../../types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +25,8 @@ const AI_LABELS: Record<AiProvider, string> = {
 };
 
 const DEFAULT_SELECT = '__default__';
+const DIALOG_CONTROL_CLASSNAME = 'h-9 rounded-xl border-border/60 bg-card text-[13px] shadow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';
+const DIALOG_SELECT_TRIGGER_CLASSNAME = 'h-9 rounded-xl border-border/60 bg-card px-3 text-[13px] shadow-soft focus:ring-2 focus:ring-ring focus:ring-offset-0';
 
 export default function AssignTaskModal({
   open, task, runners, onSubmit, onClose,
@@ -73,53 +76,65 @@ export default function AssignTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="text-[15px] font-semibold">Assign {task.task_key}</DialogTitle>
-          <DialogDescription className="text-[13px]">Select a runner, choose a harness, and pass execution settings through to the CLI command.</DialogDescription>
-        </DialogHeader>
+      <AppDialogContent className="sm:max-w-2xl max-h-[90vh]">
+        <AppDialogHeader>
+          <DialogTitle className="sr-only">Assign {task.task_key}</DialogTitle>
+          <DialogDescription className="sr-only">Select a runner, choose a harness, and pass execution settings through to the CLI command.</DialogDescription>
+          <AppDialogEyebrow>Task assignment</AppDialogEyebrow>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Assign {task.task_key}</h2>
+              <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">Select a runner, choose a harness, and pass the execution settings through to the underlying CLI.</p>
+            </div>
+            <div className="max-w-full rounded-full bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground/85 ring-1 ring-primary/10 shadow-soft">
+              <span className="block max-w-[240px] truncate">{task.title}</span>
+            </div>
+          </div>
+        </AppDialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col gap-4">
-          <ScrollArea className="max-h-[62vh] pr-4">
-            <div className="space-y-4 pr-4">
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Runner</Label>
-                <Select value={runnerId || undefined} onValueChange={(value) => { setRunnerId(value); setAiProvider(''); }}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select a runner..." /></SelectTrigger>
-                  <SelectContent>
-                    {runners.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>{r.name} ({r.status})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedRunner && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <RunnerStatusBadge status={selectedRunner.status} />
-                    {selectedRunner.device_info && (
-                      <span className="text-[11px] text-muted-foreground/75">{selectedRunner.device_info}</span>
-                    )}
-                  </div>
-                )}
-              </div>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+          <ScrollArea className="max-h-[62vh]">
+            <AppDialogBody className="space-y-4 pr-4">
+              <AppDialogSection tone="primary" className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Runner</Label>
+                  <Select value={runnerId || undefined} onValueChange={(value) => { setRunnerId(value); setAiProvider(''); }}>
+                    <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Select a runner..." /></SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                      {runners.map((r) => (
+                        <SelectItem key={r.id} value={r.id} className="rounded-lg py-2 text-[11px]">{r.name} ({r.status})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedRunner && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <RunnerStatusBadge status={selectedRunner.status} />
+                      {selectedRunner.device_info && (
+                        <span className="text-[11px] text-muted-foreground/75">{selectedRunner.device_info}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">AI Provider</Label>
-                <Select value={aiProvider || undefined} onValueChange={(value) => setAiProvider(value as AiProvider)} disabled={!runnerId}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select AI provider..." /></SelectTrigger>
-                  <SelectContent>
-                    {availableProviders.map((provider) => (
-                      <SelectItem key={provider} value={provider}>{AI_LABELS[provider]}</SelectItem>
-                    ))}
-                    {availableProviders.length === 0 && runnerId && (
-                      <div className="px-3 py-2 text-[13px] text-muted-foreground/75">No providers available</div>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">AI Provider</Label>
+                  <Select value={aiProvider || undefined} onValueChange={(value) => setAiProvider(value as AiProvider)} disabled={!runnerId}>
+                    <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Select AI provider..." /></SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                      {availableProviders.map((provider) => (
+                        <SelectItem key={provider} value={provider} className="rounded-lg py-2 text-[11px]">{AI_LABELS[provider]}</SelectItem>
+                      ))}
+                      {availableProviders.length === 0 && runnerId && (
+                        <div className="px-3 py-2 text-[13px] text-muted-foreground/75">No providers available</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </AppDialogSection>
 
               {aiProvider === 'codex' && (
-                <div className="rounded-xl border border-border/60 bg-foreground/[0.02] p-4">
-                  <div className="mb-4">
+                <AppDialogSection className="space-y-4">
+                  <div>
                     <h3 className="text-[13px] font-semibold text-foreground">Codex settings</h3>
                     <p className="mt-1 text-[12px] text-muted-foreground/80">Maps to `codex exec` flags for workspace, model, and sandbox.</p>
                   </div>
@@ -127,30 +142,30 @@ export default function AssignTaskModal({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Workspace</Label>
-                      <Input value={codexConfig.workspace ?? ''} onChange={(e) => updateCodexConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className="h-9" />
+                      <Input value={codexConfig.workspace ?? ''} onChange={(e) => updateCodexConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Model</Label>
-                      <Input value={codexConfig.model ?? ''} onChange={(e) => updateCodexConfig({ model: e.target.value || undefined })} placeholder="gpt-5.4" className="h-9" />
+                      <Input value={codexConfig.model ?? ''} onChange={(e) => updateCodexConfig({ model: e.target.value || undefined })} placeholder="gpt-5.4" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Sandbox</Label>
                       <Select value={codexConfig.sandbox ?? 'workspace-write'} onValueChange={(value) => updateCodexConfig({ sandbox: value as CodexHarnessConfig['sandbox'] })}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="read-only">read-only</SelectItem>
-                          <SelectItem value="workspace-write">workspace-write</SelectItem>
-                          <SelectItem value="danger-full-access">danger-full-access</SelectItem>
+                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue /></SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value="read-only" className="rounded-lg py-2 text-[11px]">read-only</SelectItem>
+                          <SelectItem value="workspace-write" className="rounded-lg py-2 text-[11px]">workspace-write</SelectItem>
+                          <SelectItem value="danger-full-access" className="rounded-lg py-2 text-[11px]">danger-full-access</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                </div>
+                </AppDialogSection>
               )}
 
               {aiProvider === 'claude-code' && (
-                <div className="rounded-xl border border-border/60 bg-foreground/[0.02] p-4">
-                  <div className="mb-4">
+                <AppDialogSection className="space-y-4">
+                  <div>
                     <h3 className="text-[13px] font-semibold text-foreground">Claude Code settings</h3>
                     <p className="mt-1 text-[12px] text-muted-foreground/80">Maps to `claude` flags for workspace, model, mode, and worktree.</p>
                   </div>
@@ -158,37 +173,37 @@ export default function AssignTaskModal({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Workspace</Label>
-                      <Input value={claudeConfig.workspace ?? ''} onChange={(e) => updateClaudeConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className="h-9" />
+                      <Input value={claudeConfig.workspace ?? ''} onChange={(e) => updateClaudeConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Model</Label>
-                      <Input value={claudeConfig.model ?? ''} onChange={(e) => updateClaudeConfig({ model: e.target.value || undefined })} placeholder="sonnet" className="h-9" />
+                      <Input value={claudeConfig.model ?? ''} onChange={(e) => updateClaudeConfig({ model: e.target.value || undefined })} placeholder="sonnet" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Mode</Label>
                       <Select value={claudeConfig.mode ?? DEFAULT_SELECT} onValueChange={(value) => updateClaudeConfig({ mode: value === DEFAULT_SELECT ? undefined : value as ClaudeCodeHarnessConfig['mode'] })}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Default" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={DEFAULT_SELECT}>Default</SelectItem>
-                          <SelectItem value="acceptEdits">acceptEdits</SelectItem>
-                          <SelectItem value="auto">auto</SelectItem>
-                          <SelectItem value="bypassPermissions">bypassPermissions</SelectItem>
-                          <SelectItem value="dontAsk">dontAsk</SelectItem>
-                          <SelectItem value="plan">plan</SelectItem>
+                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Default" /></SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
+                          <SelectItem value="acceptEdits" className="rounded-lg py-2 text-[11px]">acceptEdits</SelectItem>
+                          <SelectItem value="auto" className="rounded-lg py-2 text-[11px]">auto</SelectItem>
+                          <SelectItem value="bypassPermissions" className="rounded-lg py-2 text-[11px]">bypassPermissions</SelectItem>
+                          <SelectItem value="dontAsk" className="rounded-lg py-2 text-[11px]">dontAsk</SelectItem>
+                          <SelectItem value="plan" className="rounded-lg py-2 text-[11px]">plan</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Worktree name</Label>
-                      <Input value={claudeConfig.worktree ?? ''} onChange={(e) => updateClaudeConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className="h-9" />
+                      <Input value={claudeConfig.worktree ?? ''} onChange={(e) => updateClaudeConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                   </div>
-                </div>
+                </AppDialogSection>
               )}
 
               {aiProvider === 'cursor-agent' && (
-                <div className="rounded-xl border border-border/60 bg-foreground/[0.02] p-4">
-                  <div className="mb-4">
+                <AppDialogSection className="space-y-4">
+                  <div>
                     <h3 className="text-[13px] font-semibold text-foreground">Cursor Agent settings</h3>
                     <p className="mt-1 text-[12px] text-muted-foreground/80">Maps to `agent` flags for workspace, model, mode, sandbox, and worktree.</p>
                   </div>
@@ -196,50 +211,55 @@ export default function AssignTaskModal({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Workspace</Label>
-                      <Input value={cursorConfig.workspace ?? ''} onChange={(e) => updateCursorConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className="h-9" />
+                      <Input value={cursorConfig.workspace ?? ''} onChange={(e) => updateCursorConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Model</Label>
-                      <Input value={cursorConfig.model ?? ''} onChange={(e) => updateCursorConfig({ model: e.target.value || undefined })} placeholder="gpt-5" className="h-9" />
+                      <Input value={cursorConfig.model ?? ''} onChange={(e) => updateCursorConfig({ model: e.target.value || undefined })} placeholder="gpt-5" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Mode</Label>
                       <Select value={cursorConfig.mode ?? DEFAULT_SELECT} onValueChange={(value) => updateCursorConfig({ mode: value === DEFAULT_SELECT ? undefined : value as CursorAgentHarnessConfig['mode'] })}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Default" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={DEFAULT_SELECT}>Default</SelectItem>
-                          <SelectItem value="plan">plan</SelectItem>
-                          <SelectItem value="ask">ask</SelectItem>
+                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Default" /></SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
+                          <SelectItem value="plan" className="rounded-lg py-2 text-[11px]">plan</SelectItem>
+                          <SelectItem value="ask" className="rounded-lg py-2 text-[11px]">ask</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Sandbox</Label>
                       <Select value={cursorConfig.sandbox ?? DEFAULT_SELECT} onValueChange={(value) => updateCursorConfig({ sandbox: value === DEFAULT_SELECT ? undefined : value as CursorAgentHarnessConfig['sandbox'] })}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Default" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={DEFAULT_SELECT}>Default</SelectItem>
-                          <SelectItem value="enabled">enabled</SelectItem>
-                          <SelectItem value="disabled">disabled</SelectItem>
+                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Default" /></SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
+                          <SelectItem value="enabled" className="rounded-lg py-2 text-[11px]">enabled</SelectItem>
+                          <SelectItem value="disabled" className="rounded-lg py-2 text-[11px]">disabled</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Worktree name</Label>
-                      <Input value={cursorConfig.worktree ?? ''} onChange={(e) => updateCursorConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className="h-9" />
+                      <Input value={cursorConfig.worktree ?? ''} onChange={(e) => updateCursorConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                   </div>
-                </div>
+                </AppDialogSection>
               )}
-            </div>
+            </AppDialogBody>
           </ScrollArea>
 
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={!runnerId || !aiProvider}>Assign</Button>
-          </DialogFooter>
+          <AppDialogFooter>
+            <div className="text-[11px] text-muted-foreground/80">
+              {runnerId && aiProvider ? 'Ready to assign.' : 'Select a runner and provider to continue.'}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
+              <Button type="submit" disabled={!runnerId || !aiProvider} className="rounded-full px-4 text-[11px]">Assign task</Button>
+            </div>
+          </AppDialogFooter>
         </form>
-      </DialogContent>
+      </AppDialogContent>
     </Dialog>
   );
 }

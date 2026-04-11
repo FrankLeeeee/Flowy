@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import ConfirmDialog from './ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
@@ -195,24 +196,24 @@ export default function Sidebar() {
 
       {/* New Project Dialog */}
       <Dialog open={showNewProject} onOpenChange={(open) => { if (!open) setShowNewProject(false); }}>
-        <DialogContent className="overflow-hidden border-border/40 bg-card p-0 shadow-float sm:max-w-[440px]">
-          <DialogHeader className="border-b border-border/40 bg-primary/[0.06] px-6 pb-4 pt-5">
+        <AppDialogContent className="sm:max-w-[440px]">
+          <AppDialogHeader>
             <DialogTitle className="sr-only">Create a new project</DialogTitle>
             <DialogDescription className="sr-only">Create a project with a name and key.</DialogDescription>
-            <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary ring-1 ring-primary/10">
+            <AppDialogEyebrow>
               <Sparkles className="h-3 w-3" />
               New Project
-            </div>
+            </AppDialogEyebrow>
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Create a new project</h2>
               </div>
             </div>
-          </DialogHeader>
+          </AppDialogHeader>
           <form onSubmit={handleCreateProject} className="flex flex-col">
-            <div className="space-y-3 px-6 py-4">
-              <div className="rounded-[18px] border border-primary/10 bg-primary/[0.03] px-4 py-3">
-                <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">Project Name</Label>
+            <AppDialogBody>
+              <AppDialogSection tone="primary">
+                <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Project Name</Label>
                 <Input
                   value={newProjName}
                   onChange={(e) => setNewProjName(e.target.value)}
@@ -221,9 +222,9 @@ export default function Sidebar() {
                   required
                   className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-              </div>
+              </AppDialogSection>
 
-              <div className="rounded-[18px] border border-border/60 bg-background/90 px-4 py-3">
+              <AppDialogSection>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Project Key</Label>
                   <span className="text-[10px] text-muted-foreground/75">{newProjKey.length}/6 chars</span>
@@ -236,10 +237,10 @@ export default function Sidebar() {
                   maxLength={6}
                   required
                 />
-              </div>
-            </div>
+              </AppDialogSection>
+            </AppDialogBody>
 
-            <DialogFooter className="border-t border-border/40 px-6 py-3 sm:justify-between sm:space-x-0">
+            <AppDialogFooter>
               <div className="text-[11px] text-muted-foreground/80">
                 {newProjName.trim() && newProjKey.length >= 2 ? 'Ready to create.' : 'Add a name and short key to continue.'}
               </div>
@@ -252,9 +253,9 @@ export default function Sidebar() {
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
               </div>
-            </DialogFooter>
+            </AppDialogFooter>
           </form>
-        </DialogContent>
+        </AppDialogContent>
       </Dialog>
 
       <ConfirmDialog

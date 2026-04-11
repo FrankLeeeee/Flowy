@@ -6,11 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { Bot, Plus, Terminal, Shield, CheckCircle2, Copy, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getToneStyles } from '@/lib/semanticColors';
 
 export default function Runners() {
+  const brandTone = getToneStyles('brand');
+  const neutralTone = getToneStyles('neutral');
+  const successTone = getToneStyles('success');
+  const warningTone = getToneStyles('warning');
+  const dangerTone = getToneStyles('danger');
+
   const [runners, setRunners] = useState<Runner[]>([]);
   const [busyTasks, setBusyTasks] = useState<Map<string, Task>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -128,27 +136,23 @@ export default function Runners() {
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/12">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 status-glow" />
+          <div className={cn('mb-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1', brandTone.pill)}>
+            <span className={cn('h-1.5 w-1.5 rounded-full status-glow', brandTone.dot)} />
             Fleet overview
           </div>
           <h1 className="text-[15px] font-semibold text-foreground">Runners</h1>
           <p className="mt-0.5 text-[12px] text-muted-foreground/85">
             {tab === 'runners' ? (
-              <>
-                <span className="text-emerald-500">{onlineCount} online</span>
-                {offlineCount > 0 && <span className="ml-2 text-muted-foreground/70">{offlineCount} offline</span>}
-              </>
+              'Monitor runner availability and active work across your fleet'
             ) : (
               'Manage runner registration security'
             )}
           </p>
-          {tab === 'runners' && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/10">{onlineCount} live runners</span>
-              <span className="inline-flex items-center rounded-full bg-card px-2 py-1 font-semibold text-foreground ring-1 ring-primary/8">{busyTasks.size} executing now</span>
-            </div>
-          )}
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', successTone.pill)}>{onlineCount} online</span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{offlineCount} offline</span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', warningTone.pill)}>{busyTasks.size} executing now</span>
+          </div>
         </div>
         {tab === 'runners' && (
           <Button size="sm" onClick={() => setShowSetup(true)} className="h-8 text-[13px] shadow-soft">
@@ -158,7 +162,7 @@ export default function Runners() {
         )}
       </div>
 
-      {error && <div className="mb-4 bg-red-500/[0.06] text-red-500 px-3 py-2 rounded-md text-[13px]">{error}</div>}
+      {error && <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>{error}</div>}
 
       <div className="motion-section inline-flex items-center gap-1 mb-6 rounded-full border border-border/60 bg-card p-1 shadow-soft" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
         <button
@@ -230,7 +234,7 @@ export default function Runners() {
                     {savingSecurity ? 'Saving...' : 'Save configurations'}
                   </Button>
                   {savedSecurity && (
-                    <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                    <span className={cn('flex items-center gap-1 text-[11px] font-medium', successTone.emphasis)}>
                       <CheckCircle2 className="h-3 w-3" /> Saved
                     </span>
                   )}
@@ -270,26 +274,26 @@ export default function Runners() {
       </div>
 
       <Dialog open={showSetup} onOpenChange={(open) => { if (!open) setShowSetup(false); }}>
-        <DialogContent className="overflow-hidden border-border/40 bg-card p-0 shadow-float sm:max-w-2xl">
-          <DialogHeader className="border-b border-border/40 bg-primary/[0.06] px-6 pb-4 pt-5">
+        <AppDialogContent className="sm:max-w-2xl">
+          <AppDialogHeader>
             <DialogTitle className="sr-only">Add a runner</DialogTitle>
             <DialogDescription className="sr-only">Get the command needed to register a runner on another machine.</DialogDescription>
-            <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary ring-1 ring-primary/10">
+            <AppDialogEyebrow>
               <Sparkles className="h-3 w-3" />
               New Runner
-            </div>
+            </AppDialogEyebrow>
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Connect another machine</h2>
               </div>
             </div>
-          </DialogHeader>
+          </AppDialogHeader>
           <div className="flex flex-col">
-            <div className="space-y-3 px-6 py-4">
-              <div className="rounded-[18px] border border-primary/10 bg-primary/[0.03] px-4 py-3">
+            <AppDialogBody>
+              <AppDialogSection tone="primary">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">Step 1</p>
-                  <span className="text-[10px] text-primary/65">Install package</span>
+                  <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Step 1</p>
+                  <span className={cn('text-[10px]', APP_DIALOG_TONE_STYLES.primary.label)}>Install package</span>
                 </div>
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <p className="text-[12px] leading-5 text-muted-foreground/85">
@@ -306,15 +310,15 @@ export default function Runners() {
                     {copiedInstallCommand ? 'Copied' : 'Copy'}
                   </Button>
                 </div>
-                <pre className="overflow-x-auto rounded-[14px] bg-[#16161a] px-4 py-3 font-mono text-[12px] leading-relaxed text-gray-300">
+                <pre className="terminal-surface overflow-x-auto rounded-[14px] px-4 py-3 font-mono text-[12px] leading-relaxed">
 {installCommand}
                 </pre>
-              </div>
+              </AppDialogSection>
 
-              <div className="rounded-[18px] border border-primary/10 bg-primary/[0.03] px-4 py-3">
+              <AppDialogSection tone="primary">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">Step 2</p>
-                  <span className="text-[10px] text-primary/65">Register runner</span>
+                  <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Step 2</p>
+                  <span className={cn('text-[10px]', APP_DIALOG_TONE_STYLES.primary.label)}>Register runner</span>
                 </div>
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <p className="text-[12px] leading-5 text-muted-foreground/85">
@@ -331,12 +335,12 @@ export default function Runners() {
                     {copiedRegisterCommand ? 'Copied' : 'Copy'}
                   </Button>
                 </div>
-                <pre className="overflow-x-auto rounded-[14px] bg-[#16161a] px-4 py-3 font-mono text-[12px] leading-relaxed text-gray-300">
+                <pre className="terminal-surface overflow-x-auto rounded-[14px] px-4 py-3 font-mono text-[12px] leading-relaxed">
 {runnerCommand}
                 </pre>
-              </div>
+              </AppDialogSection>
 
-              <div className="rounded-[18px] border border-border/60 bg-background/90 px-4 py-3">
+              <AppDialogSection>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Runner Notes</p>
                   <Terminal className="h-3.5 w-3.5 text-muted-foreground/65" />
@@ -347,21 +351,21 @@ export default function Runners() {
                   <p><code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">--secret</code> {registrationSecret ? 'Included from the current runner security settings' : 'Optional because runner registration is currently open'}</p>
                   <p>The runner auto-detects installed CLIs on launch: <span className="font-mono text-foreground/85">claude, codex, cursor-agent</span></p>
                 </div>
-              </div>
+              </AppDialogSection>
 
-              <div className="rounded-[18px] border border-border/60 bg-foreground/[0.02] px-4 py-3 text-[11px] text-muted-foreground/80">
+              <AppDialogSection className="bg-foreground/[0.02] text-[11px] text-muted-foreground/80">
                 <p>The runner saves its token to <code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">~/.config/my-hub/runner-&lt;name&gt;.json</code> and reuses it on the next launch.</p>
-              </div>
-            </div>
-            <DialogFooter className="border-t border-border/40 px-6 py-3 sm:justify-end">
+              </AppDialogSection>
+            </AppDialogBody>
+            <AppDialogFooter className="sm:justify-end">
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" onClick={() => setShowSetup(false)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                   Close
                 </Button>
               </div>
-            </DialogFooter>
+            </AppDialogFooter>
           </div>
-        </DialogContent>
+        </AppDialogContent>
       </Dialog>
     </div>
   );

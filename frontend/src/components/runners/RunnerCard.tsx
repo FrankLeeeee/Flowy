@@ -2,24 +2,13 @@ import { Runner, Task, AiProvider } from '../../types';
 import { Button } from '@/components/ui/button';
 import RunnerStatusBadge from './RunnerStatusBadge';
 import { cn } from '@/lib/utils';
+import { getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 const AI_LABELS: Record<AiProvider, string> = {
   'claude-code': 'Claude Code',
   'codex': 'Codex',
   'cursor-agent': 'Cursor Agent',
-};
-
-const PROVIDER_STYLES: Record<AiProvider, string> = {
-  'claude-code': 'bg-[#F97316]/12 text-[#C2410C] dark:text-orange-400 ring-[#F97316]/15',
-  'codex': 'bg-primary/12 text-primary ring-primary/15',
-  'cursor-agent': 'bg-sky-500/12 text-sky-700 dark:text-sky-400 ring-sky-500/15',
-};
-
-const STATUS_SURFACE: Record<Runner['status'], string> = {
-  online: 'from-emerald-500/12 via-transparent to-transparent',
-  busy: 'from-amber-500/14 via-transparent to-transparent',
-  offline: 'from-foreground/[0.05] via-transparent to-transparent',
 };
 
 function timeAgo(iso: string | null): string {
@@ -43,6 +32,7 @@ export default function RunnerCard({
   refreshing: boolean;
 }) {
   const providers: AiProvider[] = JSON.parse(runner.ai_providers || '[]');
+  const busyStyles = getRunnerStatusStyles('busy');
   const cliRefreshPending = Boolean(
     runner.cli_refresh_requested_at &&
     (!runner.last_cli_scan_at || new Date(runner.cli_refresh_requested_at).getTime() > new Date(runner.last_cli_scan_at).getTime())
@@ -50,7 +40,6 @@ export default function RunnerCard({
 
   return (
     <div className="motion-card interactive-lift surface-tint relative rounded-[18px] border border-border/40 dark:border-border/60 p-4 shadow-soft hover:shadow-elevated motion-safe:hover:-translate-y-1 flex flex-col gap-3 overflow-hidden">
-      <div className={cn('pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-br', STATUS_SURFACE[runner.status])} />
       {/* Header */}
       <div className="relative flex items-start justify-between">
         <div className="min-w-0">
@@ -66,7 +55,7 @@ export default function RunnerCard({
       {providers.length > 0 && (
         <div className="relative flex flex-wrap gap-1.5">
           {providers.map((p) => (
-            <span key={p} className={cn('inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', PROVIDER_STYLES[p] ?? 'bg-foreground/[0.04] text-muted-foreground ring-foreground/10')}>
+            <span key={p} className={cn('inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', getAiProviderStyles(p).pill)}>
               {AI_LABELS[p] ?? p}
             </span>
           ))}
@@ -75,8 +64,8 @@ export default function RunnerCard({
 
       {/* Current task */}
       {currentTask && runner.status === 'busy' && (
-        <div className="relative overflow-hidden rounded-xl border border-amber-500/15 bg-amber-500/[0.08] px-3 py-2">
-          <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold">Running task</p>
+        <div className={cn('relative overflow-hidden rounded-xl border px-3 py-2', busyStyles.panel)}>
+          <p className={cn('text-[11px] font-semibold', busyStyles.text)}>Running task</p>
           <p className="text-[13px] text-foreground font-mono mt-0.5 truncate">
             {currentTask.task_key}: {currentTask.title}
           </p>
@@ -95,7 +84,7 @@ export default function RunnerCard({
             </span>
           )}
           {cliRefreshPending && (
-            <span className="block text-[10px] text-amber-600">
+            <span className={cn('block text-[10px]', busyStyles.emphasis)}>
               Refresh requested
             </span>
           )}

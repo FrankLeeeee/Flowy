@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Project, TaskPriority } from '../../types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { cn } from '@/lib/utils';
+import { getLabelStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { Circle, FolderKanban, Tag, ArrowRight, X, Sparkles } from 'lucide-react';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
@@ -17,14 +19,6 @@ const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'high', label: 'High' },
   { value: 'urgent', label: 'Urgent' },
 ];
-
-const PRIORITY_STYLES: Record<TaskPriority, { dot: string; tone: string }> = {
-  none: { dot: 'bg-slate-300', tone: 'text-foreground/55' },
-  low: { dot: 'bg-sky-400', tone: 'text-sky-700' },
-  medium: { dot: 'bg-amber-400', tone: 'text-amber-700' },
-  high: { dot: 'bg-orange-500', tone: 'text-orange-700' },
-  urgent: { dot: 'bg-rose-500', tone: 'text-rose-700' },
-};
 
 const LABEL_OPTIONS = ['Bug', 'Feature', 'Improvement', 'Documentation', 'Design'];
 
@@ -45,6 +39,7 @@ export default function CreateTaskModal({
 
   const labels = labelsText.split(',').map((label) => label.trim()).filter(Boolean);
   const selectedProject = projects.find((project) => project.id === projectId);
+  const priorityStyles = getTaskPriorityStyles(priority);
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
@@ -67,14 +62,14 @@ export default function CreateTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="overflow-hidden border-border/40 dark:border-border/60 bg-card p-0 shadow-float sm:max-w-2xl">
-        <DialogHeader className="border-b border-border/40 bg-primary/[0.06] px-6 pb-4 pt-5">
+      <AppDialogContent className="sm:max-w-2xl">
+        <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
           <DialogDescription className="sr-only">Create a new task with title, description, project, priority, and labels.</DialogDescription>
-          <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary ring-1 ring-primary/10">
+          <AppDialogEyebrow>
             <Sparkles className="h-3 w-3" />
             New Task
-          </div>
+          </AppDialogEyebrow>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Add a task to the queue</h2>
@@ -87,12 +82,12 @@ export default function CreateTaskModal({
               <span>{selectedProject?.name ?? 'Select project'}</span>
             </div>
           </div>
-        </DialogHeader>
+        </AppDialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="space-y-3 px-6 py-4">
-            <div className="rounded-[18px] border border-primary/10 bg-primary/[0.03] px-4 py-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">Title</p>
+          <AppDialogBody>
+            <AppDialogSection tone="primary">
+              <p className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Title</p>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -101,9 +96,9 @@ export default function CreateTaskModal({
                 required
                 className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-            </div>
+            </AppDialogSection>
 
-            <div className="rounded-[18px] border border-border/60 bg-background/90 px-4 py-3">
+            <AppDialogSection>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
                 <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars</span>
@@ -115,12 +110,12 @@ export default function CreateTaskModal({
                 placeholder="Add supporting context, expected outcome, or constraints..."
                 className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-            </div>
+            </AppDialogSection>
 
             {labels.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {labels.map((label) => (
-                  <Badge key={label} variant="secondary" className="gap-1 rounded-full border border-primary/10 bg-primary/8 px-2.5 py-1 text-[10px] font-medium text-foreground">
+                  <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', getLabelStyles(label).pill)}>
                     {label}
                     <button
                       type="button"
@@ -133,7 +128,7 @@ export default function CreateTaskModal({
                 ))}
               </div>
             )}
-          </div>
+          </AppDialogBody>
 
           <div className="flex flex-wrap items-center gap-2 border-t border-border/40 bg-foreground/[0.015] px-6 py-3">
             <Select value={projectId} onValueChange={setProjectId}>
@@ -152,7 +147,7 @@ export default function CreateTaskModal({
 
             <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
               <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                <span className={cn('h-2 w-2 rounded-full', PRIORITY_STYLES[priority].dot)} />
+                <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
                 <SelectValue>
                   {PRIORITIES.find((item) => item.value === priority)?.label}
                 </SelectValue>
@@ -160,8 +155,8 @@ export default function CreateTaskModal({
               <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
                 {PRIORITIES.map((item) => (
                   <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                    <span className={cn('inline-flex items-center gap-2', PRIORITY_STYLES[item.value].tone)}>
-                      <span className={cn('h-2 w-2 rounded-full', PRIORITY_STYLES[item.value].dot)} />
+                    <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
+                      <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
                       {item.label}
                     </span>
                   </SelectItem>
@@ -202,7 +197,7 @@ export default function CreateTaskModal({
             </DropdownMenu>
           </div>
 
-          <DialogFooter className="border-t border-border/40 px-6 py-3 sm:justify-between sm:space-x-0">
+          <AppDialogFooter>
             <div className="text-[11px] text-muted-foreground/80">
               {title.trim() ? 'Ready to create.' : 'Add a title to continue.'}
             </div>
@@ -215,9 +210,9 @@ export default function CreateTaskModal({
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </div>
-          </DialogFooter>
+          </AppDialogFooter>
         </form>
-      </DialogContent>
+      </AppDialogContent>
     </Dialog>
   );
 }
