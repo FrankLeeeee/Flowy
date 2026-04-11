@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, Project, Task, Runner, TaskLog } from '../types';
+import { Settings, Project, Task, Runner, TaskLog, HarnessConfig } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -62,7 +62,7 @@ export async function getTask(id: string): Promise<Task> {
 
 export async function updateTask(id: string, body: {
   title?: string; description?: string; status?: string; priority?: string;
-  labels?: string[]; runnerId?: string | null; aiProvider?: string | null;
+  labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
 }): Promise<Task> {
   const { data } = await api.put<Task>(`/tasks/${id}`, body);
   return data;
@@ -72,7 +72,7 @@ export async function deleteTask(id: string): Promise<void> {
   await api.delete(`/tasks/${id}`);
 }
 
-export async function assignTask(id: string, body: { runnerId: string; aiProvider: string }): Promise<Task> {
+export async function assignTask(id: string, body: { runnerId: string; aiProvider: string; harnessConfig?: HarnessConfig }): Promise<Task> {
   const { data } = await api.post<Task>(`/tasks/${id}/assign`, body);
   return data;
 }

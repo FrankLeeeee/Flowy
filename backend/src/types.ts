@@ -13,6 +13,33 @@ export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
 export type AiProvider = 'claude-code' | 'codex' | 'cursor-agent';
 export type RunnerStatus = 'online' | 'offline' | 'busy';
 
+export interface CodexHarnessConfig {
+  workspace?: string;
+  model?: string;
+  sandbox?: 'read-only' | 'workspace-write' | 'danger-full-access';
+}
+
+export interface ClaudeCodeHarnessConfig {
+  workspace?: string;
+  model?: string;
+  mode?: 'acceptEdits' | 'auto' | 'bypassPermissions' | 'default' | 'dontAsk' | 'plan';
+  worktree?: string;
+}
+
+export interface CursorAgentHarnessConfig {
+  workspace?: string;
+  model?: string;
+  mode?: 'plan' | 'ask';
+  sandbox?: 'enabled' | 'disabled';
+  worktree?: string;
+}
+
+export interface HarnessConfig {
+  codex?: CodexHarnessConfig;
+  claudeCode?: ClaudeCodeHarnessConfig;
+  cursorAgent?: CursorAgentHarnessConfig;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -34,6 +61,7 @@ export interface Task {
   priority: TaskPriority;
   runner_id: string | null;
   ai_provider: AiProvider | null;
+  harness_config: string;
   labels: string;          // JSON array stored as text
   output: string | null;
   started_at: string | null;

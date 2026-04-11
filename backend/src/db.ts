@@ -62,6 +62,7 @@ function migrate(): void {
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
       ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
+      harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
       started_at    TEXT,
@@ -83,6 +84,7 @@ function migrate(): void {
   migrateTaskStatuses();
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
+  ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
 }
 
 function migrateTaskStatuses(): void {
@@ -107,6 +109,7 @@ function migrateTaskStatuses(): void {
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
       ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
+      harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
       started_at    TEXT,
@@ -117,11 +120,11 @@ function migrateTaskStatuses(): void {
 
     INSERT INTO tasks_new (
       id, project_id, task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, labels, output, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, harness_config, labels, output, started_at, completed_at, created_at, updated_at
     )
     SELECT
       id, project_id, task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, labels, output, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, '{}' AS harness_config, labels, output, started_at, completed_at, created_at, updated_at
     FROM tasks;
 
     DROP TABLE tasks;

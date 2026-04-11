@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
+import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Pencil, UserPlus, Trash2, Circle, CheckCircle2, XCircle, Clock, Archive, Download, AlertTriangle, Tag, ArrowRight, X, Expand } from 'lucide-react';
@@ -131,6 +132,7 @@ export default function TaskDetailModal({
   const output = task.output?.trim() ?? '';
   const hasOutput = output.length > 0;
   const canViewFullscreenOutput = hasOutput && TERMINAL_STATUSES.includes(task.status);
+  const harnessConfigBadges = getHarnessConfigBadges(task.ai_provider, parseHarnessConfig(task.harness_config));
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
@@ -311,13 +313,24 @@ export default function TaskDetailModal({
           <div className="bg-foreground/[0.02] border border-border/60 rounded-lg p-4">
               <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Runner Assignment</h3>
             {runner ? (
-              <div className="flex items-center gap-3">
-                <span className="text-[13px] font-medium text-foreground">{runner.name}</span>
-                <RunnerStatusBadge status={runner.status} />
-                {task.ai_provider && (
-                  <span className="text-[11px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                    {AI_LABELS[task.ai_provider] ?? task.ai_provider}
-                  </span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-[13px] font-medium text-foreground">{runner.name}</span>
+                  <RunnerStatusBadge status={runner.status} />
+                  {task.ai_provider && (
+                    <span className="text-[11px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      {AI_LABELS[task.ai_provider] ?? task.ai_provider}
+                    </span>
+                  )}
+                </div>
+                {harnessConfigBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {harnessConfigBadges.map((badge) => (
+                      <span key={badge} className="inline-flex items-center rounded-full bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground ring-1 ring-border/60">
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
             ) : (
