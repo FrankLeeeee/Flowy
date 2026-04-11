@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { Task, Runner, TaskStatus } from '../../types';
 import TaskCard from './TaskCard';
 import { cn } from '@/lib/utils';
+import { getTaskStatusStyles } from '@/lib/semanticColors';
 import { Circle, CheckCircle2, XCircle, Clock, Archive, AlertTriangle } from 'lucide-react';
 
-const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string; color: string; pill: string; border: string }> = {
-  backlog:     { icon: <Archive className="h-3.5 w-3.5" />,      label: 'Backlog',     color: 'text-slate-500 dark:text-slate-400', pill: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/15', border: 'border-slate-500/12' },
-  todo:        { icon: <Circle className="h-3.5 w-3.5" />,       label: 'Todo',        color: 'text-sky-600 dark:text-sky-400', pill: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/15', border: 'border-sky-500/14' },
-  in_progress: { icon: <Clock className="h-3.5 w-3.5" />,        label: 'In Progress', color: 'text-amber-600 dark:text-amber-400', pill: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/15', border: 'border-amber-500/14' },
-  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed',     color: 'text-rose-600 dark:text-rose-400', pill: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-rose-500/15', border: 'border-rose-500/14' },
-  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done',        color: 'text-emerald-600 dark:text-emerald-400', pill: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/15', border: 'border-emerald-500/14' },
-  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />,      label: 'Cancelled',   color: 'text-zinc-500 dark:text-zinc-400', pill: 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 ring-zinc-500/15', border: 'border-zinc-500/12' },
+const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string }> = {
+  backlog:     { icon: <Archive className="h-3.5 w-3.5" />, label: 'Backlog' },
+  todo:        { icon: <Circle className="h-3.5 w-3.5" />, label: 'Todo' },
+  in_progress: { icon: <Clock className="h-3.5 w-3.5" />, label: 'In Progress' },
+  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed' },
+  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done' },
+  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Cancelled' },
 };
 
 export default function KanbanColumn({
@@ -25,6 +26,7 @@ export default function KanbanColumn({
   const [dragOver, setDragOver] = useState(false);
   const runnerMap = new Map(runners.map((r) => [r.id, r]));
   const config = STATUS_CONFIG[status];
+  const tone = getTaskStatusStyles(status);
 
   const handleDragOver = (e: React.DragEvent) => {
     if (!e.dataTransfer.types.includes('application/task-id')) return;
@@ -50,7 +52,7 @@ export default function KanbanColumn({
     <div
       className={cn(
         'surface-tint flex flex-col w-[300px] shrink-0 rounded-[20px] border border-border/40 dark:border-border/60 interactive-lift overflow-hidden',
-        config.border,
+        tone.border,
         dragOver && 'bg-primary/[0.04] ring-1 ring-primary/20 motion-safe:-translate-y-0.5',
       )}
       onDragOver={handleDragOver}
@@ -59,9 +61,9 @@ export default function KanbanColumn({
     >
       {/* Column header */}
       <div className="relative mb-1 flex items-center gap-2 p-3">
-        <span className={cn(config.color)}>{config.icon}</span>
+        <span className={cn(tone.icon)}>{config.icon}</span>
         <h3 className="text-[13px] font-semibold text-foreground">{config.label}</h3>
-        <span className={cn('ml-auto inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', config.pill)}>{tasks.length}</span>
+        <span className={cn('ml-auto inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', tone.pill)}>{tasks.length}</span>
       </div>
 
       {/* Cards */}

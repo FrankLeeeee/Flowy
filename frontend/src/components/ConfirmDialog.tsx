@@ -1,4 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
@@ -19,21 +20,32 @@ export default function ConfirmDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
-      <DialogContent className="sm:max-w-[380px]">
-        <DialogHeader>
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </div>
-            <DialogTitle className="text-[15px] font-semibold">{title}</DialogTitle>
+      <AppDialogContent className="sm:max-w-[420px]">
+        <AppDialogHeader tone="danger">
+          <DialogTitle className="sr-only">{title}</DialogTitle>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
+          <AppDialogEyebrow tone="danger">
+            <AlertTriangle className="h-3 w-3" />
+            Confirm action
+          </AppDialogEyebrow>
+          <div className="min-w-0">
+            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">{title}</h2>
+            <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">{description}</p>
           </div>
-          <DialogDescription className="text-[13px] mt-2 pl-[42px]">{description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="mt-2">
-          <Button variant="ghost" onClick={onCancel} className="h-8 text-[13px]">Cancel</Button>
-          <Button variant="destructive" onClick={onConfirm} className="h-8 text-[13px]">{confirmLabel}</Button>
-        </DialogFooter>
-      </DialogContent>
+        </AppDialogHeader>
+        <div className="px-6 py-4">
+          <AppDialogSection tone="danger">
+            <p className="text-[12px] leading-5 text-muted-foreground/90">This action is permanent and cannot be undone.</p>
+          </AppDialogSection>
+        </div>
+        <AppDialogFooter>
+          <div className="text-[11px] text-muted-foreground/80">Review carefully before continuing.</div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={onCancel} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
+            <Button variant="destructive" onClick={onConfirm} className="rounded-full px-4 text-[11px]">{confirmLabel}</Button>
+          </div>
+        </AppDialogFooter>
+      </AppDialogContent>
     </Dialog>
   );
 }

@@ -1,13 +1,14 @@
 import { Task, TaskPriority, Runner } from '../../types';
 import { cn, formatElapsedTime } from '@/lib/utils';
+import { getAiProviderStyles, getLabelStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { SignalHigh, SignalMedium, SignalLow, AlertTriangle, Minus, Clock3 } from 'lucide-react';
 
-const PRIORITY_ICON: Record<TaskPriority, { icon: React.ReactNode; color: string; surface: string; bar: string }> = {
-  urgent: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-rose-600 dark:text-rose-400', surface: 'from-rose-500/12 via-transparent to-transparent', bar: 'bg-rose-500' },
-  high:   { icon: <SignalHigh className="h-3.5 w-3.5" />,    color: 'text-orange-600 dark:text-orange-400', surface: 'from-orange-500/10 via-transparent to-transparent', bar: 'bg-orange-500' },
-  medium: { icon: <SignalMedium className="h-3.5 w-3.5" />,  color: 'text-amber-600 dark:text-amber-400', surface: 'from-amber-500/10 via-transparent to-transparent', bar: 'bg-amber-500' },
-  low:    { icon: <SignalLow className="h-3.5 w-3.5" />,     color: 'text-sky-600 dark:text-sky-400', surface: 'from-sky-500/10 via-transparent to-transparent', bar: 'bg-sky-500' },
-  none:   { icon: <Minus className="h-3.5 w-3.5" />,         color: 'text-foreground/20', surface: 'from-foreground/[0.04] via-transparent to-transparent', bar: 'bg-foreground/10' },
+const PRIORITY_ICON: Record<TaskPriority, React.ReactNode> = {
+  urgent: <AlertTriangle className="h-3.5 w-3.5" />,
+  high: <SignalHigh className="h-3.5 w-3.5" />,
+  medium: <SignalMedium className="h-3.5 w-3.5" />,
+  low: <SignalLow className="h-3.5 w-3.5" />,
+  none: <Minus className="h-3.5 w-3.5" />,
 };
 
 export default function TaskCard({
@@ -16,7 +17,7 @@ export default function TaskCard({
   task: Task; runner?: Runner; onClick: () => void;
 }) {
   const labels: string[] = JSON.parse(task.labels || '[]');
-  const pri = PRIORITY_ICON[task.priority];
+  const priorityStyles = getTaskPriorityStyles(task.priority);
   const elapsed = formatElapsedTime(task.started_at, task.completed_at);
 
   return (
@@ -38,13 +39,11 @@ export default function TaskCard({
       onClick={onClick}
       className="interactive-lift surface-tint relative w-full overflow-hidden text-left rounded-[16px] border border-border/40 dark:border-border/60 p-3 hover:border-primary/15 hover:shadow-float motion-safe:hover:-translate-y-0.5 data-[dragging=true]:scale-[0.985] data-[dragging=true]:rotate-[0.35deg] group cursor-grab active:cursor-grabbing"
     >
-      <span className={cn('absolute inset-y-3 left-0.5 w-1 rounded-full opacity-80', pri.bar)} />
-      <div className={cn('pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-br', pri.surface)} />
-
+      <span className={cn('absolute inset-y-3 left-0.5 w-1 rounded-full opacity-80', priorityStyles.bar)} />
       {/* Key + Priority */}
       <div className="relative flex items-center justify-between gap-2 mb-1.5 pl-1.5">
         <span className="text-[11px] font-mono tracking-wide text-muted-foreground/80">{task.task_key}</span>
-        <span className={cn(pri.color)}>{pri.icon}</span>
+        <span className={cn(priorityStyles.icon)}>{PRIORITY_ICON[task.priority]}</span>
       </div>
 
       {/* Title */}
@@ -53,18 +52,18 @@ export default function TaskCard({
       {/* Meta */}
       {(labels.length > 0 || runner || task.ai_provider) && (
         <div className="relative flex items-center gap-1.5 mt-2 flex-wrap pl-1.5">
-          {labels.map((l) => (
-            <span key={l} className="inline-flex items-center rounded-full bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/85 ring-1 ring-foreground/5">
-              {l}
+          {labels.map((label) => (
+            <span key={label} className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1', getLabelStyles(label).pill)}>
+              {label}
             </span>
           ))}
           {runner && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary ring-1 ring-primary/10">
+            <span className="inline-flex items-center rounded-full bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-foreground/8">
               {runner.name}
             </span>
           )}
           {task.ai_provider && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/10">
+            <span className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', getAiProviderStyles(task.ai_provider).pill)}>
               {task.ai_provider}
             </span>
           )}

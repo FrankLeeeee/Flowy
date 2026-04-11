@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Task, TaskLog, Runner, TaskStatus, TaskPriority, AiProvider } from '../../types';
 import { fetchTaskLogs, updateTask } from '../../api/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,8 +9,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
+import { getAiProviderStyles, getLabelStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -35,30 +37,13 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 
 const LABEL_OPTIONS = ['Bug', 'Feature', 'Improvement', 'Documentation', 'Design'];
 
-const PRIORITY_STYLES: Record<TaskPriority, { dot: string; tone: string }> = {
-  none: { dot: 'bg-slate-300 dark:bg-slate-600', tone: 'text-foreground/55' },
-  low: { dot: 'bg-sky-400', tone: 'text-sky-700 dark:text-sky-400' },
-  medium: { dot: 'bg-amber-400', tone: 'text-amber-700 dark:text-amber-400' },
-  high: { dot: 'bg-orange-500', tone: 'text-orange-700 dark:text-orange-400' },
-  urgent: { dot: 'bg-rose-500', tone: 'text-rose-700 dark:text-rose-400' },
-};
-
-const STATUS_DOTS: Record<TaskStatus, string> = {
-  backlog: 'bg-zinc-400 dark:bg-zinc-500',
-  todo: 'bg-zinc-500 dark:bg-zinc-400',
-  in_progress: 'bg-yellow-500',
-  failed: 'bg-red-500',
-  done: 'bg-emerald-500',
-  cancelled: 'bg-zinc-300 dark:bg-zinc-600',
-};
-
-const STATUS_ICON: Record<TaskStatus, { icon: React.ReactNode; color: string }> = {
-  backlog:     { icon: <Archive className="h-3.5 w-3.5" />,      color: 'text-foreground/30' },
-  todo:        { icon: <Circle className="h-3.5 w-3.5" />,       color: 'text-foreground/40' },
-  in_progress: { icon: <Clock className="h-3.5 w-3.5" />,        color: 'text-yellow-500' },
-  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-red-500' },
-  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, color: 'text-emerald-500' },
-  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />,      color: 'text-foreground/25' },
+const STATUS_ICON: Record<TaskStatus, { icon: React.ReactNode }> = {
+  backlog: { icon: <Archive className="h-3.5 w-3.5" /> },
+  todo: { icon: <Circle className="h-3.5 w-3.5" /> },
+  in_progress: { icon: <Clock className="h-3.5 w-3.5" /> },
+  failed: { icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+  done: { icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  cancelled: { icon: <XCircle className="h-3.5 w-3.5" /> },
 };
 
 const AI_LABELS: Record<AiProvider, string> = {
@@ -74,7 +59,7 @@ const OUTPUT_MARKDOWN_CLASSNAME = `rounded-lg border border-border/60 bg-foregro
   prose-a:text-primary prose-a:no-underline hover:prose-a:underline
   prose-strong:text-foreground prose-strong:font-semibold
   prose-code:text-[12px] prose-code:font-mono prose-code:bg-foreground/[0.06] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-  prose-pre:bg-[#16161a] prose-pre:text-gray-300 prose-pre:rounded-lg prose-pre:text-[12px] prose-pre:leading-relaxed
+  prose-pre:bg-[hsl(var(--terminal))] prose-pre:text-[hsl(var(--terminal-foreground))] prose-pre:shadow-[inset_0_0_0_1px_hsl(var(--terminal-border)/0.55)] prose-pre:rounded-lg prose-pre:text-[12px] prose-pre:leading-relaxed
   prose-li:text-muted-foreground prose-li:my-0.5
   prose-ul:my-1.5 prose-ol:my-1.5
   prose-table:text-[12px] prose-th:text-foreground prose-th:font-medium prose-td:text-muted-foreground
@@ -133,6 +118,10 @@ export default function TaskDetailModal({
   const hasOutput = output.length > 0;
   const canViewFullscreenOutput = hasOutput && TERMINAL_STATUSES.includes(task.status);
   const harnessConfigBadges = getHarnessConfigBadges(task.ai_provider, parseHarnessConfig(task.harness_config));
+  const statusStyles = getTaskStatusStyles(task.status);
+  const editingStatusStyles = getTaskStatusStyles(status);
+  const priorityStyles = getTaskPriorityStyles(task.priority);
+  const editingPriorityStyles = getTaskPriorityStyles(priority);
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
@@ -149,23 +138,24 @@ export default function TaskDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 flex flex-col">
-        <DialogHeader className="px-6 py-5 border-b border-border/40">
-          <div className="flex items-center gap-2.5 flex-wrap">
+      <AppDialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 flex flex-col">
+        <AppDialogHeader>
+          <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
+          <DialogDescription className="sr-only">View and edit task details</DialogDescription>
+          <AppDialogEyebrow>Task details</AppDialogEyebrow>
+          <div className="flex items-center gap-2.5 flex-wrap text-[11px] font-medium">
             <span className="text-[11px] font-mono tracking-wide text-muted-foreground/75">{task.task_key}</span>
-            <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium', statusConfig.color)}>
+            <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium', statusStyles.icon)}>
               {statusConfig.icon}
               {STATUS_OPTIONS.find((s) => s.value === task.status)?.label}
             </span>
             {task.priority !== 'none' && (
-              <span className="text-[11px] font-medium text-muted-foreground capitalize">
+              <span className={cn('text-[11px] font-medium capitalize', priorityStyles.text)}>
                 {task.priority}
               </span>
             )}
           </div>
-          <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
-          <DialogDescription className="sr-only">View and edit task details</DialogDescription>
-        </DialogHeader>
+        </AppDialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-5 px-6 py-5">
@@ -194,7 +184,7 @@ export default function TaskDetailModal({
               {labels.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {labels.map((label) => (
-                    <Badge key={label} variant="secondary" className="gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium">
+                    <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', getLabelStyles(label).pill)}>
                       {label}
                       <button
                         type="button"
@@ -211,7 +201,7 @@ export default function TaskDetailModal({
               <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
                 <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
                   <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
-                    <span className={cn('h-2 w-2 rounded-full', STATUS_DOTS[status])} />
+                    <span className={cn('h-2 w-2 rounded-full', editingStatusStyles.dot)} />
                     <SelectValue>
                       {STATUS_OPTIONS.find((item) => item.value === status)?.label}
                     </SelectValue>
@@ -219,8 +209,8 @@ export default function TaskDetailModal({
                   <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
                     {STATUS_OPTIONS.map((item) => (
                       <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                        <span className="inline-flex items-center gap-2">
-                          <span className={cn('h-2 w-2 rounded-full', STATUS_DOTS[item.value])} />
+                        <span className={cn('inline-flex items-center gap-2', getTaskStatusStyles(item.value).text)}>
+                          <span className={cn('h-2 w-2 rounded-full', getTaskStatusStyles(item.value).dot)} />
                           {item.label}
                         </span>
                       </SelectItem>
@@ -230,7 +220,7 @@ export default function TaskDetailModal({
 
                 <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
                   <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
-                    <span className={cn('h-2 w-2 rounded-full', PRIORITY_STYLES[priority].dot)} />
+                    <span className={cn('h-2 w-2 rounded-full', editingPriorityStyles.dot)} />
                     <SelectValue>
                       {PRIORITY_OPTIONS.find((item) => item.value === priority)?.label}
                     </SelectValue>
@@ -238,8 +228,8 @@ export default function TaskDetailModal({
                   <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
                     {PRIORITY_OPTIONS.map((item) => (
                       <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                        <span className={cn('inline-flex items-center gap-2', PRIORITY_STYLES[item.value].tone)}>
-                          <span className={cn('h-2 w-2 rounded-full', PRIORITY_STYLES[item.value].dot)} />
+                        <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
+                          <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
                           {item.label}
                         </span>
                       </SelectItem>
@@ -304,13 +294,13 @@ export default function TaskDetailModal({
           {labels.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {labels.map((l) => (
-                <span key={l} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-foreground/[0.05] text-muted-foreground">{l}</span>
+                <span key={l} className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1', getLabelStyles(l).pill)}>{l}</span>
               ))}
             </div>
           )}
 
           {/* Runner Info */}
-          <div className="bg-foreground/[0.02] border border-border/60 rounded-lg p-4">
+          <AppDialogSection className="rounded-lg bg-foreground/[0.02] p-4">
               <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Runner Assignment</h3>
             {runner ? (
               <div className="space-y-3">
@@ -318,7 +308,7 @@ export default function TaskDetailModal({
                   <span className="text-[13px] font-medium text-foreground">{runner.name}</span>
                   <RunnerStatusBadge status={runner.status} />
                   {task.ai_provider && (
-                    <span className="text-[11px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                    <span className={cn('rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1', getAiProviderStyles(task.ai_provider).pill)}>
                       {AI_LABELS[task.ai_provider] ?? task.ai_provider}
                     </span>
                   )}
@@ -336,7 +326,7 @@ export default function TaskDetailModal({
             ) : (
               <p className="text-[13px] text-muted-foreground/75">Not assigned</p>
             )}
-          </div>
+          </AppDialogSection>
 
           {/* Timestamps */}
           <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/75">
@@ -410,35 +400,43 @@ export default function TaskDetailModal({
         </div>
         </ScrollArea>
 
-        <div className="flex gap-2 px-6 py-4 border-t border-border/40 bg-background shrink-0">
-          {!editing && (
-            <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="h-7 text-[12px] text-muted-foreground/85 hover:text-foreground">
-              <Pencil className="h-3 w-3 mr-1.5" />
-              Edit
+        <AppDialogFooter className="bg-background shrink-0">
+          <div className="text-[11px] text-muted-foreground/80">
+            {editing ? 'Update the task and save when you are ready.' : 'Review task details, then edit, assign, or clean up as needed.'}
+          </div>
+          <div className="flex items-center gap-2">
+            {!editing && (
+              <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
+                <Pencil className="mr-1.5 h-3 w-3" />
+                Edit
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onAssign} className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
+              <UserPlus className="mr-1.5 h-3 w-3" />
+              {runner ? 'Reassign' : 'Assign'}
             </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={onAssign} className="h-7 text-[12px] text-muted-foreground/85 hover:text-foreground">
-            <UserPlus className="h-3 w-3 mr-1.5" />
-            {runner ? 'Reassign' : 'Assign'}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onDelete}
-            className="h-7 text-[12px] ml-auto text-destructive/80 hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-3 w-3 mr-1.5" />
-            Delete
-          </Button>
-        </div>
-      </DialogContent>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onDelete}
+              className="h-8 rounded-full px-3.5 text-[11px] text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="mr-1.5 h-3 w-3" />
+              Delete
+            </Button>
+          </div>
+        </AppDialogFooter>
+      </AppDialogContent>
 
       <Dialog open={outputFullscreenOpen} onOpenChange={setOutputFullscreenOpen}>
-        <DialogContent className="h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden border-border/50 bg-background p-0 shadow-float sm:rounded-xl">
-          <DialogHeader className="border-b border-border/40 px-6 py-5 pr-14">
+        <AppDialogContent className="h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] gap-0 bg-background sm:rounded-xl">
+          <AppDialogHeader className="pr-14">
+            <DialogTitle className="sr-only">{task.title} output</DialogTitle>
+            <DialogDescription className="sr-only">Full-screen task output</DialogDescription>
+            <AppDialogEyebrow>Task output</AppDialogEyebrow>
             <div className="flex items-center gap-2.5 text-[11px] font-medium text-muted-foreground/75">
               <span className="font-mono tracking-wide">{task.task_key}</span>
-              <span className={cn('inline-flex items-center gap-1', statusConfig.color)}>
+              <span className={cn('inline-flex items-center gap-1', statusStyles.icon)}>
                 {statusConfig.icon}
                 {STATUS_OPTIONS.find((item) => item.value === task.status)?.label}
               </span>
@@ -449,7 +447,7 @@ export default function TaskDetailModal({
             <DialogDescription className="text-[12px] text-muted-foreground/80">
               Full-screen task output
             </DialogDescription>
-          </DialogHeader>
+          </AppDialogHeader>
 
           <ScrollArea className="flex-1 min-h-0 bg-muted/20">
             <div className="w-full px-6 py-6">
@@ -458,7 +456,7 @@ export default function TaskDetailModal({
               </div>
             </div>
           </ScrollArea>
-        </DialogContent>
+        </AppDialogContent>
       </Dialog>
     </Dialog>
   );

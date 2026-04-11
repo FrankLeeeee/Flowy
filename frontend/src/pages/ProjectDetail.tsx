@@ -17,12 +17,18 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getToneStyles } from '@/lib/semanticColors';
 
 export default function ProjectDetail() {
+  const brandTone = getToneStyles('brand');
+  const neutralTone = getToneStyles('neutral');
+  const dangerTone = getToneStyles('danger');
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -117,8 +123,8 @@ export default function ProjectDetail() {
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/12">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          <div className={cn('mb-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1', brandTone.pill)}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', brandTone.dot)} />
             Focus lane
           </div>
           <div className="flex items-center gap-2">
@@ -129,8 +135,8 @@ export default function ProjectDetail() {
             <p className="mt-0.5 text-[12px] text-muted-foreground/85">{project.description}</p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="inline-flex items-center rounded-full bg-card px-2 py-1 font-semibold text-foreground ring-1 ring-primary/8">{tasks.length} scoped tasks</span>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 font-semibold text-primary ring-1 ring-primary/10">{runners.length} runner options</span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{tasks.length} scoped tasks</span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{runners.length} runner options</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -157,7 +163,7 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {error && <div className="mb-4 bg-red-500/[0.06] text-red-500 px-3 py-2 rounded-md text-[13px]">{error}</div>}
+      {error && <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>{error}</div>}
 
       {/* Filters */}
       <div className="motion-section mb-6 flex flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
@@ -223,30 +229,56 @@ export default function ProjectDetail() {
       {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
 
       <Dialog open={showEditProject} onOpenChange={(open) => { if (!open) setShowEditProject(false); }}>
-          <DialogContent className="sm:max-w-[380px]">
-            <DialogHeader>
-              <DialogTitle className="text-[15px] font-semibold">Edit Project</DialogTitle>
-              <DialogDescription className="text-[13px]">Update the project name and description.</DialogDescription>
-            </DialogHeader>
+          <AppDialogContent className="sm:max-w-[460px]">
+            <AppDialogHeader>
+              <DialogTitle className="sr-only">Edit project</DialogTitle>
+              <DialogDescription className="sr-only">Update the project name and description.</DialogDescription>
+              <AppDialogEyebrow>
+                <Pencil className="h-3 w-3" />
+                Project settings
+              </AppDialogEyebrow>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit {project.name}</h2>
+                  <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">Update the project’s name and supporting context without changing its identity.</p>
+                </div>
+                <div className="inline-flex items-center rounded-full bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground/85 ring-1 ring-primary/10 shadow-soft">
+                  <span className="font-mono tracking-[0.16em] text-foreground/80">{project.key}</span>
+                </div>
+              </div>
+            </AppDialogHeader>
             <form onSubmit={handleEditProject} className="flex flex-col gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Name</Label>
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Project name" autoFocus required className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Description</Label>
-                <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Optional description..." rows={3} className="resize-none" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium text-muted-foreground/80">Key</Label>
-                <Input value={project?.key ?? ''} disabled className="font-mono opacity-50 h-9" />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setShowEditProject(false)}>Cancel</Button>
-                <Button type="submit" disabled={!editName.trim()}>Save</Button>
-              </DialogFooter>
+              <AppDialogBody>
+                <AppDialogSection tone="primary">
+                  <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Project Name</Label>
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Project name" autoFocus required className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </AppDialogSection>
+                <AppDialogSection>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</Label>
+                    <span className="text-[10px] text-muted-foreground/75">{editDescription.trim().length} chars</span>
+                  </div>
+                  <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Optional description..." rows={3} className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </AppDialogSection>
+                <AppDialogSection>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Project Key</Label>
+                    <span className="text-[10px] text-muted-foreground/75">Locked</span>
+                  </div>
+                  <Input value={project?.key ?? ''} disabled className="h-auto border-0 bg-transparent px-0 py-0 font-mono text-[16px] font-semibold uppercase tracking-[0.16em] text-foreground/55 shadow-none disabled:cursor-default disabled:opacity-100" />
+                </AppDialogSection>
+              </AppDialogBody>
+              <AppDialogFooter>
+                <div className="text-[11px] text-muted-foreground/80">
+                  {editName.trim() ? 'Ready to save.' : 'Add a project name to continue.'}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setShowEditProject(false)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
+                  <Button type="submit" disabled={!editName.trim()} className="rounded-full px-4 text-[11px]">Save changes</Button>
+                </div>
+              </AppDialogFooter>
             </form>
-          </DialogContent>
+          </AppDialogContent>
         </Dialog>
 
       <ConfirmDialog

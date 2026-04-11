@@ -6,37 +6,40 @@
 
 @layer base {
   :root {
-    /* Light theme — clean neutrals with a soft blue accent */
-    --background: 0 0% 98.5%;         /* #FBFBFB — warm neutral white */
-    --foreground: 0 0% 9%;            /* #171717 — near-black */
+    /* Light theme — quiet cool neutrals with a restrained violet accent */
+    --background: 240 20% 98.6%;
+    --foreground: 240 16% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card: 240 18% 99.4%;
+    --card-foreground: 240 16% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover: 240 18% 99.4%;
+    --popover-foreground: 240 16% 12%;
 
-    --primary: 202 84% 58%;           /* soft light blue accent */
+    --primary: 238 58% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96.5%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 240 16% 95.8%;
+    --secondary-foreground: 240 16% 12%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 36%;
+    --muted: 240 16% 95.6%;
+    --muted-foreground: 240 9% 42%;
 
-    --accent: 204 100% 96%;
-    --accent-foreground: 204 62% 24%;
+    --accent: 240 30% 95.8%;
+    --accent-foreground: 240 24% 26%;
 
-    --destructive: 358 68% 57%;       /* #E5484D */
+    --destructive: 358 68% 57%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 88%;
-    --ring: 202 84% 58%;
+    --border: 240 12% 90.5%;
+    --input: 240 11% 88.4%;
+    --ring: 238 58% 58%;
     --radius: 0.5rem;
 
-    --sidebar: 0 0% 97%;
+    --sidebar: 240 18% 97.4%;
+    --terminal: 240 16% 13%;
+    --terminal-foreground: 240 15% 89%;
+    --terminal-border: 240 10% 24%;
 
     /* Shared easing curves */
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -49,36 +52,39 @@
   }
 
   .dark {
-    /* Dark theme — deep neutrals with a brighter blue accent */
-    --background: 0 0% 9%;            /* #171717 — deep charcoal */
-    --foreground: 0 0% 90%;           /* #E5E5E5 — soft off-white */
+    /* Dark theme — deep violet-tinted neutrals with calm contrast */
+    --background: 240 14% 10.2%;
+    --foreground: 240 14% 92%;
 
-    --card: 0 0% 12%;                 /* #1F1F1F — elevated surface */
-    --card-foreground: 0 0% 90%;
+    --card: 240 12% 13%;
+    --card-foreground: 240 14% 92%;
 
-    --popover: 0 0% 14%;              /* #242424 — dropdown surface */
-    --popover-foreground: 0 0% 90%;
+    --popover: 240 12% 15%;
+    --popover-foreground: 240 14% 92%;
 
-    --primary: 202 92% 68%;           /* brighter blue for dark surfaces */
-    --primary-foreground: 0 0% 9%;
+    --primary: 238 72% 72%;
+    --primary-foreground: 240 18% 12%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 85%;
+    --secondary: 240 10% 16%;
+    --secondary-foreground: 240 12% 88%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 68%;     /* brighter mid-gray for dark surfaces */
+    --muted: 240 10% 16%;
+    --muted-foreground: 240 10% 68%;
 
-    --accent: 203 42% 18%;
-    --accent-foreground: 203 100% 88%;
+    --accent: 240 16% 18%;
+    --accent-foreground: 240 20% 90%;
 
     --destructive: 358 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 18%;               /* #2E2E2E — subtle dark border */
-    --input: 0 0% 20%;
-    --ring: 202 92% 68%;
+    --border: 240 9% 22%;
+    --input: 240 9% 24%;
+    --ring: 238 72% 72%;
 
-    --sidebar: 0 0% 10.5%;            /* slightly lighter than bg */
+    --sidebar: 240 12% 11.5%;
+    --terminal: 240 12% 15%;
+    --terminal-foreground: 240 16% 88%;
+    --terminal-border: 240 8% 28%;
 
     --surface-overlay: 0 0% 16%;
     --surface-tint-alpha: 0.5;
@@ -97,7 +103,7 @@
   }
 
   ::selection {
-    background: hsla(202, 84%, 58%, 0.22);
+    background: hsla(238, 58%, 58%, 0.2);
     color: hsl(var(--foreground));
   }
 }
@@ -147,16 +153,22 @@
   }
 
   .violet-sheen {
-    background: hsla(202, 84%, 58%, 0.1);
+    background: hsla(238, 58%, 58%, 0.1);
   }
 
   .dark .violet-sheen {
-    background: hsla(202, 92%, 68%, 0.12);
+    background: hsla(238, 72%, 72%, 0.12);
   }
 
   .status-glow {
     box-shadow: none;
     animation: none;
+  }
+
+  .terminal-surface {
+    background: hsl(var(--terminal));
+    color: hsl(var(--terminal-foreground));
+    box-shadow: inset 0 0 0 1px hsl(var(--terminal-border) / 0.55);
   }
 }
 
