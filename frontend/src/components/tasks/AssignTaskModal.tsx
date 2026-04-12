@@ -17,12 +17,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { parseHarnessConfig } from '../../lib/harnessConfig';
-
-const AI_LABELS: Record<AiProvider, string> = {
-  'claude-code': 'Claude Code',
-  'codex': 'Codex',
-  'cursor-agent': 'Cursor Agent',
-};
+import { AI_LABELS } from '../../lib/taskConstants';
 
 const DEFAULT_SELECT = '__default__';
 const DIALOG_CONTROL_CLASSNAME = 'h-9 rounded-xl border-border/60 bg-card text-[13px] shadow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';

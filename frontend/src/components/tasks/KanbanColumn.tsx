@@ -1,18 +1,9 @@
 import { useState } from 'react';
 import { Task, Runner, TaskStatus } from '../../types';
+import { STATUS_CONFIG } from '@/lib/taskConstants';
 import TaskCard from './TaskCard';
 import { cn } from '@/lib/utils';
 import { getTaskStatusStyles } from '@/lib/semanticColors';
-import { Circle, CheckCircle2, XCircle, Clock, Archive, AlertTriangle } from 'lucide-react';
-
-const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string }> = {
-  backlog:     { icon: <Archive className="h-3.5 w-3.5" />, label: 'Backlog' },
-  todo:        { icon: <Circle className="h-3.5 w-3.5" />, label: 'Todo' },
-  in_progress: { icon: <Clock className="h-3.5 w-3.5" />, label: 'In Progress' },
-  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed' },
-  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done' },
-  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Cancelled' },
-};
 
 export default function KanbanColumn({
   status, tasks, runners, onTaskClick, onDrop,

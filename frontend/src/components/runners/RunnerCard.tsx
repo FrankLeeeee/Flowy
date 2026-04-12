@@ -1,26 +1,10 @@
 import { Runner, Task, AiProvider } from '../../types';
+import { AI_LABELS } from '@/lib/taskConstants';
 import { Button } from '@/components/ui/button';
 import RunnerStatusBadge from './RunnerStatusBadge';
-import { cn } from '@/lib/utils';
+import { cn, timeAgo } from '@/lib/utils';
 import { getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
-
-const AI_LABELS: Record<AiProvider, string> = {
-  'claude-code': 'Claude Code',
-  'codex': 'Codex',
-  'cursor-agent': 'Cursor Agent',
-};
-
-function timeAgo(iso: string | null): string {
-  if (!iso) return 'never';
-  const normalized = /[zZ]$|[+-]\d{2}:\d{2}$/.test(iso) ? iso : `${iso}Z`;
-  const timestamp = new Date(normalized).getTime();
-  if (Number.isNaN(timestamp)) return 'unknown';
-  const ms = Date.now() - timestamp;
-  if (ms < 60_000) return 'just now';
-  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
-  return `${Math.floor(ms / 3_600_000)}h ago`;
-}
 
 export default function RunnerCard({
   runner, currentTask, onDelete, onRefresh, refreshing,
