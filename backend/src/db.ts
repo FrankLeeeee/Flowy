@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { v4 as uuid } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -81,6 +82,18 @@ function migrate(): void {
     );
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS labels (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL UNIQUE,
+      color      TEXT NOT NULL DEFAULT 'blue',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  seedDefaultLabels();
+
   migrateTaskStatuses();
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
@@ -98,6 +111,34 @@ function seedDefaultProject(): void {
       INSERT INTO projects (id, name, key, description) VALUES (?, ?, ?, ?)
     `).run(DEFAULT_PROJECT_ID, 'default', 'DEFAULT', '');
   }
+}
+
+const DEFAULT_LABELS: Array<{ name: string; color: string }> = [
+  { name: 'Bug',           color: 'red' },
+  { name: 'Fix',           color: 'orange' },
+  { name: 'Feature',       color: 'blue' },
+  { name: 'Improvement',   color: 'emerald' },
+  { name: 'Refactor',      color: 'violet' },
+  { name: 'Documentation', color: 'gray' },
+  { name: 'Design',        color: 'pink' },
+  { name: 'Testing',       color: 'amber' },
+  { name: 'Performance',   color: 'teal' },
+  { name: 'Security',      color: 'red-dark' },
+  { name: 'DevOps',        color: 'cyan' },
+  { name: 'Chore',         color: 'slate' },
+];
+
+function seedDefaultLabels(): void {
+  const count = (db.prepare('SELECT COUNT(*) AS cnt FROM labels').get() as { cnt: number }).cnt;
+  if (count > 0) return;
+
+  const insert = db.prepare('INSERT INTO labels (id, name, color) VALUES (?, ?, ?)');
+  const seed = db.transaction(() => {
+    for (const label of DEFAULT_LABELS) {
+      insert.run(uuid(), label.name, label.color);
+    }
+  });
+  seed();
 }
 
 function migrateTaskStatuses(): void {

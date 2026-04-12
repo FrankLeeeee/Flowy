@@ -1,13 +1,13 @@
-import { Task, Runner } from '../../types';
+import { Task, Runner, Label } from '../../types';
 import { PRIORITY_ICON } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
-import { getAiProviderStyles, getLabelStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
+import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { Clock3 } from 'lucide-react';
 
 export default function TaskCard({
-  task, runner, onClick,
+  task, runner, allLabels = [], onClick,
 }: {
-  task: Task; runner?: Runner; onClick: () => void;
+  task: Task; runner?: Runner; allLabels?: Label[]; onClick: () => void;
 }) {
   const labels: string[] = JSON.parse(task.labels || '[]');
   const priorityStyles = getTaskPriorityStyles(task.priority);
@@ -45,11 +45,14 @@ export default function TaskCard({
       {/* Meta */}
       {(labels.length > 0 || runner || task.ai_provider) && (
         <div className="relative flex items-center gap-1.5 mt-2 flex-wrap pl-1.5">
-          {labels.map((label) => (
-            <span key={label} className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1', getLabelStyles(label).pill)}>
-              {label}
-            </span>
-          ))}
+          {labels.map((label) => {
+            const colorStyles = getLabelColorStyles(label, allLabels);
+            return (
+              <span key={label} className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1', colorStyles.pill)}>
+                {label}
+              </span>
+            );
+          })}
           {runner && (
             <span className="inline-flex items-center rounded-full bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-foreground/8">
               {runner.name}
