@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { getDb } from '../db';
 import { Task, Project, TaskLog } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
+import { formatTaskKey } from '../projectIdentity';
 
 const router = Router();
 
@@ -35,7 +36,7 @@ router.post('/', (req: Request, res: Response) => {
   if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
 
   const taskNumber = project.next_task_num;
-  const taskKey = `${project.key}-${taskNumber}`;
+  const taskKey = formatTaskKey(project.name, taskNumber);
   const id = uuid();
 
   const insertTask = db.transaction(() => {
