@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Task, Project, Runner, TaskStatus } from '../types';
+import { Task, Project, Runner, Label as LabelType, TaskStatus } from '../types';
 import {
-  fetchTasks, fetchRunners, createTask, assignTask, deleteTask, getTask, updateTask,
+  fetchTasks, fetchRunners, fetchLabels, createTask, assignTask, deleteTask, getTask, updateTask,
   fetchProjects, updateProject, deleteProject,
 } from '../api/client';
 import TaskListView from '../components/tasks/TaskListView';
@@ -11,6 +11,7 @@ import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,12 +21,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, Search } from 'lucide-react';
+import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 
 export default function ProjectDetail() {
-  const brandTone = getToneStyles('brand');
   const neutralTone = getToneStyles('neutral');
   const dangerTone = getToneStyles('danger');
 
@@ -36,6 +36,7 @@ export default function ProjectDetail() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
+  const [allLabels, setAllLabels] = useState<LabelType[]>([]);
   const [viewMode, setViewMode] = useState('kanban');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,10 +63,10 @@ export default function ProjectDetail() {
       if (runnerFilter !== '_all') filters.runner = runnerFilter;
       if (search) filters.search = search;
 
-      const [t, ps, r] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners()]);
+      const [t, ps, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
       const proj = ps.find((p) => p.id === id);
       if (!proj) { setError('Project not found'); setLoading(false); return; }
-      setProject(proj); setAllProjects(ps); setTasks(t); setRunners(r); setError('');
+      setProject(proj); setAllProjects(ps); setTasks(t); setRunners(r); setAllLabels(l); setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -123,16 +124,12 @@ export default function ProjectDetail() {
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <div className={cn('mb-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1', brandTone.pill)}>
-            <span className={cn('h-1.5 w-1.5 rounded-full', brandTone.dot)} />
-            Focus lane
-          </div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[15px] font-semibold text-foreground">{project.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <PageTitle icon={FolderOpen} title={project.name} />
             <span className="rounded bg-foreground/[0.04] px-1.5 py-0.5 text-[10px] font-mono tracking-wide text-muted-foreground/70">{project.key}</span>
           </div>
           {project.description && (
-            <p className="mt-0.5 text-[12px] text-muted-foreground/85">{project.description}</p>
+            <p className="mt-1.5 text-[12px] text-muted-foreground/85">{project.description}</p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{tasks.length} scoped tasks</span>
@@ -218,7 +215,7 @@ export default function ProjectDetail() {
 
       <div key={viewMode} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
         {viewMode === 'kanban' ? (
-          <KanbanBoard tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <KanbanBoard tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
           <TaskListView tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}

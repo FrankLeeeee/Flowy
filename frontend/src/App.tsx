@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Inbox from './pages/Inbox';
 import ProjectDetail from './pages/ProjectDetail';
 import Runners from './pages/Runners';
+import Labels from './pages/Labels';
 
 function AppShell() {
   const location = useLocation();
@@ -17,6 +18,7 @@ function AppShell() {
             <Route path="/inbox" element={<Inbox />} />
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="/runners" element={<Runners />} />
+            <Route path="/labels" element={<Labels />} />
             <Route path="/usage" element={<Navigate to="/runners" replace />} />
             <Route path="/settings" element={<Navigate to="/runners" replace />} />
           </Routes>

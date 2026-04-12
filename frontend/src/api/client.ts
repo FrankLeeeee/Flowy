@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, Project, Task, Runner, TaskLog, HarnessConfig } from '../types';
+import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -80,6 +80,27 @@ export async function assignTask(id: string, body: { runnerId: string; aiProvide
 export async function fetchTaskLogs(id: string): Promise<TaskLog[]> {
   const { data } = await api.get<TaskLog[]>(`/tasks/${id}/logs`);
   return data;
+}
+
+// ── Labels ───────────────────────────────────────────────────────────────
+
+export async function fetchLabels(): Promise<Label[]> {
+  const { data } = await api.get<Label[]>('/labels');
+  return data;
+}
+
+export async function createLabel(body: { name: string; color: string }): Promise<Label> {
+  const { data } = await api.post<Label>('/labels', body);
+  return data;
+}
+
+export async function updateLabel(id: string, body: { name?: string; color?: string }): Promise<Label> {
+  const { data } = await api.put<Label>(`/labels/${id}`, body);
+  return data;
+}
+
+export async function deleteLabel(id: string): Promise<void> {
+  await api.delete(`/labels/${id}`);
 }
 
 // ── Runners ───────────────────────────────────────────────────────────────
