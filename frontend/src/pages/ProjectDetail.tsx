@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Task, Project, Runner, TaskStatus } from '../types';
+import { Task, Project, Runner, TaskStatus, DEFAULT_PROJECT_ID } from '../types';
 import {
   fetchTasks, fetchRunners, createTask, assignTask, deleteTask, getTask, updateTask,
   fetchProjects, updateProject, deleteProject,
@@ -154,10 +154,14 @@ export default function ProjectDetail() {
               <DropdownMenuItem onClick={openEditProject} className="text-[13px]">
                 <Pencil className="h-3.5 w-3.5 mr-2 opacity-60" />Edit Project
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive text-[13px]">
-                <Trash2 className="h-3.5 w-3.5 mr-2 opacity-60" />Delete Project
-              </DropdownMenuItem>
+              {project.id !== DEFAULT_PROJECT_ID && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive text-[13px]">
+                    <Trash2 className="h-3.5 w-3.5 mr-2 opacity-60" />Delete Project
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

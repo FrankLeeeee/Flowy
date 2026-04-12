@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
-import { getDb } from '../db';
+import { getDb, DEFAULT_PROJECT_ID } from '../db';
 import { Project } from '../types';
 
 const router = Router();
 
 // GET /api/projects
 router.get('/', (_req: Request, res: Response) => {
-  const rows = getDb().prepare('SELECT * FROM projects ORDER BY created_at DESC').all() as Project[];
+  const rows = getDb().prepare('SELECT * FROM projects ORDER BY (id = ?) DESC, created_at DESC').all(DEFAULT_PROJECT_ID) as Project[];
   res.json(rows);
 });
 
@@ -54,6 +54,7 @@ router.put('/:id', (req: Request, res: Response) => {
 
 // DELETE /api/projects/:id
 router.delete('/:id', (req: Request, res: Response) => {
+  if (req.params.id === DEFAULT_PROJECT_ID) { res.status(403).json({ error: 'The default project cannot be deleted' }); return; }
   const result = getDb().prepare('DELETE FROM projects WHERE id = ?').run(req.params.id);
   if (result.changes === 0) { res.status(404).json({ error: 'Project not found' }); return; }
   res.json({ ok: true });

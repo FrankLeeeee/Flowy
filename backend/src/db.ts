@@ -85,6 +85,19 @@ function migrate(): void {
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
+  seedDefaultProject();
+}
+
+/** Well-known ID for the non-deletable default project. */
+export const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
+
+function seedDefaultProject(): void {
+  const exists = db.prepare('SELECT id FROM projects WHERE id = ?').get(DEFAULT_PROJECT_ID);
+  if (!exists) {
+    db.prepare(`
+      INSERT INTO projects (id, name, key, description) VALUES (?, ?, ?, ?)
+    `).run(DEFAULT_PROJECT_ID, 'default', 'DEFAULT', '');
+  }
 }
 
 function migrateTaskStatuses(): void {

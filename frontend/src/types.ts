@@ -1,3 +1,6 @@
+/** Well-known ID for the non-deletable default project. */
+export const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
+
 export interface Settings {
   runner:     { registrationSecret: string };
 }
