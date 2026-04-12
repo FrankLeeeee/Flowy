@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
 import { getDb, DEFAULT_PROJECT_ID } from '../db';
 import { Project } from '../types';
+import { formatTaskKey, normalizeProjectName } from '../projectIdentity';
 
 const router = Router();
 
@@ -13,19 +14,19 @@ router.get('/', (_req: Request, res: Response) => {
 
 // POST /api/projects
 router.post('/', (req: Request, res: Response) => {
-  const { name, key, description } = req.body as { name?: string; key?: string; description?: string };
-  if (!name || !key) { res.status(400).json({ error: 'name and key are required' }); return; }
+  const { name, description } = req.body as { name?: string; description?: string };
+  const normalizedName = name ? normalizeProjectName(name) : '';
+  if (!normalizedName) { res.status(400).json({ error: 'name is required' }); return; }
 
-  const normalizedKey = key.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-  if (normalizedKey.length < 2) { res.status(400).json({ error: 'key must be 2-6 alphanumeric characters' }); return; }
-
-  const existing = getDb().prepare('SELECT id FROM projects WHERE key = ?').get(normalizedKey);
-  if (existing) { res.status(409).json({ error: `Project key "${normalizedKey}" already exists` }); return; }
+  const nameCollision = getDb().prepare(`
+    SELECT id FROM projects WHERE lower(name) = lower(?)
+  `).get(normalizedName);
+  if (nameCollision) { res.status(409).json({ error: `Project name "${normalizedName}" already exists` }); return; }
 
   const id = uuid();
   getDb().prepare(`
     INSERT INTO projects (id, name, key, description) VALUES (?, ?, ?, ?)
-  `).run(id, name, normalizedKey, description ?? '');
+  `).run(id, normalizedName, id, description ?? '');
 
   const project = getDb().prepare('SELECT * FROM projects WHERE id = ?').get(id) as Project;
   res.status(201).json(project);
@@ -41,14 +42,38 @@ router.get('/:id', (req: Request, res: Response) => {
 // PUT /api/projects/:id
 router.put('/:id', (req: Request, res: Response) => {
   const { name, description } = req.body as { name?: string; description?: string };
-  const project = getDb().prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id) as Project | undefined;
+  const db = getDb();
+  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id) as Project | undefined;
   if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
 
-  getDb().prepare(`
-    UPDATE projects SET name = ?, description = ?, updated_at = datetime('now') WHERE id = ?
-  `).run(name ?? project.name, description ?? project.description, req.params.id);
+  const normalizedName = name !== undefined ? normalizeProjectName(name) : project.name;
+  if (!normalizedName) { res.status(400).json({ error: 'name is required' }); return; }
 
-  const updated = getDb().prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id) as Project;
+  const nameCollision = db.prepare(`
+    SELECT id FROM projects WHERE id != ? AND lower(name) = lower(?)
+  `).get(req.params.id, normalizedName);
+  if (nameCollision) { res.status(409).json({ error: `Project name "${normalizedName}" already exists` }); return; }
+
+  const projectTasks = db.prepare(`
+    SELECT id, task_number FROM tasks WHERE project_id = ? ORDER BY task_number ASC
+  `).all(req.params.id) as Array<{ id: string; task_number: number }>;
+
+  const updateProject = db.transaction(() => {
+    db.prepare(`
+      UPDATE projects SET name = ?, description = ?, updated_at = datetime('now') WHERE id = ?
+    `).run(normalizedName, description ?? project.description, req.params.id);
+
+    if (normalizedName !== project.name) {
+      const updateTaskKey = db.prepare('UPDATE tasks SET task_key = ? WHERE id = ?');
+      for (const task of projectTasks) {
+        updateTaskKey.run(formatTaskKey(normalizedName, task.task_number), task.id);
+      }
+    }
+  });
+
+  updateProject();
+
+  const updated = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id) as Project;
   res.json(updated);
 });
 

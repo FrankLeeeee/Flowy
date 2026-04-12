@@ -41,7 +41,6 @@ export interface HarnessConfig {
 export interface Project {
   id: string;
   name: string;
-  key: string;
   description: string;
   next_task_num: number;
   created_at: string;

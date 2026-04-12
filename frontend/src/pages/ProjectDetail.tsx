@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Task, Project, Runner, Label as LabelType, TaskStatus, DEFAULT_PROJECT_ID } from '../types';
@@ -92,7 +93,15 @@ export default function ProjectDetail() {
   const handleEditProject = async (e: React.FormEvent) => {
     e.preventDefault(); if (!project || !editName.trim()) return;
     try { const updated = await updateProject(project.id, { name: editName.trim(), description: editDescription.trim() }); setProject(updated); setShowEditProject(false); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed to update project'); }
+    catch (e) {
+      setError(
+        axios.isAxiosError<{ error?: string }>(e)
+          ? e.response?.data?.error ?? e.message
+          : e instanceof Error
+            ? e.message
+            : 'Failed to update project',
+      );
+    }
   };
   const handleDeleteProject = async () => {
     if (!project) return;
@@ -124,10 +133,7 @@ export default function ProjectDetail() {
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <PageTitle icon={FolderOpen} title={project.name} />
-            <span className="rounded bg-foreground/[0.04] px-1.5 py-0.5 text-[10px] font-mono tracking-wide text-muted-foreground/70">{project.key}</span>
-          </div>
+          <PageTitle icon={FolderOpen} title={project.name} />
           {project.description && (
             <p className="mt-1.5 text-[12px] text-muted-foreground/85">{project.description}</p>
           )}
@@ -241,10 +247,7 @@ export default function ProjectDetail() {
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit {project.name}</h2>
-                  <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">Update the project’s name and supporting context without changing its identity.</p>
-                </div>
-                <div className="inline-flex items-center rounded-full bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground/85 ring-1 ring-primary/10 shadow-soft">
-                  <span className="font-mono tracking-[0.16em] text-foreground/80">{project.key}</span>
+                  <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">Project names must stay unique. Renaming a project updates its task references too.</p>
                 </div>
               </div>
             </AppDialogHeader>
@@ -260,13 +263,6 @@ export default function ProjectDetail() {
                     <span className="text-[10px] text-muted-foreground/75">{editDescription.trim().length} chars</span>
                   </div>
                   <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Optional description..." rows={3} className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
-                </AppDialogSection>
-                <AppDialogSection>
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Project Key</Label>
-                    <span className="text-[10px] text-muted-foreground/75">Locked</span>
-                  </div>
-                  <Input value={project?.key ?? ''} disabled className="h-auto border-0 bg-transparent px-0 py-0 font-mono text-[16px] font-semibold uppercase tracking-[0.16em] text-foreground/55 shadow-none disabled:cursor-default disabled:opacity-100" />
                 </AppDialogSection>
               </AppDialogBody>
               <AppDialogFooter>

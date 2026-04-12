@@ -25,7 +25,7 @@ export async function fetchProjects(): Promise<Project[]> {
   return data;
 }
 
-export async function createProject(body: { name: string; key: string; description?: string }): Promise<Project> {
+export async function createProject(body: { name: string; description?: string }): Promise<Project> {
   const { data } = await api.post<Project>('/projects', body);
   return data;
 }

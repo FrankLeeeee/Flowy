@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { formatTaskKey, normalizeProjectName } from './projectIdentity';
 
 const DB_DIR = path.join(os.homedir(), '.config', 'my-hub');
 const DB_FILE = path.join(DB_DIR, 'hub.db');
@@ -99,6 +100,9 @@ function migrate(): void {
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
   seedDefaultProject();
+  normalizeProjectNames();
+  ensureUniqueProjectNamesIndex();
+  migrateTaskKeysToProjectNames();
 }
 
 /** Well-known ID for the non-deletable default project. */
@@ -111,6 +115,33 @@ function seedDefaultProject(): void {
       INSERT INTO projects (id, name, key, description) VALUES (?, ?, ?, ?)
     `).run(DEFAULT_PROJECT_ID, 'default', 'DEFAULT', '');
   }
+}
+
+function normalizeProjectNames(): void {
+  const projects = db.prepare('SELECT id, name FROM projects').all() as Array<{ id: string; name: string }>;
+  const updateProjectName = db.prepare('UPDATE projects SET name = ? WHERE id = ?');
+  const normalize = db.transaction(() => {
+    for (const project of projects) {
+      const normalizedName = normalizeProjectName(project.name);
+      if (normalizedName && normalizedName !== project.name) {
+        updateProjectName.run(normalizedName, project.id);
+      }
+    }
+  });
+
+  normalize();
+}
+
+function ensureUniqueProjectNamesIndex(): void {
+  const duplicates = db.prepare(`
+    SELECT lower(name) AS normalized_name, COUNT(*) AS count
+    FROM projects
+    GROUP BY lower(name)
+    HAVING COUNT(*) > 1
+  `).all() as Array<{ normalized_name: string; count: number }>;
+
+  if (duplicates.length > 0) return;
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name_unique ON projects(name COLLATE NOCASE)');
 }
 
 const DEFAULT_LABELS: Array<{ name: string; color: string }> = [
@@ -194,6 +225,28 @@ function ensureColumn(table: string, column: string, definition: string): void {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
   if (!columns.some((entry) => entry.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+function migrateTaskKeysToProjectNames(): void {
+  const tasks = db.prepare(`
+    SELECT t.id, t.task_number, p.name AS project_name
+    FROM tasks t
+    JOIN projects p ON p.id = t.project_id
+    ORDER BY t.created_at ASC, t.id ASC
+  `).all() as Array<{ id: string; task_number: number; project_name: string }>;
+
+  const updateTaskKey = db.prepare('UPDATE tasks SET task_key = ? WHERE id = ?');
+  const migrateTaskKeys = db.transaction(() => {
+    for (const task of tasks) {
+      updateTaskKey.run(formatTaskKey(task.project_name, task.task_number), task.id);
+    }
+  });
+
+  try {
+    migrateTaskKeys();
+  } catch {
+    // Preserve existing task keys if legacy data would make the generated names collide.
   }
 }
 

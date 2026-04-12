@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { fetchProjects, createProject, deleteProject } from '../api/client';
@@ -24,7 +25,7 @@ export default function Sidebar() {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjName, setNewProjName] = useState('');
-  const [newProjKey, setNewProjKey] = useState('');
+  const [newProjectError, setNewProjectError] = useState('');
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const navigate = useNavigate();
 
@@ -43,13 +44,30 @@ export default function Sidebar() {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProjName || !newProjKey) return;
-    const proj = await createProject({ name: newProjName, key: newProjKey });
+    const normalizedName = newProjName.trim();
+    if (!normalizedName) return;
+    try {
+      const proj = await createProject({ name: normalizedName });
+      setShowNewProject(false);
+      setNewProjName('');
+      setNewProjectError('');
+      loadProjects();
+      navigate(`/project/${proj.id}`);
+    } catch (error) {
+      setNewProjectError(
+        axios.isAxiosError<{ error?: string }>(error)
+          ? error.response?.data?.error ?? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Failed to create project',
+      );
+    }
+  };
+
+  const closeNewProjectDialog = () => {
     setShowNewProject(false);
     setNewProjName('');
-    setNewProjKey('');
-    loadProjects();
-    navigate(`/project/${proj.id}`);
+    setNewProjectError('');
   };
 
   const handleDeleteClick = (project: Project, e: React.MouseEvent) => {
@@ -136,7 +154,6 @@ export default function Sidebar() {
                         >
                           <FolderKanban className="h-3.5 w-3.5 shrink-0 opacity-50" />
                           <span className="truncate flex-1">{p.name}</span>
-                          <span className="text-[10px] font-mono tracking-wide text-muted-foreground/75">{p.key}</span>
                         </NavLink>
                         {p.id !== DEFAULT_PROJECT_ID && (
                           <button
@@ -201,11 +218,11 @@ export default function Sidebar() {
       </aside>
 
       {/* New Project Dialog */}
-      <Dialog open={showNewProject} onOpenChange={(open) => { if (!open) setShowNewProject(false); }}>
+      <Dialog open={showNewProject} onOpenChange={(open) => { if (!open) closeNewProjectDialog(); }}>
         <AppDialogContent className="sm:max-w-[440px]">
           <AppDialogHeader>
             <DialogTitle className="sr-only">Create a new project</DialogTitle>
-            <DialogDescription className="sr-only">Create a project with a name and key.</DialogDescription>
+            <DialogDescription className="sr-only">Create a project with a unique name.</DialogDescription>
             <AppDialogEyebrow>
               <Sparkles className="h-3 w-3" />
               New Project
@@ -222,39 +239,27 @@ export default function Sidebar() {
                 <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Project Name</Label>
                 <Input
                   value={newProjName}
-                  onChange={(e) => setNewProjName(e.target.value)}
+                  onChange={(e) => {
+                    setNewProjName(e.target.value);
+                    if (newProjectError) setNewProjectError('');
+                  }}
                   placeholder="My Project"
                   autoFocus
                   required
                   className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </AppDialogSection>
-
-              <AppDialogSection>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <Label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Project Key</Label>
-                  <span className="text-[10px] text-muted-foreground/75">{newProjKey.length}/6 chars</span>
-                </div>
-                <Input
-                  value={newProjKey}
-                  onChange={(e) => setNewProjKey(e.target.value.toUpperCase())}
-                  className="h-auto border-0 bg-transparent px-0 py-0 font-mono text-[16px] font-semibold uppercase tracking-[0.16em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  placeholder="PROJ"
-                  maxLength={6}
-                  required
-                />
-              </AppDialogSection>
             </AppDialogBody>
 
             <AppDialogFooter>
               <div className="text-[11px] text-muted-foreground/80">
-                {newProjName.trim() && newProjKey.length >= 2 ? 'Ready to create.' : 'Add a name and short key to continue.'}
+                {newProjectError || (newProjName.trim() ? 'Ready to create.' : 'Project names must be unique.')}
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" onClick={() => setShowNewProject(false)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
+                <Button type="button" variant="ghost" onClick={closeNewProjectDialog} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={!newProjName || newProjKey.length < 2} className="rounded-full px-4 text-[11px]">
+                <Button type="submit" disabled={!newProjName.trim()} className="rounded-full px-4 text-[11px]">
                   Create project
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
