@@ -1,55 +1,57 @@
-# My-Hub
+# Flowy
 
-AI usage dashboard inspired by [codexbar](https://github.com/steipete/codexbar). Monitors Claude Code, Codex CLI, OpenAI API, Gemini, and OpenRouter — all in one place.
+## Overview
 
-## Requirements
+Flowy is a self-hosted task hub for AI-assisted work. You run the hub with `@frankleeeee/flowy`, connect one or more machines with `@frankleeeee/flowy-runner`, and assign tasks to the AI CLI that should handle them, such as Claude Code, Codex, or Cursor Agent.
 
-- Node.js 18+
-- npm 8+
+It fits a simple workflow: keep projects and tasks in one dashboard, point each task at a runner, pass harness settings like workspace, model, sandbox, or worktree through to the underlying CLI, and watch execution output stream back into the hub.
 
-## Setup
+## Get Started
+
+Flowy is published as two npm packages:
+
+- `@frankleeeee/flowy` runs the hub UI and API
+- `@frankleeeee/flowy-runner` registers a worker machine and executes assigned tasks
+
+Install both packages globally:
+
+```bash
+npm install -g @frankleeeee/flowy @frankleeeee/flowy-runner
+```
+
+Start the hub:
+
+```bash
+flowy --port 3001
+```
+
+Then open `http://localhost:3001`.
+
+On any machine that should execute tasks, make sure at least one supported AI CLI is installed (`claude`, `codex`, or `agent`), then start a runner:
+
+```bash
+flowy-runner \
+  --name "my-device" \
+  --url http://localhost:3001 \
+  --secret <secret>
+
+```
+
+If you configured a runner registration secret in Flowy, add `--secret <value>` to the runner command.
+
+If you are working from this repository instead of the published packages:
 
 ```bash
 npm install
-```
-
-## Running
-
-```bash
-# Both servers (recommended)
 npm run dev
-
-# Individually
-npm run dev:backend    # Express API  → http://localhost:3001
-npm run dev:frontend   # Vite/React   → http://localhost:5173
 ```
 
-Open **http://localhost:5173**.
+That starts the backend on `http://localhost:3001` and the frontend on `http://localhost:5173`.
 
-## Providers
+## Docs
 
-| Provider | Data source | What's shown |
-|---|---|---|
-| **Claude Code** | `~/.claude/projects/**/*.jsonl` | 5-hour session window usage %, burn rate, session & 30-day costs |
-| **Codex CLI** | `~/.codex/sessions/**/*.jsonl` | Session & weekly rate windows (from server-provided data), costs |
-| **OpenAI API** | Admin API key | Today & 30-day token usage and estimated cost |
-| **Gemini** | API key | Key validation (no public usage REST API) |
-| **OpenRouter** | API key | Credit balance and usage % |
+Full documentation is available at [frankleeeee.github.io/Flowy](https://frankleeeee.github.io/Flowy/).
 
-## Configuration
-
-Open **http://localhost:5173/settings**:
-
-- **Claude Code / Codex** — select your subscription plan (no API key needed)
-- **OpenAI** — paste an Admin-level API key (`sk-…`) and optional org ID
-- **Gemini** — paste your Generative Language API key (`AIza…`)
-- **OpenRouter** — paste your API key (`sk-or-…`)
-
-Settings are stored at `~/.config/my-hub/settings.json` (git-ignored).
-
-## Building for production
-
-```bash
-npm run build
-# Serve with: node backend/dist/index.js
-```
+- [Get Started](https://frankleeeee.github.io/Flowy/guide/getting-started)
+- [Usage](https://frankleeeee.github.io/Flowy/guide/usage)
+- [Developer Reference](https://frankleeeee.github.io/Flowy/guide/developer-reference)

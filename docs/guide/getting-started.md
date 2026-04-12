@@ -1,25 +1,105 @@
 # Getting Started
 
+Flowy has two published npm packages:
+
+- `@frankleeeee/flowy` runs the hub UI and API
+- `@frankleeeee/flowy-runner` registers a worker machine and executes tasks locally
+
 ## Requirements
 
-- Node.js 23+
+- Node.js 18+
 - npm 8+
+- At least one supported AI CLI on each runner machine:
+  - `claude` for Claude Code
+  - `codex` for Codex
+  - `agent` for Cursor Agent
 
-## Install dependencies
+## Install the packages
 
-From the repository root:
+Install both packages globally if you want `flowy` and `flowy-runner` on your `PATH`:
+
+```bash
+npm install -g @frankleeeee/flowy @frankleeeee/flowy-runner
+```
+
+If you prefer not to install globally, you can run the same binaries with `npx`:
+
+```bash
+npx @frankleeeee/flowy --port 3001
+npx @frankleeeee/flowy-runner --name "my-device" --url http://localhost:3001
+```
+
+## Start the hub
+
+Run the Flowy hub:
+
+```bash
+flowy --port 3001
+```
+
+The `flowy` package serves the API and bundled web app together in production mode. Once it starts, open:
+
+```text
+http://localhost:3001
+```
+
+Flowy stores its local data under `~/.config/my-hub/`, including the SQLite database and runner settings.
+
+## Start a runner
+
+On a machine that should execute tasks, launch the runner and point it at the hub:
+
+```bash
+flowy-runner \
+  --name "my-device" \
+  --url http://localhost:3001
+```
+
+If you configured a registration secret in the Flowy UI, include it when the runner registers:
+
+```bash
+flowy-runner \
+  --name "my-device" \
+  --url http://localhost:3001 \
+  --secret "your-shared-secret"
+```
+
+After the first successful registration, the runner saves its token to `~/.config/my-hub/runner-<name>.json` and reuses it on later runs.
+
+### Runner flags
+
+| Flag | Required | Description |
+| --- | --- | --- |
+| `--name <name>` | Yes | Unique runner name, such as `office-mac` |
+| `--url <url>` | Yes | Base URL of the Flowy hub, such as `http://localhost:3001` |
+| `--poll-interval <seconds>` | No | Poll interval in seconds. Default: `5` |
+| `--token <token>` | No | Reuse an existing token instead of registering |
+| `--secret <secret>` | No | Registration secret if the hub requires one |
+| `--device <text>` | No | Device label sent to the hub. Default: hostname |
+
+## First-run flow
+
+1. Start `flowy`.
+2. Open the hub in your browser.
+3. Start one or more `flowy-runner` processes on the machines that should execute tasks.
+4. Confirm the runner appears on the Runners page as `online`.
+5. Create a project and assign a task to a runner.
+
+## Develop from source
+
+If you are contributing inside this repository, install dependencies at the root:
 
 ```bash
 npm install
 ```
 
-## Run the app locally
+Run the app locally:
 
 ```bash
 npm run dev
 ```
 
-This starts:
+That starts:
 
 - the backend at `http://localhost:3001`
 - the frontend at `http://localhost:5173`
@@ -44,4 +124,4 @@ npm run build
 npm run docs:dev
 ```
 
-The docs site reads Markdown files from the `docs/` folder and serves them through VitePress.
+The docs site is generated from the `docs/` folder with VitePress.

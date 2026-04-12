@@ -1,30 +1,23 @@
-# Flowy Docs
+---
+layout: home
 
-Flowy is a lightweight task hub for coordinating projects, tasks, and AI-capable runners from one place.
+hero:
+  name: Flowy
+  text: Dispatch AI work across your machines
+  tagline: Install the hub, connect runner machines, and send tasks to Claude Code, Codex, or Cursor Agent with per-task harness settings.
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /guide/getting-started
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/FrankLeeeee/Flowy
 
-## What you will find here
-
-- Quick setup instructions for local development
-- A high-level map of the frontend, backend, and runner packages
-- Deployment notes for npm publishing and GitHub Pages
-
-## Start here
-
-- [Getting Started](/guide/getting-started)
-- [Architecture](/guide/architecture)
-- [Deployment](/guide/deployment)
-
-## Packages
-
-- `@frankleeeee/flowy` powers the app package and production server entrypoint
-- `@frankleeeee/flowy-runner` installs the runner CLI used by worker machines
-
-## Local commands
-
-```bash
-npm install
-npm run dev
-npm test
-npm run build
-npm run docs:dev
-```
+features:
+  - title: Run the hub
+    details: Start the dashboard and API with the published `@frankleeeee/flowy` package.
+  - title: Connect runners
+    details: Use `@frankleeeee/flowy-runner` to register worker machines and advertise the AI CLIs installed on each one.
+  - title: Control execution
+    details: Pass workspace, model, sandbox, mode, and worktree settings through to the underlying CLI when you assign a task.
+---
