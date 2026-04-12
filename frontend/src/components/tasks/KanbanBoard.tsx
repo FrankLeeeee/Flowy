@@ -1,12 +1,13 @@
-import { Task, Runner, TaskStatus } from '../../types';
+import { Task, Runner, Label, TaskStatus } from '../../types';
 import { TASK_STATUSES } from '@/lib/taskConstants';
 import KanbanColumn from './KanbanColumn';
 
 export default function KanbanBoard({
-  tasks, runners, onTaskClick, onStatusChange,
+  tasks, runners, allLabels = [], onTaskClick, onStatusChange,
 }: {
   tasks: Task[];
   runners: Runner[];
+  allLabels?: Label[];
   onTaskClick: (task: Task) => void;
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
 }) {
@@ -31,6 +32,7 @@ export default function KanbanBoard({
             status={status}
             tasks={grouped.get(status) ?? []}
             runners={runners}
+            allLabels={allLabels}
             onTaskClick={onTaskClick}
             onDrop={handleDrop}
           />

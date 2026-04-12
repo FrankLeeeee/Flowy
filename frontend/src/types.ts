@@ -78,6 +78,33 @@ export interface Runner {
   updated_at: string;
 }
 
+export type LabelColor =
+  | 'red' | 'red-light' | 'red-dark'
+  | 'orange' | 'orange-light' | 'orange-dark'
+  | 'amber' | 'amber-light' | 'amber-dark'
+  | 'yellow' | 'yellow-light' | 'yellow-dark'
+  | 'lime' | 'lime-light' | 'lime-dark'
+  | 'green' | 'green-light' | 'green-dark'
+  | 'emerald' | 'emerald-light' | 'emerald-dark'
+  | 'teal' | 'teal-light' | 'teal-dark'
+  | 'cyan' | 'cyan-light' | 'cyan-dark'
+  | 'blue' | 'blue-light' | 'blue-dark'
+  | 'indigo' | 'indigo-light' | 'indigo-dark'
+  | 'violet' | 'violet-light' | 'violet-dark'
+  | 'purple' | 'purple-light' | 'purple-dark'
+  | 'pink' | 'pink-light' | 'pink-dark'
+  | 'rose' | 'rose-light' | 'rose-dark'
+  | 'gray' | 'gray-light' | 'gray-dark'
+  | 'slate' | 'zinc' | 'stone' | 'fuchsia' | 'sky';
+
+export interface Label {
+  id: string;
+  name: string;
+  color: LabelColor;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TaskLog {
   id: string;
   task_id: string;

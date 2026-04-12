@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskLog, Runner, TaskStatus, TaskPriority } from '../../types';
-import { fetchTaskLogs, updateTask } from '../../api/client';
+import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label } from '../../types';
+import { fetchTaskLogs, updateTask, fetchLabels } from '../../api/client';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,16 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
+import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
-import { getAiProviderStyles, getLabelStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
+import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { STATUS_CONFIG, AI_LABELS, LABEL_OPTIONS, TASK_STATUSES } from '../../lib/taskConstants';
-import { Pencil, UserPlus, Trash2, Download, Tag, ArrowRight, X, Expand } from 'lucide-react';
+import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
+import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -72,6 +72,11 @@ export default function TaskDetailModal({
   const [priority, setPriority] = useState(task.priority);
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
   const [outputFullscreenOpen, setOutputFullscreenOpen] = useState(false);
+  const [allLabels, setAllLabels] = useState<Label[]>([]);
+
+  useEffect(() => {
+    fetchLabels().then(setAllLabels).catch(() => {});
+  }, []);
 
   const loadLogs = useCallback(async () => {
     try { setLogs(await fetchTaskLogs(task.id)); } catch { /* ignore */ }
@@ -165,18 +170,21 @@ export default function TaskDetailModal({
 
               {labels.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {labels.map((label) => (
-                    <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', getLabelStyles(label).pill)}>
-                      {label}
-                      <button
-                        type="button"
-                        onClick={() => removeLabel(label)}
-                        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                  {labels.map((label) => {
+                    const colorStyles = getLabelColorStyles(label, allLabels);
+                    return (
+                      <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', colorStyles.pill)}>
+                        {label}
+                        <button
+                          type="button"
+                          onClick={() => removeLabel(label)}
+                          className="rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
 
@@ -219,37 +227,12 @@ export default function TaskDetailModal({
                   </SelectContent>
                 </Select>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" className="h-8 gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none hover:bg-foreground/[0.08]">
-                      <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                      Labels
-                      {labels.length > 0 && (
-                        <span className="rounded-full bg-foreground/[0.08] px-1.5 py-0.5 text-[10px] text-foreground/70">
-                          {labels.length}
-                        </span>
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-52 rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                    {LABEL_OPTIONS.map((label) => {
-                      const selected = labels.some((item) => item.toLowerCase() === label.toLowerCase());
-                      return (
-                        <DropdownMenuItem
-                          key={label}
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            toggleLabel(label);
-                          }}
-                          className={cn('rounded-lg text-[11px] font-medium', selected && 'bg-accent')}
-                        >
-                          <span className={cn('mr-2 h-2 w-2 rounded-full border border-border', selected ? 'bg-foreground' : 'bg-transparent')} />
-                          {label}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <LabelPicker
+                  selectedLabels={labels}
+                  allLabels={allLabels}
+                  onToggle={toggleLabel}
+                  onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
+                />
               </div>
 
               <div className="flex gap-2">
@@ -273,11 +256,14 @@ export default function TaskDetailModal({
           )}
 
           {/* Labels */}
-          {labels.length > 0 && (
+          {labels.length > 0 && !editing && (
             <div className="flex flex-wrap gap-1.5">
-              {labels.map((l) => (
-                <span key={l} className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1', getLabelStyles(l).pill)}>{l}</span>
-              ))}
+              {labels.map((l) => {
+                const colorStyles = getLabelColorStyles(l, allLabels);
+                return (
+                  <span key={l} className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1', colorStyles.pill)}>{l}</span>
+                );
+              })}
             </div>
           )}
 

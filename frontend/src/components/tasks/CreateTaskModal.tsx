@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { Project, TaskPriority } from '../../types';
+import { useState, useEffect } from 'react';
+import { Project, TaskPriority, Label } from '../../types';
+import { fetchLabels } from '../../api/client';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
+import LabelPicker from '@/components/LabelPicker';
 import { cn } from '@/lib/utils';
-import { getLabelStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { LABEL_OPTIONS } from '@/lib/taskConstants';
-import { Circle, FolderKanban, Tag, ArrowRight, X, Sparkles } from 'lucide-react';
+import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
+import { Circle, FolderKanban, ArrowRight, X, Sparkles } from 'lucide-react';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'none',   label: 'No Priority' },
@@ -34,23 +34,29 @@ export default function CreateTaskModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('none');
-  const [labelsText, setLabelsText] = useState('');
+  const [labels, setLabels] = useState<string[]>([]);
+  const [allLabels, setAllLabels] = useState<Label[]>([]);
 
-  const labels = labelsText.split(',').map((label) => label.trim()).filter(Boolean);
   const selectedProject = projects.find((project) => project.id === projectId);
   const priorityStyles = getTaskPriorityStyles(priority);
 
-  const syncLabels = (nextLabels: string[]) => {
-    setLabelsText(nextLabels.join(', '));
-  };
+  useEffect(() => {
+    if (open) {
+      fetchLabels().then(setAllLabels).catch(() => {});
+    }
+  }, [open]);
 
-  const toggleLabel = (label: string) => {
-    const exists = labels.some((item) => item.toLowerCase() === label.toLowerCase());
-    syncLabels(exists ? labels.filter((item) => item.toLowerCase() !== label.toLowerCase()) : [...labels, label]);
+  const toggleLabel = (labelName: string) => {
+    setLabels((prev) => {
+      const exists = prev.some((l) => l.toLowerCase() === labelName.toLowerCase());
+      return exists
+        ? prev.filter((l) => l.toLowerCase() !== labelName.toLowerCase())
+        : [...prev, labelName];
+    });
   };
 
   const removeLabel = (label: string) => {
-    syncLabels(labels.filter((item) => item !== label));
+    setLabels((prev) => prev.filter((l) => l !== label));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -113,18 +119,21 @@ export default function CreateTaskModal({
 
             {labels.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
-                {labels.map((label) => (
-                  <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', getLabelStyles(label).pill)}>
-                    {label}
-                    <button
-                      type="button"
-                      onClick={() => removeLabel(label)}
-                      className="rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+                {labels.map((label) => {
+                  const colorStyles = getLabelColorStyles(label, allLabels);
+                  return (
+                    <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', colorStyles.pill)}>
+                      {label}
+                      <button
+                        type="button"
+                        onClick={() => removeLabel(label)}
+                        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
               </div>
             )}
           </AppDialogBody>
@@ -163,37 +172,12 @@ export default function CreateTaskModal({
               </SelectContent>
             </Select>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" className="h-8 gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft hover:bg-accent">
-                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                  Labels
-                  {labels.length > 0 && (
-                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                      {labels.length}
-                    </span>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-52 rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                {LABEL_OPTIONS.map((label) => {
-                  const selected = labels.some((item) => item.toLowerCase() === label.toLowerCase());
-                  return (
-                    <DropdownMenuItem
-                      key={label}
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        toggleLabel(label);
-                      }}
-                      className={cn('rounded-lg text-[11px] font-medium', selected && 'bg-accent')}
-                    >
-                      <span className={cn('mr-2 h-2 w-2 rounded-full border border-border', selected ? 'bg-foreground' : 'bg-transparent')} />
-                      {label}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <LabelPicker
+              selectedLabels={labels}
+              allLabels={allLabels}
+              onToggle={toggleLabel}
+              onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
+            />
           </div>
 
           <AppDialogFooter>

@@ -31,9 +31,6 @@ export const AI_LABELS: Record<AiProvider, string> = {
   'cursor-agent': 'Cursor Agent',
 };
 
-/** Available label choices for tasks. */
-export const LABEL_OPTIONS = ['Bug', 'Feature', 'Improvement', 'Documentation', 'Design'] as const;
-
 /** Ordered list of all task statuses for column/group layout. */
 export const TASK_STATUSES: TaskStatus[] = [
   'backlog', 'todo', 'in_progress', 'failed', 'done', 'cancelled',

@@ -6,6 +6,7 @@ import settingsRouter  from './routes/settings';
 import projectsRouter  from './routes/projects';
 import tasksRouter     from './routes/tasks';
 import runnersRouter   from './routes/runners';
+import labelsRouter    from './routes/labels';
 import { initDb }      from './db';
 
 const app  = express();
@@ -20,6 +21,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/tasks',    tasksRouter);
 app.use('/api/runners',  runnersRouter);
+app.use('/api/labels',   labelsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

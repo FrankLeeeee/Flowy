@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Runner, Task } from '../types';
 import { fetchRunners, fetchTasks, deleteRunner, refreshRunnerProviders, fetchRunnerSecret, updateSettings } from '../api/client';
 import RunnerCard from '../components/runners/RunnerCard';
+import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,6 @@ import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 
 export default function Runners() {
-  const brandTone = getToneStyles('brand');
   const neutralTone = getToneStyles('neutral');
   const successTone = getToneStyles('success');
   const warningTone = getToneStyles('warning');
@@ -136,12 +136,8 @@ export default function Runners() {
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <div className={cn('mb-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1', brandTone.pill)}>
-            <span className={cn('h-1.5 w-1.5 rounded-full status-glow', brandTone.dot)} />
-            Fleet overview
-          </div>
-          <h1 className="text-[15px] font-semibold text-foreground">Runners</h1>
-          <p className="mt-0.5 text-[12px] text-muted-foreground/85">
+          <PageTitle icon={Bot} title="Runners" />
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85">
             {tab === 'runners' ? (
               'Monitor runner availability and active work across your fleet'
             ) : (

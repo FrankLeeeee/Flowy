@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, Project, Runner } from '../types';
+import { Task, Project, Runner, Label } from '../types';
 import {
-  fetchTasks, fetchProjects, fetchRunners,
+  fetchTasks, fetchProjects, fetchRunners, fetchLabels,
   createTask, assignTask, deleteTask, getTask, updateTask,
 } from '../api/client';
 import { TaskStatus } from '../types';
@@ -10,16 +10,16 @@ import KanbanBoard from '../components/tasks/KanbanBoard';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
+import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, LayoutGrid, List, Search } from 'lucide-react';
+import { Inbox as InboxIcon, Plus, LayoutGrid, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 
 export default function Inbox() {
-  const brandTone = getToneStyles('brand');
   const successTone = getToneStyles('success');
   const neutralTone = getToneStyles('neutral');
   const dangerTone = getToneStyles('danger');
@@ -27,6 +27,7 @@ export default function Inbox() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
+  const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [viewMode, setViewMode] = useState('kanban');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,10 +47,11 @@ export default function Inbox() {
       if (runnerFilter !== '_all') filters.runner = runnerFilter;
       if (search) filters.search = search;
 
-      const [t, p, r] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners()]);
+      const [t, p, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
       setTasks(t.filter((task) => task.status !== 'done' && task.status !== 'cancelled'));
       setProjects(p);
       setRunners(r);
+      setAllLabels(l);
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
@@ -100,12 +102,8 @@ export default function Inbox() {
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <div className={cn('mb-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1', brandTone.pill)}>
-            <span className={cn('h-1.5 w-1.5 rounded-full status-glow', brandTone.dot)} />
-            Cross-project queue
-          </div>
-          <h1 className="text-[15px] font-semibold text-foreground">Inbox</h1>
-          <p className="mt-0.5 text-[12px] text-muted-foreground/85">Active issues across all projects</p>
+          <PageTitle icon={InboxIcon} title="Inbox" />
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85">Active issues across all projects</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{tasks.length} active tasks</span>
             <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', successTone.pill)}>{runners.length} runners available</span>
@@ -166,7 +164,7 @@ export default function Inbox() {
       {/* Content */}
       <div key={viewMode} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
         {viewMode === 'kanban' ? (
-          <KanbanBoard tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <KanbanBoard tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
           <TaskListView tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}

@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { Task, Runner, TaskStatus } from '../../types';
+import { Task, Runner, Label, TaskStatus } from '../../types';
 import { STATUS_CONFIG } from '@/lib/taskConstants';
 import TaskCard from './TaskCard';
 import { cn } from '@/lib/utils';
 import { getTaskStatusStyles } from '@/lib/semanticColors';
 
 export default function KanbanColumn({
-  status, tasks, runners, onTaskClick, onDrop,
+  status, tasks, runners, allLabels = [], onTaskClick, onDrop,
 }: {
   status: TaskStatus;
   tasks: Task[];
   runners: Runner[];
+  allLabels?: Label[];
   onTaskClick: (task: Task) => void;
   onDrop?: (taskId: string, newStatus: TaskStatus) => void;
 }) {
@@ -67,6 +68,7 @@ export default function KanbanColumn({
             <TaskCard
               task={task}
               runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
+              allLabels={allLabels}
               onClick={() => onTaskClick(task)}
             />
           </div>
