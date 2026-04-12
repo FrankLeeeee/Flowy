@@ -12,7 +12,7 @@ const DEFAULTS: Settings = {
 };
 
 function ensureDir() {
-  if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
+  fs.mkdirSync(SETTINGS_DIR, { recursive: true });
 }
 
 export function loadSettings(): Settings {

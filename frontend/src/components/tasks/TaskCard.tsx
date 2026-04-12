@@ -1,15 +1,8 @@
-import { Task, TaskPriority, Runner } from '../../types';
+import { Task, Runner } from '../../types';
+import { PRIORITY_ICON } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
 import { getAiProviderStyles, getLabelStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { SignalHigh, SignalMedium, SignalLow, AlertTriangle, Minus, Clock3 } from 'lucide-react';
-
-const PRIORITY_ICON: Record<TaskPriority, React.ReactNode> = {
-  urgent: <AlertTriangle className="h-3.5 w-3.5" />,
-  high: <SignalHigh className="h-3.5 w-3.5" />,
-  medium: <SignalMedium className="h-3.5 w-3.5" />,
-  low: <SignalLow className="h-3.5 w-3.5" />,
-  none: <Minus className="h-3.5 w-3.5" />,
-};
+import { Clock3 } from 'lucide-react';
 
 export default function TaskCard({
   task, runner, onClick,

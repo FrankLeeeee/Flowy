@@ -10,17 +10,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { cn } from '@/lib/utils';
 import { getLabelStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
+import { LABEL_OPTIONS } from '@/lib/taskConstants';
 import { Circle, FolderKanban, Tag, ArrowRight, X, Sparkles } from 'lucide-react';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
-  { value: 'none', label: 'No Priority' },
-  { value: 'low', label: 'Low' },
+  { value: 'none',   label: 'No Priority' },
+  { value: 'low',    label: 'Low' },
   { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
+  { value: 'high',   label: 'High' },
   { value: 'urgent', label: 'Urgent' },
 ];
-
-const LABEL_OPTIONS = ['Bug', 'Feature', 'Improvement', 'Documentation', 'Design'];
 
 export default function CreateTaskModal({
   open, projects, defaultProjectId, onSubmit, onClose,

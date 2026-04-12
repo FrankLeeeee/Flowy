@@ -1,35 +1,9 @@
 import { useState } from 'react';
-import { Task, Runner, TaskStatus, TaskPriority } from '../../types';
-import { cn } from '@/lib/utils';
+import { Task, Runner, TaskStatus } from '../../types';
+import { STATUS_CONFIG, PRIORITY_ICON, TASK_STATUSES } from '@/lib/taskConstants';
+import { cn, timeAgo } from '@/lib/utils';
 import { getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
-import { SignalHigh, SignalMedium, SignalLow, AlertTriangle, Minus, Circle, CheckCircle2, XCircle, Clock, Archive, GripVertical } from 'lucide-react';
-
-const STATUSES: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'failed', 'done', 'cancelled'];
-
-const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; label: string }> = {
-  backlog:     { icon: <Archive className="h-3.5 w-3.5" />, label: 'Backlog' },
-  todo:        { icon: <Circle className="h-3.5 w-3.5" />, label: 'Todo' },
-  in_progress: { icon: <Clock className="h-3.5 w-3.5" />, label: 'In Progress' },
-  failed:      { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Failed' },
-  done:        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Done' },
-  cancelled:   { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Cancelled' },
-};
-
-const PRIORITY_CONFIG: Record<TaskPriority, { icon: React.ReactNode }> = {
-  urgent: { icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-  high:   { icon: <SignalHigh className="h-3.5 w-3.5" /> },
-  medium: { icon: <SignalMedium className="h-3.5 w-3.5" /> },
-  low:    { icon: <SignalLow className="h-3.5 w-3.5" /> },
-  none:   { icon: <Minus className="h-3.5 w-3.5" /> },
-};
-
-function timeAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso + 'Z').getTime();
-  if (ms < 60_000) return 'just now';
-  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
-  if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
-  return `${Math.floor(ms / 86_400_000)}d ago`;
-}
+import { GripVertical } from 'lucide-react';
 
 function StatusGroup({
   status, tasks, runnerMap, onTaskClick, onDrop,
@@ -86,7 +60,6 @@ function StatusGroup({
       {/* Rows */}
       {tasks.map((task, index) => {
         const runner = task.runner_id ? runnerMap.get(task.runner_id) : undefined;
-        const priority = PRIORITY_CONFIG[task.priority];
         const priorityTone = getTaskPriorityStyles(task.priority);
 
         return (
@@ -116,7 +89,7 @@ function StatusGroup({
               <span className="text-[13px] font-medium text-foreground truncate">{task.title}</span>
             </div>
             <div className={cn('flex items-center', priorityTone.icon)}>
-              {priority.icon}
+              {PRIORITY_ICON[task.priority]}
             </div>
             <span className="text-[12px] text-muted-foreground truncate">{runner?.name ?? '-'}</span>
             <span className="text-right text-[11px] text-muted-foreground/75">{timeAgo(task.updated_at)}</span>
@@ -149,14 +122,14 @@ export default function TaskListView({
 
   // Group tasks by status
   const grouped = new Map<TaskStatus, Task[]>();
-  for (const s of STATUSES) grouped.set(s, []);
+  for (const s of TASK_STATUSES) grouped.set(s, []);
   for (const t of tasks) {
     const list = grouped.get(t.status);
     if (list) list.push(t);
   }
 
-  // Only show statuses that have tasks, or all if dragging is enabled
-  const visibleStatuses = STATUSES.filter(
+  // Only show statuses that have tasks, or all if drag-and-drop is enabled
+  const visibleStatuses = TASK_STATUSES.filter(
     (s) => (grouped.get(s)?.length ?? 0) > 0 || onStatusChange
   );
 

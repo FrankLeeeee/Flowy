@@ -8,16 +8,7 @@ export interface ExecutionResult {
   sendOnComplete: boolean;
 }
 
-/** Build the CLI command + args for a given AI provider. */
-export function buildCommand(aiProvider: string, prompt: string): {
-  cmd: string;
-  args: string[];
-  cwd?: string;
-  streamOutput: boolean;
-} {
-  return buildCommandWithConfig(aiProvider, prompt);
-}
-
+/** Build the CLI command + args for a given AI provider and optional harness config. */
 export function buildCommandWithConfig(aiProvider: string, prompt: string, rawHarnessConfig?: string): {
   cmd: string;
   args: string[];

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskLog, Runner, TaskStatus, TaskPriority, AiProvider } from '../../types';
+import { Task, TaskLog, Runner, TaskStatus, TaskPriority } from '../../types';
 import { fetchTaskLogs, updateTask } from '../../api/client';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -16,39 +16,21 @@ import { getAiProviderStyles, getLabelStyles, getTaskPriorityStyles, getTaskStat
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Pencil, UserPlus, Trash2, Circle, CheckCircle2, XCircle, Clock, Archive, Download, AlertTriangle, Tag, ArrowRight, X, Expand } from 'lucide-react';
+import { STATUS_CONFIG, AI_LABELS, LABEL_OPTIONS, TASK_STATUSES } from '../../lib/taskConstants';
+import { Pencil, UserPlus, Trash2, Download, Tag, ArrowRight, X, Expand } from 'lucide-react';
 
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'todo', label: 'Todo' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'failed', label: 'Failed' },
-  { value: 'done', label: 'Done' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
+const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
+  value,
+  label: STATUS_CONFIG[value].label,
+}));
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
-  { value: 'none', label: 'No Priority' },
-  { value: 'low', label: 'Low' },
+  { value: 'none',   label: 'No Priority' },
+  { value: 'low',    label: 'Low' },
   { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
+  { value: 'high',   label: 'High' },
   { value: 'urgent', label: 'Urgent' },
 ];
-
-const LABEL_OPTIONS = ['Bug', 'Feature', 'Improvement', 'Documentation', 'Design'];
-
-const STATUS_ICON: Record<TaskStatus, { icon: React.ReactNode }> = {
-  backlog: { icon: <Archive className="h-3.5 w-3.5" /> },
-  todo: { icon: <Circle className="h-3.5 w-3.5" /> },
-  in_progress: { icon: <Clock className="h-3.5 w-3.5" /> },
-  failed: { icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-  done: { icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  cancelled: { icon: <XCircle className="h-3.5 w-3.5" /> },
-};
-
-const AI_LABELS: Record<AiProvider, string> = {
-  'claude-code': 'Claude Code', codex: 'Codex', 'cursor-agent': 'Cursor Agent',
-};
 
 const TERMINAL_STATUSES: TaskStatus[] = ['done', 'failed', 'cancelled'];
 
@@ -113,7 +95,7 @@ export default function TaskDetailModal({
   const labels: string[] = editing
     ? labelsText.split(',').map((label: string) => label.trim()).filter(Boolean)
     : JSON.parse(task.labels || '[]');
-  const statusConfig = STATUS_ICON[task.status];
+  const statusConfig = STATUS_CONFIG[task.status];
   const output = task.output?.trim() ?? '';
   const hasOutput = output.length > 0;
   const canViewFullscreenOutput = hasOutput && TERMINAL_STATUSES.includes(task.status);

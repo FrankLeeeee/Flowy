@@ -86,30 +86,17 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   const currentStatus = current?.status;
   const newStatus = currentStatus === 'busy' ? 'busy' : 'online';
 
-  if (aiProviders && lastCliScanAt) {
-    db.prepare(`
-      UPDATE runners
-      SET status = ?, last_heartbeat = datetime('now'), ai_providers = ?, last_cli_scan_at = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(newStatus, JSON.stringify(aiProviders), lastCliScanAt, runner.id);
-  } else if (aiProviders) {
-    db.prepare(`
-      UPDATE runners
-      SET status = ?, last_heartbeat = datetime('now'), ai_providers = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(newStatus, JSON.stringify(aiProviders), runner.id);
-  } else if (lastCliScanAt) {
-    db.prepare(`
-      UPDATE runners
-      SET status = ?, last_heartbeat = datetime('now'), last_cli_scan_at = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(newStatus, lastCliScanAt, runner.id);
-  } else {
-    db.prepare(`
-      UPDATE runners SET status = ?, last_heartbeat = datetime('now'), updated_at = datetime('now')
-      WHERE id = ?
-    `).run(newStatus, runner.id);
-  }
+  // Build the UPDATE dynamically — only include optional columns when provided
+  const sets = [
+    'status = ?',
+    "last_heartbeat = datetime('now')",
+    "updated_at = datetime('now')",
+  ];
+  const params: unknown[] = [newStatus];
+  if (aiProviders) { sets.push('ai_providers = ?'); params.push(JSON.stringify(aiProviders)); }
+  if (lastCliScanAt) { sets.push('last_cli_scan_at = ?'); params.push(lastCliScanAt); }
+  params.push(runner.id);
+  db.prepare(`UPDATE runners SET ${sets.join(', ')} WHERE id = ?`).run(...params);
 
   const refreshCli = Boolean(
     current?.cli_refresh_requested_at &&
