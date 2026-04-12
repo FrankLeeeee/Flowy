@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { fetchProjects, createProject, deleteProject } from '../api/client';
-import { Project } from '../types';
+import { Project, DEFAULT_PROJECT_ID } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -138,14 +138,16 @@ export default function Sidebar() {
                           <span className="truncate flex-1">{p.name}</span>
                           <span className="text-[10px] font-mono tracking-wide text-muted-foreground/75">{p.key}</span>
                         </NavLink>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteClick(p, e)}
-                          className="interactive-lift absolute right-2 top-1/2 -mr-0.5 -translate-y-1/2 opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-destructive motion-safe:hover:scale-110"
-                          aria-label={`Delete ${p.name}`}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        {p.id !== DEFAULT_PROJECT_ID && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteClick(p, e)}
+                            className="interactive-lift absolute right-2 top-1/2 -mr-0.5 -translate-y-1/2 opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-destructive motion-safe:hover:scale-110"
+                            aria-label={`Delete ${p.name}`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
                     ))}
                     {projects.length === 0 && (
