@@ -61,7 +61,7 @@ flowy-runner --name <name> --url <hub-url> [options]
 |------|---------|-------------|
 | `--poll-interval <ms>` | `5000` | How often to poll for new tasks (in milliseconds) |
 | `--token <token>` | — | Reuse an existing runner token instead of registering |
-| `--secret <secret>` | — | Registration secret (if the hub requires one) |
+| `--secret <secret>` | — | Registration secret required for first-time registration |
 | `--device <info>` | auto-detected | Device info string sent during registration |
 
 ### Examples
@@ -70,7 +70,7 @@ flowy-runner --name <name> --url <hub-url> [options]
 
 ```bash
 cd runner
-npm run dev -- --name my-laptop --url http://localhost:3001
+npm run dev -- --name my-laptop --url http://localhost:3001 --secret my-secret
 ```
 
 **Production** (compiled):
@@ -78,7 +78,7 @@ npm run dev -- --name my-laptop --url http://localhost:3001
 ```bash
 cd runner
 npm run build
-npm start -- --name my-laptop --url http://localhost:3001
+npm start -- --name my-laptop --url http://localhost:3001 --secret my-secret
 ```
 
 **Global install** (use from anywhere):
@@ -92,7 +92,7 @@ flowy-runner --name office-server --url https://hub.example.com --secret my-secr
 
 ## How it works
 
-1. **Register** — On first launch, the runner registers with the hub and receives an authentication token. The token is saved to `~/.config/my-hub/runner-<name>.json` for future sessions.
+1. **Register** — On first launch, the runner registers with the hub using the hub's registration secret and receives an authentication token. The token is saved to `~/.config/flowy/runner-<name>.json` for future sessions.
 
 2. **Heartbeat** — Every 30 seconds, the runner sends a heartbeat to the hub so it appears as "online" in the dashboard.
 
@@ -113,7 +113,7 @@ flowy-runner --name office-server --url https://hub.example.com --secret my-secr
 
 ## Token persistence
 
-Runner tokens are saved to `~/.config/my-hub/runner-<name>.json`. On subsequent launches with the same `--name`, the saved token is reused automatically. You can also pass `--token <token>` to use a specific token.
+Runner tokens are saved to `~/.config/flowy/runner-<name>.json`. On subsequent launches with the same `--name`, the saved token is reused automatically. You can also pass `--token <token>` to use a specific token.
 
 ## Graceful shutdown
 

@@ -26,6 +26,7 @@ flowy --port 3001
 ```
 
 Then open `http://localhost:3001`.
+On first start, Flowy generates a runner registration secret for the hub. Copy it from the Runners page before connecting a new machine.
 
 On any machine that should execute tasks, make sure at least one supported AI CLI is installed (`claude`, `codex`, or `agent`), then start a runner:
 
@@ -37,7 +38,7 @@ flowy-runner \
 
 ```
 
-If you configured a runner registration secret in Flowy, add `--secret <value>` to the runner command.
+Use the registration secret shown by Flowy when a runner registers for the first time.
 
 If you are working from this repository instead of the published packages:
 
