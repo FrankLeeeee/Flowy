@@ -2,6 +2,7 @@ import { RunnerConfig } from './types';
 import { RunnerApi } from './api';
 import { deleteToken, detectAvailableProviders, saveToken } from './config';
 import { executeTask } from './executor';
+import { getRunnerTokenPath } from './configDir';
 
 export async function startDaemon(config: RunnerConfig): Promise<void> {
   const api = new RunnerApi(config.url);
@@ -18,7 +19,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     api.setToken(token);
     saveToken(config.name, id, token);
     console.log(`Registered! Runner ID: ${id}`);
-    console.log(`Token saved to ~/.config/my-hub/runner-${config.name}.json`);
+    console.log(`Token saved to ${getRunnerTokenPath(config.name)}`);
   }
 
   let executing = false;

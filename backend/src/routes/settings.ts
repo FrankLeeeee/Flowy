@@ -27,7 +27,14 @@ router.put('/', (req: Request, res: Response) => {
   const body = req.body as Partial<Settings>;
 
   if (body.runner) {
-    if (!isMasked(body.runner.registrationSecret)) current.runner.registrationSecret = body.runner.registrationSecret!;
+    if (!isMasked(body.runner.registrationSecret)) {
+      const nextSecret = body.runner.registrationSecret!.trim();
+      if (!nextSecret) {
+        res.status(400).json({ error: 'registrationSecret is required' });
+        return;
+      }
+      current.runner.registrationSecret = nextSecret;
+    }
   }
 
   saveSettings(current);

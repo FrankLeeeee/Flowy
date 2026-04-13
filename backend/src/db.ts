@@ -2,10 +2,10 @@ import Database from 'better-sqlite3';
 import { v4 as uuid } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { formatTaskKey, normalizeProjectName } from './projectIdentity';
+import { DATA_DIR, ensureDataDir } from './dataDir';
 
-const DB_DIR = path.join(os.homedir(), '.config', 'my-hub');
+const DB_DIR = DATA_DIR;
 const DB_FILE = path.join(DB_DIR, 'hub.db');
 
 let db: Database.Database;
@@ -16,6 +16,7 @@ export function getDb(): Database.Database {
 }
 
 export function initDb(): void {
+  ensureDataDir();
   fs.mkdirSync(DB_DIR, { recursive: true });
 
   db = new Database(DB_FILE);

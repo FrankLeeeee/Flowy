@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import os from 'os';
 import path from 'path';
 import settingsRouter  from './routes/settings';
 import projectsRouter  from './routes/projects';
@@ -8,6 +7,7 @@ import tasksRouter     from './routes/tasks';
 import runnersRouter   from './routes/runners';
 import labelsRouter    from './routes/labels';
 import { initDb }      from './db';
+import { DATA_DIR }    from './dataDir';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -34,5 +34,5 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`Flowy → http://localhost:${PORT}`);
-  console.log(`Data  → ${path.join(os.homedir(), '.config', 'my-hub')}`);
+  console.log(`Data  → ${DATA_DIR}`);
 });

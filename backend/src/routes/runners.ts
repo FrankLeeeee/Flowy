@@ -17,7 +17,7 @@ router.get('/', (_req: Request, res: Response) => {
   res.json(safe);
 });
 
-// POST /api/runners/register — register a new runner (requires secret if configured)
+// POST /api/runners/register — register a new runner
 router.post('/register', (req: Request, res: Response) => {
   const { name, aiProviders, deviceInfo, secret } = req.body as {
     name?: string; aiProviders?: string[]; deviceInfo?: string; secret?: string;
@@ -27,11 +27,9 @@ router.post('/register', (req: Request, res: Response) => {
   // Check registration secret
   const settings = loadSettings();
   const requiredSecret = settings.runner.registrationSecret;
-  if (requiredSecret) {
-    if (!secret || secret !== requiredSecret) {
-      res.status(403).json({ error: 'Invalid registration secret. Contact the admin to get the correct secret.' });
-      return;
-    }
+  if (!secret || secret !== requiredSecret) {
+    res.status(403).json({ error: 'Invalid registration secret. Contact the admin to get the correct secret.' });
+    return;
   }
 
   const id = uuid();

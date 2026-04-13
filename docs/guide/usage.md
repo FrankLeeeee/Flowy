@@ -113,7 +113,7 @@ Example:
 
 ## Runner behavior
 
-Each runner keeps a local registration file at `~/.config/my-hub/runner-<name>.json`. On startup it:
+Each runner keeps a local registration file at `~/.config/flowy/runner-<name>.json`. On startup it:
 
 1. Reuses the saved token when possible.
 2. Detects available AI CLIs on the machine.
@@ -127,5 +127,5 @@ If the hub asks for a CLI refresh, the runner rescans the machine and sends the 
 
 - Use clear runner names such as `office-mac`, `build-box`, or `gpu-linux`.
 - Point `workspace` at the repository that the target CLI should operate on.
-- Configure a runner registration secret if you do not want open runner enrollment.
+- Copy the runner registration secret from the Runners page when onboarding a new machine.
 - Give different machines different provider coverage if they serve different roles.
