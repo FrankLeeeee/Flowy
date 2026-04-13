@@ -9,11 +9,7 @@ export default defineConfig({
   base: isProjectPages ? `/${repository}/` : '/',
   cleanUrls: true,
   themeConfig: {
-    nav: [
-      { text: 'Getting Started', link: '/guide/getting-started' },
-      { text: 'Run Your First Task', link: '/guide/usage' },
-      { text: 'Runner & Provider Guide', link: '/guide/developer-reference' },
-    ],
+    nav: [],
     sidebar: [
       {
         text: 'Docs',

@@ -8,13 +8,15 @@ hero:
   image:
     src: /flowy-icon.svg
     alt: Flowy icon
+    width: 320
+    height: 320
   actions:
     - theme: brand
-      text: Getting Started
+      text: Get Started
       link: /guide/getting-started
     - theme: alt
-      text: Run Your First Task
-      link: /guide/usage
+      text: Visit GitHub
+      link: https://github.com/FrankLeeeee/Flowy
 
 features:
   - title: 1. Start the hub
