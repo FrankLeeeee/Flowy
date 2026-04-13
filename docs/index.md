@@ -3,8 +3,11 @@ layout: home
 
 hero:
   name: Flowy
-  text: Dispatch AI work across your machines
-  tagline: Install the hub, connect runner machines, and send tasks to Claude Code, Codex, or Cursor Agent with per-task harness settings.
+  text: Send AI work to the right machine
+  tagline: Run the hub, connect runner machines, and assign tasks to Claude Code, Codex, or Cursor Agent from one calm dashboard.
+  image:
+    src: /flowy-icon.svg
+    alt: Flowy icon
   actions:
     - theme: brand
       text: Get Started
@@ -14,10 +17,10 @@ hero:
       link: https://github.com/FrankLeeeee/Flowy
 
 features:
-  - title: Run the hub
-    details: Start the dashboard and API with the published `@frankleeeee/flowy` package.
-  - title: Connect runners
-    details: Use `@frankleeeee/flowy-runner` to register worker machines and advertise the AI CLIs installed on each one.
-  - title: Control execution
-    details: Pass workspace, model, sandbox, mode, and worktree settings through to the underlying CLI when you assign a task.
+  - title: 1. Start the hub
+    details: Install `@frankleeeee/flowy`, open the dashboard, and keep projects plus active work in one place.
+  - title: 2. Connect runners
+    details: Register each machine with `@frankleeeee/flowy-runner` so Flowy can see which AI CLIs are available.
+  - title: 3. Assign work
+    details: Create a task, choose a runner and provider, and watch the output stream back into Flowy.
 ---

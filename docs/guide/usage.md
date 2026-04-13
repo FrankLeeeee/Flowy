@@ -1,131 +1,106 @@
-# Usage
+# Step-by-Step Guide
 
-Flowy revolves around three things: the hub, runners, and tasks.
+Once Flowy is running, the daily loop is simple: create work, assign it, watch it run, and review the result.
 
-- The hub stores projects, tasks, runner registrations, and task output.
-- Runners advertise which AI CLIs they can execute.
-- Tasks are assigned to a specific runner and provider, then executed with optional harness settings.
+## Step 1: Create a project
 
-## Typical workflow
+Use the `+` button in the sidebar `Projects` section to create a project.
 
-1. Start the Flowy hub with `flowy`.
-2. Register one or more machines with `flowy-runner`.
-3. Create a project and add tasks.
-4. Assign a task to a runner and choose the AI provider that should execute it.
-5. Watch the runner pick up the task, stream output, and report success or failure back to the hub.
+Projects are your main containers for work. Use them to separate clients, repositories, teams, or streams of effort.
 
-## How task execution works
+## Step 2: Add a task
 
-When you assign a task:
+Open a project and click `New Task`.
 
-1. Flowy stores the selected runner, AI provider, and harness config on the task.
-2. The runner polls the hub every 5 seconds by default.
-3. When the runner sees a `todo` task assigned to it, it marks that task `in_progress`.
-4. The runner launches the underlying CLI command for the selected provider.
-5. Output is streamed back to the hub while the process runs.
-6. The task is marked `done` or `failed` when the command exits.
+Fill in:
 
-The runner also sends a heartbeat every 30 seconds so the hub can show whether a machine is `online`, `busy`, or `offline`.
+- `Title` for the outcome you want
+- `Description` for context, constraints, or acceptance criteria
+- `Priority` if this task needs to stand out
+- `Labels` if you want reusable categories like `frontend`, `ops`, or `urgent`
 
-## Supported providers
+Keep titles direct and action-oriented. The clearer the task, the better the handoff.
 
-Flowy currently supports these provider IDs:
+## Step 3: Work from the view that fits
 
-| Provider | Local command | Notes |
-| --- | --- | --- |
-| `claude-code` | `claude` | Uses `claude -p --tools all ...` |
-| `codex` | `codex` | Uses `codex exec ... --color never` |
-| `cursor-agent` | `agent` | Uses `agent --print --force ...` |
+Flowy gives you two main ways to manage tasks:
 
-Runners register only the providers they can detect on the local machine, so the provider list depends on which CLIs are installed.
+- `Inbox` shows active tasks across all projects.
+- A project page shows only the tasks for that project.
 
-## Harness settings
+Use search, filters, and the Kanban or List toggle to switch between a broad view and a focused one.
 
-Harness settings are provider-specific options that Flowy passes through to the underlying CLI when the task runs. The UI writes this config for you during task assignment, but the stored value is JSON.
+## Step 4: Assign the task to a runner
 
-### Claude Code
+Open the task details and click `Assign`, then:
 
-Flowy maps these fields to the `claude` command:
+1. Choose the runner that should do the work.
+2. Choose an AI provider available on that runner.
+3. Fill in the provider settings for this task.
+4. Click `Assign task`.
 
-- `workspace`
-- `model`
-- `mode`
-- `worktree`
+Flowy only shows providers detected on the selected runner, so the provider list changes by machine.
 
-Example:
+## Step 5: Set the execution details
 
-```json
-{
-  "claudeCode": {
-    "workspace": "/path/to/repo",
-    "model": "sonnet",
-    "mode": "acceptEdits",
-    "worktree": "feature/docs"
-  }
-}
-```
+The assignment form passes settings through to the underlying CLI.
 
-### Codex
+The most common fields are:
 
-Flowy maps these fields to `codex exec`:
+- `workspace` for the folder or repository on the runner machine
+- `model` for the model name you want that CLI to use
+- `sandbox` for permission mode when the provider supports it
+- `mode` for Claude Code or Cursor Agent execution behavior
+- `worktree` for a separate working directory when you use one
 
-- `workspace`
-- `model`
-- `sandbox`
+Start small. In many cases, `workspace` and `model` are enough.
 
-Example:
+## Step 6: Watch the task run
 
-```json
-{
-  "codex": {
-    "workspace": "/path/to/repo",
-    "model": "gpt-5.4",
-    "sandbox": "workspace-write"
-  }
-}
-```
+After assignment, Flowy handles the handoff:
 
-If you do not set a sandbox for Codex, Flowy defaults it to `workspace-write`.
+1. the task is queued on the selected runner
+2. the runner picks it up
+3. the task moves to `in_progress`
+4. the runner shows as `busy`
+5. output streams back into the task
+6. the task finishes as `done` or `failed`
 
-### Cursor Agent
+Use `Runners` when you want the machine view. Use `Inbox` or the project page when you want the task view.
 
-Flowy maps these fields to the `agent` command:
+## Step 7: Review the result
 
-- `workspace`
-- `model`
-- `mode`
-- `sandbox`
-- `worktree`
+Open the task details to:
 
-Example:
+- read the output
+- download the output as Markdown
+- open completed output in full screen
+- edit the title, description, status, priority, or labels
 
-```json
-{
-  "cursorAgent": {
-    "workspace": "/path/to/repo",
-    "model": "gpt-5",
-    "mode": "plan",
-    "sandbox": "enabled",
-    "worktree": "feature/docs"
-  }
-}
-```
+This is also the best place to decide whether the task is finished or needs a follow-up task.
 
-## Runner behavior
+## Step 8: Keep the queue healthy
 
-Each runner keeps a local registration file at `~/.config/my-hub/runner-<name>.json`. On startup it:
+A simple working routine looks like this:
 
-1. Reuses the saved token when possible.
-2. Detects available AI CLIs on the machine.
-3. Registers or reconnects to the hub.
-4. Sends regular heartbeats.
-5. Polls for assigned tasks.
+1. Review `Inbox`.
+2. Create or refine tasks.
+3. Assign each task to the best runner and provider.
+4. Check `Runners` for machine availability.
+5. Review output and close the loop.
 
-If the hub asks for a CLI refresh, the runner rescans the machine and sends the updated provider list on the next heartbeat.
+## Helpful habits
 
-## Practical tips
+- Use clear runner names like `office-mac`, `build-box`, or `gpu-linux`.
+- Point `workspace` to the exact folder the CLI should work in on that runner.
+- Use labels for themes or ownership, not long task titles.
+- Keep tasks focused so each assignment has one obvious goal.
 
-- Use clear runner names such as `office-mac`, `build-box`, or `gpu-linux`.
-- Point `workspace` at the repository that the target CLI should operate on.
-- Configure a runner registration secret if you do not want open runner enrollment.
-- Give different machines different provider coverage if they serve different roles.
+## If something looks wrong
+
+- If a runner is `offline`, make sure `flowy-runner` is still running and can reach the hub URL.
+- If a provider is missing, install that CLI on the runner machine and refresh the runner.
+- If a task does not start, make sure it is assigned to an `online` runner with a provider selected.
+- If a task fails, open the task details first and review the streamed output.
+
+Use the [reference page](/guide/developer-reference) when you need a quick lookup for statuses, runner states, or provider settings.

@@ -1,53 +1,56 @@
 # Getting Started
 
-Flowy has two published npm packages:
+This guide takes you from install to your first online runner.
 
-- `@frankleeeee/flowy` runs the hub UI and API
-- `@frankleeeee/flowy-runner` registers a worker machine and executes tasks locally
-
-## Requirements
+## Before you begin
 
 - Node.js 18+
 - npm 8+
-- At least one supported AI CLI on each runner machine:
+- At least one supported AI CLI on every runner machine:
   - `claude` for Claude Code
   - `codex` for Codex
   - `agent` for Cursor Agent
 
-## Install the packages
+## Step 1: Install Flowy
 
-Install both packages globally if you want `flowy` and `flowy-runner` on your `PATH`:
+Install both packages globally:
 
 ```bash
 npm install -g @frankleeeee/flowy @frankleeeee/flowy-runner
 ```
 
-If you prefer not to install globally, you can run the same binaries with `npx`:
+`@frankleeeee/flowy` runs the hub. `@frankleeeee/flowy-runner` connects worker machines to that hub.
 
-```bash
-npx @frankleeeee/flowy --port 3001
-npx @frankleeeee/flowy-runner --name "my-device" --url http://localhost:3001
-```
+## Step 2: Start the hub
 
-## Start the hub
-
-Run the Flowy hub:
+Run:
 
 ```bash
 flowy --port 3001
 ```
 
-The `flowy` package serves the API and bundled web app together in production mode. Once it starts, open:
+Then open:
 
 ```text
 http://localhost:3001
 ```
 
-Flowy stores its local data under `~/.config/my-hub/`, including the SQLite database and runner settings.
+This is where you will create projects, manage tasks, and monitor runners.
 
-## Start a runner
+## Step 3: Optional: lock runner registration with a secret
 
-On a machine that should execute tasks, launch the runner and point it at the hub:
+If you want to restrict which machines can register:
+
+1. Open `Runners`.
+2. Switch to `Security`.
+3. Add a registration secret.
+4. Save it.
+
+Leave this empty if open runner registration is fine for your setup.
+
+## Step 4: Start a runner on a machine that should execute work
+
+Run this on the target machine:
 
 ```bash
 flowy-runner \
@@ -55,7 +58,9 @@ flowy-runner \
   --url http://localhost:3001
 ```
 
-If you configured a registration secret in the Flowy UI, include it when the runner registers:
+If the runner machine is not the same machine as the hub, replace `http://localhost:3001` with the hub URL that machine can actually reach.
+
+If you set a registration secret, include it:
 
 ```bash
 flowy-runner \
@@ -64,64 +69,43 @@ flowy-runner \
   --secret "your-shared-secret"
 ```
 
-After the first successful registration, the runner saves its token to `~/.config/my-hub/runner-<name>.json` and reuses it on later runs.
+You can also open `Runners` and click `Add Runner` to copy the install and registration commands from the UI.
 
-### Runner flags
+## Step 5: Confirm the runner is ready
 
-| Flag | Required | Description |
-| --- | --- | --- |
-| `--name <name>` | Yes | Unique runner name, such as `office-mac` |
-| `--url <url>` | Yes | Base URL of the Flowy hub, such as `http://localhost:3001` |
-| `--poll-interval <seconds>` | No | Poll interval in seconds. Default: `5` |
-| `--token <token>` | No | Reuse an existing token instead of registering |
-| `--secret <secret>` | No | Registration secret if the hub requires one |
-| `--device <text>` | No | Device label sent to the hub. Default: hostname |
+Open `Runners` in Flowy and check that:
 
-## First-run flow
+- the runner appears with the name you chose
+- its status is `online` or `busy`
+- one or more AI providers appear on the runner card
 
-1. Start `flowy`.
-2. Open the hub in your browser.
-3. Start one or more `flowy-runner` processes on the machines that should execute tasks.
-4. Confirm the runner appears on the Runners page as `online`.
-5. Create a project and assign a task to a runner.
+If no providers appear, install the target CLI on that machine and refresh the runner from the `Runners` page.
 
-## Develop from source
+## Step 6: Create your first project
 
-If you are contributing inside this repository, install dependencies at the root:
+1. In the sidebar, use the `+` button in `Projects`.
+2. Enter a project name.
+3. Click `Create project`.
 
-```bash
-npm install
-```
+Projects keep related work together and make filtering easier later.
 
-Run the app locally:
+## Step 7: Create your first task
 
-```bash
-npm run dev
-```
+1. Open the project.
+2. Click `New Task`.
+3. Add a clear title.
+4. Add description, priority, and labels if needed.
+5. Click `Create task`.
 
-That starts:
+## Step 8: Assign the task
 
-- the backend at `http://localhost:3001`
-- the frontend at `http://localhost:5173`
+1. Open the task details.
+2. Click `Assign`.
+3. Choose a runner.
+4. Choose an AI provider available on that runner.
+5. Fill in the provider settings you want to pass through, such as `workspace`, `model`, `sandbox`, or `worktree`.
+6. Click `Assign task`.
 
-You can also run each side separately:
+## Next
 
-```bash
-npm run dev:backend
-npm run dev:frontend
-```
-
-## Build and test
-
-```bash
-npm test
-npm run build
-```
-
-## Run docs locally
-
-```bash
-npm run docs:dev
-```
-
-The docs site is generated from the `docs/` folder with VitePress.
+Continue with the [step-by-step usage guide](/guide/usage) for the full daily workflow.

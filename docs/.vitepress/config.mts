@@ -5,22 +5,22 @@ const isProjectPages = !repository.endsWith('.github.io');
 
 export default defineConfig({
   title: 'Flowy Docs',
-  description: 'Documentation for installing Flowy, running runners, using harness settings, and extending CLI support.',
+  description: 'Documentation for getting Flowy running, connecting runners, and using it day to day.',
   base: isProjectPages ? `/${repository}/` : '/',
   cleanUrls: true,
   themeConfig: {
     nav: [
       { text: 'Get Started', link: '/guide/getting-started' },
-      { text: 'Usage', link: '/guide/usage' },
-      { text: 'Developer Reference', link: '/guide/developer-reference' },
+      { text: 'Usage Guide', link: '/guide/usage' },
+      { text: 'Reference', link: '/guide/developer-reference' },
     ],
     sidebar: [
       {
         text: 'Docs',
         items: [
           { text: 'Getting Started', link: '/guide/getting-started' },
-          { text: 'Usage', link: '/guide/usage' },
-          { text: 'Developer Reference', link: '/guide/developer-reference' },
+          { text: 'Usage Guide', link: '/guide/usage' },
+          { text: 'Reference', link: '/guide/developer-reference' },
         ],
       },
     ],

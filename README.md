@@ -1,57 +1,25 @@
+<p align="center">
+  <img src="./frontend/public/flowy-icon.svg" alt="Flowy icon" width="88" />
+</p>
+
 # Flowy
 
-## Overview
+Flowy is a self-hosted task hub for AI-assisted work. Run the hub with `@frankleeeee/flowy`, connect runner machines with `@frankleeeee/flowy-runner`, and dispatch tasks to Claude Code, Codex, or Cursor Agent from one dashboard.
 
-Flowy is a self-hosted task hub for AI-assisted work. You run the hub with `@frankleeeee/flowy`, connect one or more machines with `@frankleeeee/flowy-runner`, and assign tasks to the AI CLI that should handle them, such as Claude Code, Codex, or Cursor Agent.
-
-It fits a simple workflow: keep projects and tasks in one dashboard, point each task at a runner, pass harness settings like workspace, model, sandbox, or worktree through to the underlying CLI, and watch execution output stream back into the hub.
-
-## Get Started
-
-Flowy is published as two npm packages:
-
-- `@frankleeeee/flowy` runs the hub UI and API
-- `@frankleeeee/flowy-runner` registers a worker machine and executes assigned tasks
-
-Install both packages globally:
+## Install
 
 ```bash
 npm install -g @frankleeeee/flowy @frankleeeee/flowy-runner
 ```
 
+## Quick Start
+
 Start the hub:
 
 ```bash
-flowy --port 3001
+flowy
 ```
-
-Then open `http://localhost:3001`.
-
-On any machine that should execute tasks, make sure at least one supported AI CLI is installed (`claude`, `codex`, or `agent`), then start a runner:
-
-```bash
-flowy-runner \
-  --name "my-device" \
-  --url http://localhost:3001 \
-  --secret <secret>
-
-```
-
-If you configured a runner registration secret in Flowy, add `--secret <value>` to the runner command.
-
-If you are working from this repository instead of the published packages:
-
-```bash
-npm install
-npm run dev
-```
-
-That starts the backend on `http://localhost:3001` and the frontend on `http://localhost:5173`.
 
 ## Docs
 
-Full documentation is available at [frankleeeee.github.io/Flowy](https://frankleeeee.github.io/Flowy/).
-
-- [Get Started](https://frankleeeee.github.io/Flowy/guide/getting-started)
-- [Usage](https://frankleeeee.github.io/Flowy/guide/usage)
-- [Developer Reference](https://frankleeeee.github.io/Flowy/guide/developer-reference)
+Read the full docs at [Flowy Documentation](https://frankleeeee.github.io/Flowy/).
