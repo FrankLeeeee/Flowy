@@ -35,24 +35,10 @@ flowy-runner \
   --name "my-device" \
   --url http://localhost:3001 \
   --secret <secret>
-
 ```
 
 Use the registration secret shown by Flowy when a runner registers for the first time.
 
-If you are working from this repository instead of the published packages:
-
-```bash
-npm install
-npm run dev
-```
-
-That starts the backend on `http://localhost:3001` and the frontend on `http://localhost:5173`.
-
 ## Docs
 
-Full documentation is available at [frankleeeee.github.io/Flowy](https://frankleeeee.github.io/Flowy/).
-
-- [Get Started](https://frankleeeee.github.io/Flowy/guide/getting-started)
-- [Usage](https://frankleeeee.github.io/Flowy/guide/usage)
-- [Developer Reference](https://frankleeeee.github.io/Flowy/guide/developer-reference)
+Full documentation is available at [Flowy Docs](https://frankleeeee.github.io/Flowy/).
