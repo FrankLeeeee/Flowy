@@ -1,44 +1,44 @@
-# Flowy
+<p align="center">
+  <img src="./docs/public/flowy-icon.svg" alt="Flowy icon" width="250" />
+</p>
 
-## Overview
+# 🌊 Flowy
 
-Flowy is a self-hosted task hub for AI-assisted work. You run the hub with `@frankleeeee/flowy`, connect one or more machines with `@frankleeeee/flowy-runner`, and assign tasks to the AI CLI that should handle them, such as Claude Code, Codex, or Cursor Agent.
+Flowy is a self-hosted task hub for AI-assisted work. It gives you one place to manage projects, route tasks to connected runner machines, and execute them with the AI CLI that fits the job, such as Claude Code, Codex, or Cursor Agent.
 
-It fits a simple workflow: keep projects and tasks in one dashboard, point each task at a runner, pass harness settings like workspace, model, sandbox, or worktree through to the underlying CLI, and watch execution output stream back into the hub.
+## 📚 Table of Contents
 
-## Get Started
+- [✨ Overview](#-overview)
+- [🧩 Packages](#-packages)
+- [🔄 How It Works](#-how-it-works)
+- [📖 Documentation](#-documentation)
+
+## ✨ Overview
+
+Flowy is designed for a simple workflow: keep projects and tasks in one dashboard, point each task at a runner, pass harness settings like workspace, model, sandbox, or worktree through to the underlying CLI, and watch execution output stream back into the hub.
+
+## 🧩 Get Started
 
 Flowy is published as two npm packages:
 
 - `@frankleeeee/flowy` runs the hub UI and API
 - `@frankleeeee/flowy-runner` registers a worker machine and executes assigned tasks
 
-Install both packages globally:
-
 ```bash
+# install packages
 npm install -g @frankleeeee/flowy @frankleeeee/flowy-runner
+
+# start the application
+flowy
 ```
 
-Start the hub:
+## 🔄 How It Works
 
-```bash
-flowy --port 3001
-```
+1. Run the Flowy hub to manage projects, tasks, and connected runners.
+2. Connect one or more machines with Flowy Runner.
+3. Assign tasks to the AI CLI that should handle them.
+4. Monitor execution output directly from the hub.
 
-Then open `http://localhost:3001`.
-On first start, Flowy generates a runner registration secret for the hub. Copy it from the Runners page before connecting a new machine.
+## 📖 Documentation
 
-On any machine that should execute tasks, make sure at least one supported AI CLI is installed (`claude`, `codex`, or `agent`), then start a runner:
-
-```bash
-flowy-runner \
-  --name "my-device" \
-  --url http://localhost:3001 \
-  --secret <secret>
-```
-
-Use the registration secret shown by Flowy when a runner registers for the first time.
-
-## Docs
-
-Full documentation is available at [Flowy Docs](https://frankleeeee.github.io/Flowy/).
+Setup, configuration, and usage guides are available in [Flowy Docs](https://frankleeeee.github.io/Flowy/).
