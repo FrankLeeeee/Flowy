@@ -14,8 +14,7 @@ RUN git clone --depth 1 --branch "$FLOWY_REF" "$FLOWY_REPO" "$FLOWY_DIR"
 
 RUN npm cache clean --force \
     && cd "$FLOWY_DIR" \
-    && npm install typescript -g \
-    && npm install \
+    && npm install --include=dev \
     && npm run build:flowy
 
 WORKDIR ${FLOWY_DIR}
