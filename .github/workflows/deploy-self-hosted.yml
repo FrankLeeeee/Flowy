@@ -17,12 +17,19 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          clean: true
 
       - name: Verify Docker is available
         run: docker version
 
-      - name: Build Flowy image
-        run: docker build -t flowy:latest .
+      - name: Build Flowy image from remote source
+        run: |
+          docker build \
+            --progress=plain \
+            --build-arg FLOWY_REPO="https://github.com/${{ github.repository }}.git" \
+            --build-arg FLOWY_REF="${{ github.ref_name }}" \
+            -t flowy:latest .
 
       - name: Stop existing container
         run: |
