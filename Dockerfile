@@ -11,8 +11,7 @@ RUN apt-get update \
 
 RUN git clone --depth 1 --branch "$FLOWY_REF" "$FLOWY_REPO" "$FLOWY_DIR"
 
-RUN npm cache clean --force \
-    && cd "$FLOWY_DIR" \
+RUN cd "$FLOWY_DIR" \
     && npm install --include=dev \
     && npm run build:flowy
 
