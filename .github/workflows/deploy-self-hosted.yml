@@ -20,16 +20,16 @@ jobs:
         with:
           clean: true
 
-      - name: Ensure local node_modules are excluded from context
-        run: |
-          rm -rf node_modules backend/node_modules frontend/node_modules runner/node_modules
-          test ! -d node_modules
-
       - name: Verify Docker is available
         run: docker version
 
-      - name: Build Flowy image
-        run: docker build --progress=plain -t flowy:latest .
+      - name: Build Flowy image from remote source
+        run: |
+          docker build \
+            --progress=plain \
+            --build-arg FLOWY_REPO="https://github.com/${{ github.repository }}.git" \
+            --build-arg FLOWY_REF="${{ github.ref_name }}" \
+            -t flowy:latest .
 
       - name: Stop existing container
         run: |

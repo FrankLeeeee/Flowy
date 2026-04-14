@@ -1,13 +1,10 @@
-node_modules
-**/node_modules
 .git
 .github
-coverage
+node_modules
+**/node_modules
 dist
 **/dist
-frontend/dist
-backend/dist
-runner/dist
+coverage
 npm-debug.log*
 .DS_Store
 .env
