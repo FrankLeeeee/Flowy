@@ -17,12 +17,19 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          clean: true
+
+      - name: Ensure local node_modules are excluded from context
+        run: |
+          rm -rf node_modules backend/node_modules frontend/node_modules runner/node_modules
+          test ! -d node_modules
 
       - name: Verify Docker is available
         run: docker version
 
       - name: Build Flowy image
-        run: docker build -t flowy:latest .
+        run: docker build --progress=plain -t flowy:latest .
 
       - name: Stop existing container
         run: |
