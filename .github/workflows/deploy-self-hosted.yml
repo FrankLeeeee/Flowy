@@ -1,0 +1,52 @@
+name: Deploy Flowy to self-hosted runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: flowy-self-hosted-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, macOS, ARM64]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify Docker is available
+        run: docker version
+
+      - name: Build Flowy image
+        run: docker build -t flowy:latest .
+
+      - name: Stop existing container
+        run: |
+          docker rm -f flowy >/dev/null 2>&1 || true
+
+      - name: Start Flowy container
+        run: |
+          mkdir -p "$HOME/.flowy-data"
+          docker run -d \
+            --name flowy \
+            --restart unless-stopped \
+            -p 0.0.0.0:3456:3456 \
+            -e PORT=3456 \
+            -v "$HOME/.flowy-data:/root/.flowy" \
+            flowy:latest
+
+      - name: Health check
+        run: |
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:3456/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Flowy health check failed"
+          docker logs flowy || true
+          exit 1

@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+.git
+.github
+coverage
+dist
+frontend/dist
+backend/dist
+runner/dist
+npm-debug.log*
+.DS_Store
+.env
+.env.*
