@@ -16,4 +16,5 @@ RUN git clone --depth 1 --branch "$FLOWY_REF" "$FLOWY_REPO" "$FLOWY_DIR" \
 
 WORKDIR ${FLOWY_DIR}
 
+EXPOSE 8000
 CMD ["node", "backend/dist/cli.js", "--port", "8000"]
