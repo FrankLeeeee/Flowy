@@ -7,7 +7,8 @@ ARG FLOWY_REF=main
 ARG FLOWY_DIR=/workspace/Flowy
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git ca-certificates python3 make g++
+    && apt-get install -y --no-install-recommends git ca-certificates python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 --branch "$FLOWY_REF" "$FLOWY_REPO" "$FLOWY_DIR" \
     && cd "$FLOWY_DIR" \
