@@ -41,8 +41,7 @@ jobs:
           docker run -d \
             --name flowy \
             --restart unless-stopped \
-            -p 0.0.0.0:3456:3456 \
-            -e PORT=3456 \
+            -p 0.0.0.0:3456:8000 \
             -v "$HOME/.flowy-data:/root/.flowy" \
             flowy:latest
 

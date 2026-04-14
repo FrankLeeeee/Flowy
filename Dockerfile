@@ -1,7 +1,6 @@
 FROM node:24-bookworm-slim
 
 ENV NODE_ENV=production
-ENV PORT=3456
 
 ARG FLOWY_REPO=https://github.com/FrankLeeeee/Flowy.git
 ARG FLOWY_REF=main
