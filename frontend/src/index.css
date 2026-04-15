@@ -172,6 +172,35 @@
   }
 }
 
+/* ── Mobile viewport ─────────────────────────────────────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  html {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+}
+
+@media (max-width: 767px) {
+  /* Disable hover-specific effects on touch devices */
+  .interactive-lift {
+    transition-duration: 100ms;
+  }
+
+  .interactive-lift:hover {
+    transform: none !important;
+    box-shadow: inherit;
+  }
+
+  /* Prevent 300ms tap delay */
+  html {
+    touch-action: manipulation;
+  }
+
+  /* Prevent pull-to-refresh on overscroll */
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
 @keyframes page-enter {
   from {
     opacity: 0;
