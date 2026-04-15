@@ -1,16 +1,22 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useIsMobile } from './hooks/useIsMobile';
-import Sidebar from './components/Sidebar';
-import MobileShell from './components/mobile/MobileShell';
-import Inbox from './pages/Inbox';
-import ProjectDetail from './pages/ProjectDetail';
-import Runners from './pages/Runners';
-import Labels from './pages/Labels';
-import MobileInbox from './pages/mobile/MobileInbox';
-import MobileProjects from './pages/mobile/MobileProjects';
-import MobileProjectDetail from './pages/mobile/MobileProjectDetail';
-import MobileRunners from './pages/mobile/MobileRunners';
-import MobileLabels from './pages/mobile/MobileLabels';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import { useIsMobile } from "./hooks/useIsMobile";
+import Sidebar from "./components/Sidebar";
+import MobileShell from "./components/mobile/MobileShell";
+import Inbox from "./pages/Inbox";
+import ProjectDetail from "./pages/ProjectDetail";
+import Runners from "./pages/Runners";
+import Labels from "./pages/Labels";
+import MobileInbox from "./pages/mobile/MobileInbox";
+import MobileProjects from "./pages/mobile/MobileProjects";
+import MobileProjectDetail from "./pages/mobile/MobileProjectDetail";
+import MobileRunners from "./pages/mobile/MobileRunners";
+import MobileLabels from "./pages/mobile/MobileLabels";
 
 function DesktopShell() {
   const location = useLocation();
@@ -26,9 +32,15 @@ function DesktopShell() {
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="/runners" element={<Runners />} />
             <Route path="/labels" element={<Labels />} />
-            <Route path="/projects" element={<Navigate to="/inbox" replace />} />
+            <Route
+              path="/projects"
+              element={<Navigate to="/inbox" replace />}
+            />
             <Route path="/usage" element={<Navigate to="/runners" replace />} />
-            <Route path="/settings" element={<Navigate to="/runners" replace />} />
+            <Route
+              path="/settings"
+              element={<Navigate to="/runners" replace />}
+            />
           </Routes>
         </div>
       </main>
@@ -50,7 +62,10 @@ function MobileApp() {
           <Route path="/runners" element={<MobileRunners />} />
           <Route path="/labels" element={<MobileLabels />} />
           <Route path="/usage" element={<Navigate to="/runners" replace />} />
-          <Route path="/settings" element={<Navigate to="/runners" replace />} />
+          <Route
+            path="/settings"
+            element={<Navigate to="/runners" replace />}
+          />
         </Routes>
       </div>
     </MobileShell>
@@ -61,8 +76,6 @@ export default function App() {
   const isMobile = useIsMobile();
 
   return (
-    <BrowserRouter>
-      {isMobile ? <MobileApp /> : <DesktopShell />}
-    </BrowserRouter>
+    <BrowserRouter>{isMobile ? <MobileApp /> : <DesktopShell />}</BrowserRouter>
   );
 }
