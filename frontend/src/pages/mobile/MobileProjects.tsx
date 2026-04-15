@@ -155,7 +155,7 @@ export default function MobileProjects() {
               <Sparkles className="h-3 w-3" />
               New Project
             </AppDialogEyebrow>
-            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Create a new project</h2>
+            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Create a new project</h2>
           </AppDialogHeader>
           <form onSubmit={handleCreateProject} className="flex flex-col">
             <AppDialogBody>
@@ -169,12 +169,12 @@ export default function MobileProjects() {
                   required
                   className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
+                {newProjectError && (
+                  <p className="mt-2 text-[11px] text-destructive/85">{newProjectError}</p>
+                )}
               </AppDialogSection>
             </AppDialogBody>
             <AppDialogFooter>
-              <div className="text-[11px] text-muted-foreground/80">
-                {newProjectError || (newProjName.trim() ? 'Ready to create.' : 'Project names must be unique.')}
-              </div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" onClick={closeNewProjectDialog} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
                 <Button type="submit" disabled={!newProjName.trim()} className="rounded-full px-4 text-[11px]">

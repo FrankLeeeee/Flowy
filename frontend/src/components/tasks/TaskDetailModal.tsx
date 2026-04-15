@@ -369,9 +369,6 @@ export default function TaskDetailModal({
         </ScrollArea>
 
         <AppDialogFooter className="bg-background shrink-0">
-          <div className="text-[11px] text-muted-foreground/80">
-            {editing ? 'Update the task and save when you are ready.' : 'Review task details, then edit, assign, or clean up as needed.'}
-          </div>
           <div className="flex items-center gap-2">
             {!editing && (
               <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">

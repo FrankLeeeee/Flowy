@@ -217,7 +217,7 @@ export default function MobileProjectDetail() {
             <DialogTitle className="sr-only">Edit project</DialogTitle>
             <DialogDescription className="sr-only">Update the project name and description.</DialogDescription>
             <AppDialogEyebrow><Pencil className="h-3 w-3" /> Project settings</AppDialogEyebrow>
-            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit {project.name}</h2>
+            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Edit {project.name}</h2>
           </AppDialogHeader>
           <form onSubmit={handleEditProject} className="flex flex-col gap-4">
             <AppDialogBody>
@@ -231,7 +231,6 @@ export default function MobileProjectDetail() {
               </AppDialogSection>
             </AppDialogBody>
             <AppDialogFooter>
-              <div className="text-[11px] text-muted-foreground/80">{editName.trim() ? 'Ready to save.' : 'Add a project name.'}</div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" onClick={() => setShowEditProject(false)} className="rounded-full px-3.5 text-[11px]">Cancel</Button>
                 <Button type="submit" disabled={!editName.trim()} className="rounded-full px-4 text-[11px]">Save changes</Button>

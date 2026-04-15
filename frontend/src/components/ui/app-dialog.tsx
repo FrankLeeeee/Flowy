@@ -38,9 +38,9 @@ export function AppDialogContent({
     <DialogContent
       className={cn(
         'overflow-hidden border-border/40 dark:border-border/60 bg-card p-0 shadow-float',
-        // Mobile: tighten max-height, add safe-area padding at bottom
-        'max-h-[85vh] pb-[env(safe-area-inset-bottom)]',
-        'sm:max-h-none sm:pb-0',
+        // Mobile: top-sheet — cap height so the lower half stays free for the keyboard
+        'max-h-[55vh]',
+        'sm:max-h-none',
         className
       )}
       {...props}
@@ -112,7 +112,10 @@ export function AppDialogFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <DialogFooter
-      className={cn('border-t border-border/40 px-4 py-3 sm:px-6 sm:justify-between sm:space-x-0', className)}
+      className={cn(
+        'flex-col items-center gap-3 border-t border-border/40 px-4 py-3 text-center sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:text-left sm:space-x-0 sm:[&>*:only-child]:mx-auto',
+        className
+      )}
       {...props}
     />
   );

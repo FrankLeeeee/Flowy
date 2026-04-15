@@ -244,7 +244,7 @@ export default function ProjectDetail() {
                 <Pencil className="h-3 w-3" />
                 Project settings
               </AppDialogEyebrow>
-              <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="hidden flex-wrap items-end justify-between gap-3 sm:flex">
                 <div className="min-w-0">
                   <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit {project.name}</h2>
                   <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">Project names must stay unique. Renaming a project updates its task references too.</p>
@@ -266,9 +266,6 @@ export default function ProjectDetail() {
                 </AppDialogSection>
               </AppDialogBody>
               <AppDialogFooter>
-                <div className="text-[11px] text-muted-foreground/80">
-                  {editName.trim() ? 'Ready to save.' : 'Add a project name to continue.'}
-                </div>
                 <div className="flex items-center gap-2">
                   <Button type="button" variant="ghost" onClick={() => setShowEditProject(false)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
                   <Button type="submit" disabled={!editName.trim()} className="rounded-full px-4 text-[11px]">Save changes</Button>

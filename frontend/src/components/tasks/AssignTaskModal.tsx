@@ -76,7 +76,7 @@ export default function AssignTaskModal({
           <DialogTitle className="sr-only">Assign {task.task_key}</DialogTitle>
           <DialogDescription className="sr-only">Select a runner, choose a harness, and pass execution settings through to the CLI command.</DialogDescription>
           <AppDialogEyebrow>Task assignment</AppDialogEyebrow>
-          <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="hidden flex-wrap items-end justify-between gap-3 sm:flex">
             <div className="min-w-0">
               <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Assign {task.task_key}</h2>
               <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">Select a runner, choose a harness, and pass the execution settings through to the underlying CLI.</p>
@@ -245,9 +245,6 @@ export default function AssignTaskModal({
           </ScrollArea>
 
           <AppDialogFooter>
-            <div className="text-[11px] text-muted-foreground/80">
-              {runnerId && aiProvider ? 'Ready to assign.' : 'Select a runner and provider to continue.'}
-            </div>
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
               <Button type="submit" disabled={!runnerId || !aiProvider} className="rounded-full px-4 text-[11px]">Assign task</Button>
