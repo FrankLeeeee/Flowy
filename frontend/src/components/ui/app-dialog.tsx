@@ -38,6 +38,9 @@ export function AppDialogContent({
     <DialogContent
       className={cn(
         'overflow-hidden border-border/40 dark:border-border/60 bg-card p-0 shadow-float',
+        // Mobile: tighten max-height, add safe-area padding at bottom
+        'max-h-[85vh] pb-[env(safe-area-inset-bottom)]',
+        'sm:max-h-none sm:pb-0',
         className
       )}
       {...props}
@@ -53,7 +56,7 @@ export function AppDialogHeader({
   return (
     <DialogHeader
       className={cn(
-        'border-b border-border/40 px-6 pb-4 pt-5',
+        'border-b border-border/40 px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5',
         APP_DIALOG_TONE_STYLES[tone].header,
         className
       )}
@@ -83,7 +86,7 @@ export function AppDialogBody({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('space-y-3 px-6 py-4', className)} {...props} />;
+  return <div className={cn('space-y-3 px-4 py-3 sm:px-6 sm:py-4', className)} {...props} />;
 }
 
 export function AppDialogSection({
@@ -94,7 +97,7 @@ export function AppDialogSection({
   return (
     <div
       className={cn(
-        'rounded-[18px] border px-4 py-3',
+        'rounded-xl border px-3 py-2.5 sm:rounded-[18px] sm:px-4 sm:py-3',
         APP_DIALOG_TONE_STYLES[tone].section,
         className
       )}
@@ -109,7 +112,7 @@ export function AppDialogFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <DialogFooter
-      className={cn('border-t border-border/40 px-6 py-3 sm:justify-between sm:space-x-0', className)}
+      className={cn('border-t border-border/40 px-4 py-3 sm:px-6 sm:justify-between sm:space-x-0', className)}
       {...props}
     />
   );
