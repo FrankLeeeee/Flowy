@@ -195,9 +195,14 @@
     touch-action: manipulation;
   }
 
-  /* Prevent pull-to-refresh on overscroll */
+  /* Lock the page so only the in-app shell scrolls — keeps Safari's
+     toolbar from popping in/out when added to the iOS Home Screen. */
+  html,
   body {
-    overscroll-behavior-y: contain;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

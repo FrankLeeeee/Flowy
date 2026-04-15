@@ -16,9 +16,9 @@ export default function MobileShell({ children }: { children: React.ReactNode })
   const isProjectRoute = location.pathname.startsWith('/project/');
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Content area — fills available space above the tab bar */}
-      <main className="flex-1 overflow-auto pb-[calc(env(safe-area-inset-bottom)+64px)]">
+    <div className="fixed inset-0 flex flex-col bg-background">
+      {/* Content area — fills available space above the tab bar, scrolls internally */}
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+64px)] [-webkit-overflow-scrolling:touch]">
         {children}
       </main>
 
