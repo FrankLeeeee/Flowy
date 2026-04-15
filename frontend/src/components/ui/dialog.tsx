@@ -34,7 +34,7 @@ const DialogContent = React.forwardRef<
       className={cn(
         // ── Mobile: top-sheet (leaves the lower half free for the keyboard) ──
         'fixed z-50 grid w-full gap-4 border border-border/80 bg-background shadow-soft duration-200',
-        'inset-x-0 top-0 max-h-[55vh] rounded-b-2xl p-0 pt-[env(safe-area-inset-top)]',
+        'inset-x-0 top-[max(env(safe-area-inset-top),0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] rounded-b-2xl p-0',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',

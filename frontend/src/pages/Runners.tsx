@@ -425,7 +425,7 @@ export default function Runners() {
           if (!open) setShowSetup(false);
         }}
       >
-        <AppDialogContent className="flex h-[100dvh] max-h-[100dvh] flex-col gap-0 rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-lg">
+        <AppDialogContent className="flex h-[calc(100svh-env(safe-area-inset-top)-0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-0.75rem)] flex-col gap-0 rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-lg">
           <AppDialogHeader>
             <DialogTitle className="sr-only">Add a runner</DialogTitle>
             <DialogDescription className="sr-only">
