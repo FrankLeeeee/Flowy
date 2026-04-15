@@ -190,7 +190,7 @@ export default function LabelsPage() {
               <Sparkles className="h-3 w-3" />
               New Label
             </AppDialogEyebrow>
-            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Create a new label</h2>
+            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Create a new label</h2>
           </AppDialogHeader>
           <form onSubmit={handleCreate} className="flex flex-col">
             <AppDialogBody>
@@ -222,9 +222,6 @@ export default function LabelsPage() {
             </AppDialogBody>
 
             <AppDialogFooter>
-              <div className="text-[11px] text-muted-foreground/80">
-                {newName.trim() ? 'Ready to create.' : 'Add a name to continue.'}
-              </div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" onClick={() => { setShowCreate(false); setNewName(''); setNewColor('blue'); }} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                   Cancel
@@ -246,7 +243,7 @@ export default function LabelsPage() {
             <DialogTitle className="sr-only">Edit label</DialogTitle>
             <DialogDescription className="sr-only">Edit label name and color.</DialogDescription>
             <AppDialogEyebrow>Edit Label</AppDialogEyebrow>
-            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit label</h2>
+            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Edit label</h2>
           </AppDialogHeader>
           <form onSubmit={handleEdit} className="flex flex-col">
             <AppDialogBody>
@@ -278,9 +275,6 @@ export default function LabelsPage() {
             </AppDialogBody>
 
             <AppDialogFooter>
-              <div className="text-[11px] text-muted-foreground/80">
-                {editName.trim() ? 'Ready to save.' : 'Add a name to continue.'}
-              </div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" onClick={() => setEditingLabel(null)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                   Cancel

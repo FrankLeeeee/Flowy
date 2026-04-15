@@ -15,11 +15,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AppDialogBody,
   AppDialogContent,
   AppDialogEyebrow,
-  AppDialogFooter,
   AppDialogHeader,
   AppDialogSection,
   APP_DIALOG_TONE_STYLES,
@@ -425,7 +425,7 @@ export default function Runners() {
           if (!open) setShowSetup(false);
         }}
       >
-        <AppDialogContent className="sm:max-w-2xl">
+        <AppDialogContent className="flex h-[100dvh] max-h-[100dvh] flex-col gap-0 rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-lg">
           <AppDialogHeader>
             <DialogTitle className="sr-only">Add a runner</DialogTitle>
             <DialogDescription className="sr-only">
@@ -435,7 +435,7 @@ export default function Runners() {
               <Sparkles className="h-3 w-3" />
               New Runner
             </AppDialogEyebrow>
-            <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="hidden flex-wrap items-end justify-between gap-3 sm:flex">
               <div className="min-w-0">
                 <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">
                   Connect another machine
@@ -443,156 +443,144 @@ export default function Runners() {
               </div>
             </div>
           </AppDialogHeader>
-          <div className="flex flex-col">
-            <AppDialogBody>
-              <AppDialogSection tone="primary">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p
-                    className={cn(
-                      "text-[10px] font-semibold uppercase tracking-[0.14em]",
-                      APP_DIALOG_TONE_STYLES.primary.label,
-                    )}
-                  >
-                    Step 1
-                  </p>
-                  <span
-                    className={cn(
-                      "text-[10px]",
-                      APP_DIALOG_TONE_STYLES.primary.label,
-                    )}
-                  >
-                    Install package
-                  </span>
-                </div>
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <p className="text-[12px] leading-5 text-muted-foreground/85">
-                    Install the runner globally on the target machine.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      void handleCopyRunnerCommand(installCommand, "install")
-                    }
-                    className="h-7 rounded-full px-3 text-[11px] shadow-none"
-                  >
-                    <Copy className="mr-1.5 h-3 w-3" />
-                    {copiedInstallCommand ? "Copied" : "Copy"}
-                  </Button>
-                </div>
-                <pre className="terminal-surface overflow-x-auto rounded-[14px] px-4 py-3 font-mono text-[12px] leading-relaxed">
-                  {installCommand}
-                </pre>
-              </AppDialogSection>
-
-              <AppDialogSection tone="primary">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p
-                    className={cn(
-                      "text-[10px] font-semibold uppercase tracking-[0.14em]",
-                      APP_DIALOG_TONE_STYLES.primary.label,
-                    )}
-                  >
-                    Step 2
-                  </p>
-                  <span
-                    className={cn(
-                      "text-[10px]",
-                      APP_DIALOG_TONE_STYLES.primary.label,
-                    )}
-                  >
-                    Register runner
-                  </span>
-                </div>
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <p className="text-[12px] leading-5 text-muted-foreground/85">
-                    Run this after{" "}
-                    <code className="rounded bg-card px-1 py-0.5 font-mono text-foreground/90">
-                      flowy-runner
-                    </code>{" "}
-                    is installed.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      void handleCopyRunnerCommand(runnerCommand, "register")
-                    }
-                    className="h-7 rounded-full px-3 text-[11px] shadow-none"
-                  >
-                    <Copy className="mr-1.5 h-3 w-3" />
-                    {copiedRegisterCommand ? "Copied" : "Copy"}
-                  </Button>
-                </div>
-                <pre className="terminal-surface overflow-x-auto rounded-[14px] px-4 py-3 font-mono text-[12px] leading-relaxed">
-                  {runnerCommand}
-                </pre>
-              </AppDialogSection>
-
-              <AppDialogSection>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">
-                    Runner Notes
-                  </p>
-                  <Terminal className="h-3.5 w-3.5 text-muted-foreground/65" />
-                </div>
-                <div className="grid gap-3 text-[11px] leading-5 text-muted-foreground/85">
-                  <p>
-                    <code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">
-                      --name
-                    </code>{" "}
-                    Unique name for this machine, like{" "}
-                    <span className="font-mono text-foreground/85">
-                      office-mac
+          <ScrollArea className="min-h-0 flex-1">
+              <AppDialogBody className="pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-4">
+                <AppDialogSection tone="primary">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p
+                      className={cn(
+                        "text-[10px] font-semibold uppercase tracking-[0.14em]",
+                        APP_DIALOG_TONE_STYLES.primary.label,
+                      )}
+                    >
+                      Step 1
+                    </p>
+                    <span
+                      className={cn(
+                        "text-[10px]",
+                        APP_DIALOG_TONE_STYLES.primary.label,
+                      )}
+                    >
+                      Install package
                     </span>
-                  </p>
-                  <p>
-                    <code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">
-                      --url
-                    </code>{" "}
-                    URL the runner can use to reach this hub backend
-                  </p>
-                  <p>
-                    <code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">
-                      --secret
-                    </code>{" "}
-                    Required when registering a new runner and included from
-                    this hub&apos;s current security settings
-                  </p>
-                  <p>
-                    The runner auto-detects installed CLIs on launch:{" "}
-                    <span className="font-mono text-foreground/85">
-                      claude, codex, cursor-agent
-                    </span>
-                  </p>
-                </div>
-              </AppDialogSection>
+                  </div>
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <p className="text-[12px] leading-5 text-muted-foreground/85">
+                      Install the runner globally on the target machine.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        void handleCopyRunnerCommand(installCommand, "install")
+                      }
+                      className="h-7 rounded-full px-3 text-[11px] shadow-none"
+                    >
+                      <Copy className="mr-1.5 h-3 w-3" />
+                      {copiedInstallCommand ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                  <pre className="terminal-surface overflow-x-auto rounded-[14px] px-4 py-3 font-mono text-[12px] leading-relaxed">
+                    {installCommand}
+                  </pre>
+                </AppDialogSection>
 
-              <AppDialogSection className="bg-foreground/[0.02] text-[11px] text-muted-foreground/80">
-                <p>
-                  The runner saves its token to{" "}
-                  <code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">
-                    ~/.config/flowy/runner-&lt;name&gt;.json
-                  </code>{" "}
-                  and reuses it on the next launch.
-                </p>
-              </AppDialogSection>
-            </AppDialogBody>
-            <AppDialogFooter className="sm:justify-end">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowSetup(false)}
-                  className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground"
-                >
-                  Close
-                </Button>
-              </div>
-            </AppDialogFooter>
-          </div>
+                <AppDialogSection tone="primary">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p
+                      className={cn(
+                        "text-[10px] font-semibold uppercase tracking-[0.14em]",
+                        APP_DIALOG_TONE_STYLES.primary.label,
+                      )}
+                    >
+                      Step 2
+                    </p>
+                    <span
+                      className={cn(
+                        "text-[10px]",
+                        APP_DIALOG_TONE_STYLES.primary.label,
+                      )}
+                    >
+                      Register runner
+                    </span>
+                  </div>
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <p className="text-[12px] leading-5 text-muted-foreground/85">
+                      Run this after{" "}
+                      <code className="rounded bg-card px-1 py-0.5 font-mono text-foreground/90">
+                        flowy-runner
+                      </code>{" "}
+                      is installed.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        void handleCopyRunnerCommand(runnerCommand, "register")
+                      }
+                      className="h-7 rounded-full px-3 text-[11px] shadow-none"
+                    >
+                      <Copy className="mr-1.5 h-3 w-3" />
+                      {copiedRegisterCommand ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                  <pre className="terminal-surface overflow-x-auto rounded-[14px] px-4 py-3 font-mono text-[12px] leading-relaxed">
+                    {runnerCommand}
+                  </pre>
+                </AppDialogSection>
+
+                <AppDialogSection>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">
+                      Runner Notes
+                    </p>
+                    <Terminal className="h-3.5 w-3.5 text-muted-foreground/65" />
+                  </div>
+                  <div className="grid gap-3 text-[11px] leading-5 text-muted-foreground/85">
+                    <p>
+                      <code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">
+                        --name
+                      </code>{" "}
+                      Unique name for this machine, like{" "}
+                      <span className="font-mono text-foreground/85">
+                        office-mac
+                      </span>
+                    </p>
+                    <p>
+                      <code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">
+                        --url
+                      </code>{" "}
+                      URL the runner can use to reach this hub backend
+                    </p>
+                    <p>
+                      <code className="rounded bg-foreground/[0.04] px-1 py-0.5 font-mono text-foreground/80">
+                        --secret
+                      </code>{" "}
+                      Required when registering a new runner and included from
+                      this hub&apos;s current security settings
+                    </p>
+                    <p>
+                      The runner auto-detects installed CLIs on launch:{" "}
+                      <span className="font-mono text-foreground/85">
+                        claude, codex, cursor-agent
+                      </span>
+                    </p>
+                  </div>
+                </AppDialogSection>
+
+                <AppDialogSection className="bg-foreground/[0.02] text-[11px] text-muted-foreground/80">
+                  <p>
+                    The runner saves its token to{" "}
+                    <code className="bg-foreground/[0.04] rounded px-1 py-0.5 text-foreground/80 font-mono">
+                      ~/.config/flowy/runner-&lt;name&gt;.json
+                    </code>{" "}
+                    and reuses it on the next launch.
+                  </p>
+                </AppDialogSection>
+              </AppDialogBody>
+            </ScrollArea>
         </AppDialogContent>
       </Dialog>
     </div>

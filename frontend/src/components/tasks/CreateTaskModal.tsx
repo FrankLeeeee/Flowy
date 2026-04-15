@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import LabelPicker from '@/components/LabelPicker';
 import { cn } from '@/lib/utils';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
@@ -67,7 +68,7 @@ export default function CreateTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="sm:max-w-2xl">
+      <AppDialogContent className="flex flex-col gap-0 sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
           <DialogDescription className="sr-only">Create a new task with title, description, project, priority, and labels.</DialogDescription>
@@ -75,7 +76,7 @@ export default function CreateTaskModal({
             <Sparkles className="h-3 w-3" />
             New Task
           </AppDialogEyebrow>
-          <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="hidden flex-wrap items-end justify-between gap-3 sm:flex">
             <div className="min-w-0">
               <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Add a task to the queue</h2>
               <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">
@@ -89,101 +90,102 @@ export default function CreateTaskModal({
           </div>
         </AppDialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col">
-          <AppDialogBody>
-            <AppDialogSection tone="primary">
-              <p className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Title</p>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Task title"
-                autoFocus
-                required
-                className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </AppDialogSection>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+          <ScrollArea className="min-h-0 flex-1">
+            <div>
+              <AppDialogBody>
+                <AppDialogSection tone="primary">
+                  <p className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Title</p>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Task title"
+                    autoFocus
+                    required
+                    className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </AppDialogSection>
 
-            <AppDialogSection>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
-                <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars</span>
+                <AppDialogSection>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
+                    <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars</span>
+                  </div>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                    placeholder="Add supporting context, expected outcome, or constraints..."
+                    className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </AppDialogSection>
+
+                {labels.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {labels.map((label) => {
+                      const colorStyles = getLabelColorStyles(label, allLabels);
+                      return (
+                        <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', colorStyles.pill)}>
+                          {label}
+                          <button
+                            type="button"
+                            onClick={() => removeLabel(label)}
+                            className="rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </AppDialogBody>
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-border/40 bg-foreground/[0.015] px-4 py-3 sm:px-6">
+                <Select value={projectId} onValueChange={setProjectId}>
+                  <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                    <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="Project" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id} className="rounded-lg py-2 text-[11px]">
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                  <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                    <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
+                    <SelectValue>
+                      {PRIORITIES.find((item) => item.value === priority)?.label}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                    {PRIORITIES.map((item) => (
+                      <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
+                        <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
+                          <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
+                          {item.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <LabelPicker
+                  selectedLabels={labels}
+                  allLabels={allLabels}
+                  onToggle={toggleLabel}
+                  onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
+                />
               </div>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                placeholder="Add supporting context, expected outcome, or constraints..."
-                className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </AppDialogSection>
-
-            {labels.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {labels.map((label) => {
-                  const colorStyles = getLabelColorStyles(label, allLabels);
-                  return (
-                    <Badge key={label} variant="secondary" className={cn('gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ring-1', colorStyles.pill)}>
-                      {label}
-                      <button
-                        type="button"
-                        onClick={() => removeLabel(label)}
-                        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-          </AppDialogBody>
-
-          <div className="flex flex-wrap items-center gap-2 border-t border-border/40 bg-foreground/[0.015] px-6 py-3">
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-                <SelectValue placeholder="Project" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id} className="rounded-lg py-2 text-[11px]">
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-              <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
-                <SelectValue>
-                  {PRIORITIES.find((item) => item.value === priority)?.label}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                {PRIORITIES.map((item) => (
-                  <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                    <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
-                      <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
-                      {item.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <LabelPicker
-              selectedLabels={labels}
-              allLabels={allLabels}
-              onToggle={toggleLabel}
-              onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
-            />
-          </div>
+            </div>
+          </ScrollArea>
 
           <AppDialogFooter>
-            <div className="text-[11px] text-muted-foreground/80">
-              {title.trim() ? 'Ready to create.' : 'Add a title to continue.'}
-            </div>
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                 Cancel

@@ -32,14 +32,14 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // ── Mobile: bottom-sheet ──
+        // ── Mobile: top-sheet (leaves the lower half free for the keyboard) ──
         'fixed z-50 grid w-full gap-4 border border-border/80 bg-background shadow-soft duration-200',
-        'inset-x-0 bottom-0 max-h-[92vh] rounded-t-2xl p-0',
+        'inset-x-0 top-0 max-h-[55vh] rounded-b-2xl p-0 pt-[env(safe-area-inset-top)]',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-        'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+        'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
         // ── Desktop: centered modal ──
-        'sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-h-none sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-6',
+        'sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-h-none sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-0',
         'sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
         'sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]',
         'sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]',

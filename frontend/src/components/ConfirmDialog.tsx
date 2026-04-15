@@ -39,7 +39,6 @@ export default function ConfirmDialog({
           </AppDialogSection>
         </div>
         <AppDialogFooter>
-          <div className="text-[11px] text-muted-foreground/80">Review carefully before continuing.</div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={onCancel} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
             <Button variant="destructive" onClick={onConfirm} className="rounded-full px-4 text-[11px]">{confirmLabel}</Button>

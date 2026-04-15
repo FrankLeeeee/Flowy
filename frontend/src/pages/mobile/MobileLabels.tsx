@@ -157,7 +157,7 @@ export default function MobileLabels() {
             <DialogTitle className="sr-only">Create a new label</DialogTitle>
             <DialogDescription className="sr-only">Create a label with a name and color.</DialogDescription>
             <AppDialogEyebrow><Sparkles className="h-3 w-3" /> New Label</AppDialogEyebrow>
-            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Create a new label</h2>
+            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Create a new label</h2>
           </AppDialogHeader>
           <form onSubmit={handleCreate} className="flex flex-col">
             <AppDialogBody>
@@ -176,15 +176,8 @@ export default function MobileLabels() {
                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Color</p>
                 <MobileColorGrid selected={newColor} onSelect={setNewColor} />
               </AppDialogSection>
-              {newName.trim() && (
-                <div className="pt-2">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Preview</p>
-                  <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1', LABEL_COLORS[newColor].pill)}>{newName.trim()}</span>
-                </div>
-              )}
             </AppDialogBody>
             <AppDialogFooter>
-              <div className="text-[11px] text-muted-foreground/80">{newName.trim() ? 'Ready to create.' : 'Add a name to continue.'}</div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" onClick={() => { setShowCreate(false); setNewName(''); setNewColor('blue'); }} className="rounded-full px-3.5 text-[11px]">Cancel</Button>
                 <Button type="submit" disabled={!newName.trim()} className="rounded-full px-4 text-[11px]">
@@ -204,7 +197,7 @@ export default function MobileLabels() {
             <DialogTitle className="sr-only">Edit label</DialogTitle>
             <DialogDescription className="sr-only">Edit label name and color.</DialogDescription>
             <AppDialogEyebrow>Edit Label</AppDialogEyebrow>
-            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit label</h2>
+            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Edit label</h2>
           </AppDialogHeader>
           <form onSubmit={handleEdit} className="flex flex-col">
             <AppDialogBody>
@@ -223,15 +216,8 @@ export default function MobileLabels() {
                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Color</p>
                 <MobileColorGrid selected={editColor} onSelect={setEditColor} />
               </AppDialogSection>
-              {editName.trim() && (
-                <div className="pt-2">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Preview</p>
-                  <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1', LABEL_COLORS[editColor].pill)}>{editName.trim()}</span>
-                </div>
-              )}
             </AppDialogBody>
             <AppDialogFooter>
-              <div className="text-[11px] text-muted-foreground/80">{editName.trim() ? 'Ready to save.' : 'Add a name.'}</div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" onClick={() => setEditingLabel(null)} className="rounded-full px-3.5 text-[11px]">Cancel</Button>
                 <Button type="submit" disabled={!editName.trim()} className="rounded-full px-4 text-[11px]">
