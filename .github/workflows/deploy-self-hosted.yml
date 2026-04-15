@@ -27,6 +27,7 @@ jobs:
         run: |
           docker build \
             --progress=plain \
+            --no-cache \
             --build-arg FLOWY_REPO="https://github.com/${{ github.repository }}.git" \
             --build-arg FLOWY_REF="${{ github.ref_name }}" \
             -t flowy:latest .
