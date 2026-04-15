@@ -102,6 +102,12 @@
     background-color: hsl(var(--background));
   }
 
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
   ::selection {
     background: hsla(238, 58%, 58%, 0.2);
     color: hsl(var(--foreground));
@@ -172,13 +178,6 @@
   }
 }
 
-/* ── Mobile viewport ─────────────────────────────────────────────────── */
-@supports (padding: env(safe-area-inset-bottom)) {
-  html {
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
-  }
-}
-
 @media (max-width: 767px) {
   /* Disable hover-specific effects on touch devices */
   .interactive-lift {
@@ -195,14 +194,13 @@
     touch-action: manipulation;
   }
 
-  /* Lock the page so only the in-app shell scrolls — keeps Safari's
-     toolbar from popping in/out when added to the iOS Home Screen. */
+  /* Lock the page so only the in-app shell scrolls. */
   html,
-  body {
+  body,
+  #root {
     height: 100%;
     overflow: hidden;
     overscroll-behavior: none;
-    -webkit-overflow-scrolling: touch;
   }
 }
 

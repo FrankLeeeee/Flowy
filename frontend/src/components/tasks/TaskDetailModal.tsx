@@ -394,7 +394,7 @@ export default function TaskDetailModal({
       </AppDialogContent>
 
       <Dialog open={outputFullscreenOpen} onOpenChange={setOutputFullscreenOpen}>
-        <AppDialogContent className="h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] gap-0 bg-background sm:rounded-xl">
+        <AppDialogContent className="h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] gap-0 bg-background sm:h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl">
           <AppDialogHeader className="pr-14">
             <DialogTitle className="sr-only">{task.title} output</DialogTitle>
             <DialogDescription className="sr-only">Full-screen task output</DialogDescription>

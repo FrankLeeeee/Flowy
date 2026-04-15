@@ -39,7 +39,7 @@ export function AppDialogContent({
       className={cn(
         'overflow-hidden border-border/40 dark:border-border/60 bg-card p-0 shadow-float',
         // Mobile: top-sheet — cap height so the lower half stays free for the keyboard
-        'max-h-[55vh]',
+        'max-h-[55svh]',
         'sm:max-h-none',
         className
       )}
