@@ -12,6 +12,7 @@ import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, A
 import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
+import { formatScheduledDateTime, normalizeTimeInput, splitScheduledDateTime, updateScheduledDate, updateScheduledTime } from '@/lib/scheduledDateTime';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
@@ -113,6 +114,7 @@ export default function TaskDetailModal({
   const editingStatusStyles = getTaskStatusStyles(status);
   const priorityStyles = getTaskPriorityStyles(task.priority);
   const editingPriorityStyles = getTaskPriorityStyles(priority);
+  const scheduledParts = splitScheduledDateTime(scheduledAt);
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
@@ -239,24 +241,44 @@ export default function TaskDetailModal({
                 />
               </div>
 
-              {/* Scheduled date/time editor */}
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
-                <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                <span className="text-[11px] font-medium text-muted-foreground/85">
-                  {scheduledAt ? 'Scheduled:' : 'No scheduled date'}
-                  {!scheduledAt && (
-                    <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
-                      <Archive className="h-3 w-3" />
-                      Backlog
-                    </span>
-                  )}
-                </span>
-                <input
-                  type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                  className="h-7 rounded-full border border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
-                />
+              <div className="flex flex-col gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="flex min-w-0 items-center gap-2">
+                  <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                  <span className="text-[11px] font-medium text-muted-foreground/85">
+                    {scheduledAt ? 'Scheduled:' : 'No scheduled date'}
+                    {!scheduledAt && (
+                      <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+                        <Archive className="h-3 w-3" />
+                        Backlog
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[9.75rem_7.25rem]">
+                  <label className="min-w-0">
+                    <span className="sr-only">Schedule date</span>
+                    <Input
+                      type="date"
+                      value={scheduledParts.date}
+                      onChange={(e) => setScheduledAt((current) => updateScheduledDate(current, e.target.value))}
+                      className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </label>
+                  <label className="min-w-0">
+                    <span className="sr-only">Schedule time</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      placeholder="HH:mm"
+                      value={scheduledParts.time}
+                      disabled={!scheduledParts.date}
+                      onChange={(e) => setScheduledAt((current) => updateScheduledTime(current, e.target.value))}
+                      onBlur={(e) => setScheduledAt((current) => updateScheduledTime(current, normalizeTimeInput(e.target.value)))}
+                      className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </label>
+                </div>
                 {scheduledAt && (
                   <button
                     type="button"
@@ -337,7 +359,7 @@ export default function TaskDetailModal({
               {task.scheduled_at ? (
                 <div>
                   <span className="font-medium text-foreground/80">Scheduled: </span>
-                  <span className="text-muted-foreground/85">{fmtTime(task.scheduled_at)}</span>
+                  <span className="text-muted-foreground/85">{formatScheduledDateTime(task.scheduled_at)}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">

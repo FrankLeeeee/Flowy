@@ -11,6 +11,7 @@ import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, App
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LabelPicker from '@/components/LabelPicker';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { normalizeTimeInput, splitScheduledDateTime, updateScheduledDate, updateScheduledTime } from '@/lib/scheduledDateTime';
 import { cn } from '@/lib/utils';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { Circle, FolderKanban, ArrowRight, X, Sparkles, CalendarClock, Archive } from 'lucide-react';
@@ -43,6 +44,7 @@ export default function CreateTaskModal({
 
   const selectedProject = projects.find((project) => project.id === projectId);
   const priorityStyles = getTaskPriorityStyles(priority);
+  const scheduledParts = splitScheduledDateTime(scheduledAt);
 
   useEffect(() => {
     if (open) {
@@ -194,11 +196,10 @@ export default function CreateTaskModal({
                   />
                 </div>
 
-                {/* Scheduled date/time */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <div className="flex min-w-0 items-center gap-1.5 sm:mr-1">
                     <CalendarClock className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-                    <span className="text-[11px] text-muted-foreground/70">
+                    <span className="shrink-0 text-[11px] text-muted-foreground/70">
                       {scheduledAt ? 'Scheduled for' : 'No scheduled date'}
                     </span>
                     {!scheduledAt && (
@@ -208,12 +209,31 @@ export default function CreateTaskModal({
                       </span>
                     )}
                   </div>
-                  <Input
-                    type="datetime-local"
-                    value={scheduledAt}
-                    onChange={(e) => setScheduledAt(e.target.value)}
-                    className="h-7 w-auto rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
-                  />
+                  <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[9.75rem_7.25rem]">
+                    <label className="min-w-0">
+                      <span className="sr-only">Schedule date</span>
+                      <Input
+                        type="date"
+                        value={scheduledParts.date}
+                        onChange={(e) => setScheduledAt((current) => updateScheduledDate(current, e.target.value))}
+                        className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                      />
+                    </label>
+                    <label className="min-w-0">
+                      <span className="sr-only">Schedule time</span>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={5}
+                        placeholder="HH:mm"
+                        value={scheduledParts.time}
+                        disabled={!scheduledParts.date}
+                        onChange={(e) => setScheduledAt((current) => updateScheduledTime(current, e.target.value))}
+                        onBlur={(e) => setScheduledAt((current) => updateScheduledTime(current, normalizeTimeInput(e.target.value)))}
+                        className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                      />
+                    </label>
+                  </div>
                   {scheduledAt && (
                     <button
                       type="button"

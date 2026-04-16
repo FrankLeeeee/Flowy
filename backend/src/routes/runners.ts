@@ -8,6 +8,18 @@ import { loadSettings } from '../storage';
 
 const router = Router();
 
+function getScheduledTimeMs(scheduledAt: string | null): number | null {
+  if (!scheduledAt) return null;
+
+  const scheduledTimeMs = new Date(scheduledAt).getTime();
+  return Number.isFinite(scheduledTimeMs) ? scheduledTimeMs : null;
+}
+
+export function isTaskDue(task: Pick<Task, 'scheduled_at'>, nowMs = Date.now()): boolean {
+  const scheduledTimeMs = getScheduledTimeMs(task.scheduled_at);
+  return scheduledTimeMs === null || scheduledTimeMs <= nowMs;
+}
+
 // ── In-memory browse-request store ────────────────────────────────────────
 interface PendingBrowseRequest {
   requestId: string;
@@ -212,10 +224,12 @@ router.post('/browse-result', authenticateRunner, (req: Request, res: Response) 
 // GET /api/runners/poll — get next assigned task
 router.get('/poll', authenticateRunner, (req: Request, res: Response) => {
   const runner = req.runner!;
-  const task = getDb().prepare(`
+  const tasks = getDb().prepare(`
     SELECT * FROM tasks
     WHERE runner_id = ? AND status = 'todo'
     ORDER BY
+      CASE WHEN scheduled_at IS NULL OR scheduled_at = '' THEN 1 ELSE 0 END,
+      scheduled_at ASC,
       CASE priority
         WHEN 'urgent' THEN 0
         WHEN 'high'   THEN 1
@@ -224,8 +238,8 @@ router.get('/poll', authenticateRunner, (req: Request, res: Response) => {
         ELSE 4
       END,
       created_at ASC
-    LIMIT 1
-  `).get(runner.id) as Task | undefined;
+  `).all(runner.id) as Task[];
+  const task = tasks.find((candidate) => isTaskDue(candidate));
 
   if (!task) { res.status(204).send(); return; }
   res.json(task);
@@ -238,6 +252,7 @@ router.post('/tasks/:taskId/pick', authenticateRunner, (req: Request, res: Respo
   const task = db.prepare('SELECT * FROM tasks WHERE id = ? AND runner_id = ?').get(req.params.taskId, runner.id) as Task | undefined;
   if (!task) { res.status(404).json({ error: 'Task not found or not assigned to this runner' }); return; }
   if (task.status !== 'todo') { res.status(409).json({ error: `Task status is "${task.status}", expected "todo"` }); return; }
+  if (!isTaskDue(task)) { res.status(409).json({ error: 'Task is scheduled for a future time' }); return; }
 
   db.transaction(() => {
     db.prepare(`
