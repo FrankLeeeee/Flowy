@@ -208,7 +208,7 @@ export default function TaskDetailModal({
         if (!nextOpen) onClose();
       }}
     >
-      <AppDialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 flex flex-col">
+      <AppDialogContent className="max-h-[90vh] min-w-0 gap-0 flex flex-col sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
           <DialogDescription className="sr-only">
@@ -241,8 +241,8 @@ export default function TaskDetailModal({
           </div>
         </AppDialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="flex flex-col gap-5 px-6 py-5 min-w-0 overflow-x-hidden">
+        <ScrollArea className="flex-1 min-h-0 min-w-0">
+          <div className="box-border flex w-full min-w-0 flex-col gap-5 px-4 py-5 sm:px-6">
             {/* Title & Description */}
             {editing ? (
               <div className="flex flex-col gap-4">
@@ -456,21 +456,21 @@ export default function TaskDetailModal({
             )}
 
             {/* Runner Info */}
-            <AppDialogSection className="rounded-lg bg-foreground/[0.02] p-4">
+            <AppDialogSection className="min-w-0 max-w-full overflow-hidden rounded-lg bg-foreground/[0.02] p-4">
               <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">
                 Runner Assignment
               </h3>
               {runner ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[13px] font-medium text-foreground">
+                <div className="min-w-0 space-y-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="min-w-0 max-w-full break-words text-[13px] font-medium text-foreground">
                       {runner.name}
                     </span>
                     <RunnerStatusBadge status={runner.status} />
                     {task.ai_provider && (
                       <span
                         className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1",
+                          "max-w-full break-words rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1",
                           getAiProviderStyles(task.ai_provider).pill,
                         )}
                       >
@@ -479,11 +479,11 @@ export default function TaskDetailModal({
                     )}
                   </div>
                   {harnessConfigBadges.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex min-w-0 flex-wrap gap-1.5">
                       {harnessConfigBadges.map((badge) => (
                         <span
                           key={badge}
-                          className="inline-flex items-center rounded-full bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground ring-1 ring-border/60"
+                          className="inline-flex max-w-full items-center break-words rounded-full bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground ring-1 ring-border/60"
                         >
                           {badge}
                         </span>
@@ -512,12 +512,12 @@ export default function TaskDetailModal({
 
             {/* Output */}
             {hasOutput && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
+              <div className="min-w-0 max-w-full overflow-hidden">
+                <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
                   <h3 className="text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">
                     Output
                   </h3>
-                  <div className="flex items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-3">
                     {canViewFullscreenOutput && (
                       <button
                         type="button"
@@ -548,9 +548,12 @@ export default function TaskDetailModal({
                     </button>
                   </div>
                 </div>
-                <ScrollArea className="h-64 w-full">
+                <ScrollArea className="h-64 w-full min-w-0 max-w-full">
                   <div
-                    className={cn(OUTPUT_MARKDOWN_CLASSNAME, "overflow-x-auto")}
+                    className={cn(
+                      OUTPUT_MARKDOWN_CLASSNAME,
+                      "min-w-0 max-w-full overflow-x-auto [&_*]:max-w-full [&_code]:break-words [&_pre]:overflow-x-auto [&_pre_code]:break-normal [&_table]:block [&_table]:overflow-x-auto",
+                    )}
                   >
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {output}
@@ -562,26 +565,26 @@ export default function TaskDetailModal({
 
             {/* Logs */}
             {logs.length > 0 && (
-              <div>
+              <div className="min-w-0 max-w-full overflow-hidden">
                 <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">
                   Execution Logs
                 </h3>
-                <ScrollArea className="h-40 w-full">
-                  <div className="space-y-1">
+                <ScrollArea className="h-40 w-full min-w-0 max-w-full">
+                  <div className="min-w-0 space-y-1">
                     {logs.map((log) => (
                       <div
                         key={log.id}
-                        className="flex items-start gap-2 text-[11px]"
+                        className="flex min-w-0 max-w-full items-start gap-2 text-[11px]"
                       >
-                        <span className="whitespace-nowrap text-muted-foreground/70">
+                        <span className="shrink-0 whitespace-nowrap text-muted-foreground/70">
                           {fmtTime(log.created_at)}
                         </span>
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-foreground/[0.04] text-muted-foreground">
+                        <span className="shrink-0 rounded bg-foreground/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                           {log.event}
                         </span>
                         {log.data && log.event !== "output" && (
-                          <span className="truncate min-w-0 flex-1 text-muted-foreground/75">
-                            {log.data.slice(0, 100)}
+                          <span className="min-w-0 flex-1 whitespace-pre-wrap break-words text-muted-foreground/75">
+                            {log.data}
                           </span>
                         )}
                       </div>
