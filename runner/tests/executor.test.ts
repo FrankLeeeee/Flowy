@@ -5,7 +5,7 @@ describe('buildCommandWithConfig', () => {
   it('builds the Claude Code command with streaming enabled', () => {
     expect(buildCommandWithConfig('claude-code', 'Write a test')).toEqual({
       cmd: 'claude',
-      args: ['-p', '--tools', 'all', 'Write a test'],
+      args: ['-p', 'Write a test'],
       streamOutput: true,
     });
   });
@@ -44,8 +44,6 @@ describe('buildCommandWithConfig', () => {
       cmd: 'claude',
       args: [
         '-p',
-        '--tools',
-        'all',
         '--model',
         'sonnet',
         '--permission-mode',
