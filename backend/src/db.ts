@@ -92,6 +92,11 @@ function migrate(): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   seedDefaultLabels();
@@ -249,6 +254,19 @@ function migrateTaskKeysToProjectNames(): void {
   } catch {
     // Preserve existing task keys if legacy data would make the generated names collide.
   }
+}
+
+// ── Settings helpers ─────────────────────────────────────────────────────
+
+export function getDbSetting(key: string): string | undefined {
+  if (!db) return undefined;
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
+  return row?.value;
+}
+
+export function setDbSetting(key: string, value: string): void {
+  if (!db) return;
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
 }
 
 /** Mark runners as offline if heartbeat is stale (>90 seconds). */
