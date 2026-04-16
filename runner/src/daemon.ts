@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { RunnerConfig } from './types';
 import { RunnerApi } from './api';
 import { deleteToken, detectAvailableProviders, saveToken } from './config';
@@ -99,6 +101,35 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
 
   const pollInterval = setInterval(poll, config.pollInterval * 1000);
 
+  // ── Browse-request polling ───────────────────────────────────────────────
+  const browsePoll = async () => {
+    try {
+      const requests = await api.fetchBrowseRequests();
+      for (const { requestId, path: browsePath } of requests) {
+        try {
+          const resolved = path.resolve(browsePath);
+          const dirents = fs.readdirSync(resolved, { withFileTypes: true });
+          const entries = dirents
+            .filter((d) => !d.name.startsWith('.'))
+            .map((d) => ({ name: d.name, isDirectory: d.isDirectory() }))
+            .sort((a, b) => {
+              if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+              return a.name.localeCompare(b.name);
+            });
+          await api.submitBrowseResult(requestId, entries);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          await api.submitBrowseError(requestId, msg);
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('401')) handleInvalidToken();
+    }
+  };
+
+  const browsePollInterval = setInterval(browsePoll, 2_000);
+
   console.log(`\nRunner "${config.name}" is online and polling every ${config.pollInterval}s`);
   console.log(`Providers: ${availableProviders.join(', ') || '(none)'}`);
   console.log('Press Ctrl+C to stop.\n');
@@ -108,6 +139,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     console.log(`\nReceived ${signal}, shutting down...`);
     clearInterval(heartbeatInterval);
     clearInterval(pollInterval);
+    clearInterval(browsePollInterval);
 
     if (killCurrent) {
       console.log('Killing running task...');

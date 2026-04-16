@@ -117,3 +117,16 @@ export async function deleteRunner(id: string): Promise<void> {
 export async function refreshRunnerProviders(id: string): Promise<void> {
   await api.post(`/runners/${id}/refresh-providers`);
 }
+
+export interface BrowseEntry {
+  name: string;
+  isDirectory: boolean;
+}
+
+export async function browseRunnerDirectory(runnerId: string, path: string): Promise<BrowseEntry[]> {
+  const { data } = await api.get<{ entries: BrowseEntry[] }>(`/runners/${runnerId}/browse`, {
+    params: { path },
+    timeout: 12_000,
+  });
+  return data.entries;
+}

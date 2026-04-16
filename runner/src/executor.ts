@@ -20,7 +20,7 @@ export function buildCommandWithConfig(aiProvider: string, prompt: string, rawHa
   switch (aiProvider) {
     case 'claude-code': {
       const config = harnessConfig.claudeCode ?? {};
-      const args = ['-p', '--tools', 'all'];
+      const args = ['-p'];
 
       if (config.model) args.push('--model', config.model);
       if (config.mode) args.push('--permission-mode', config.mode);

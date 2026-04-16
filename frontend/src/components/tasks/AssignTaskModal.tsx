@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { DirectoryInput } from '@/components/ui/directory-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { parseHarnessConfig } from '../../lib/harnessConfig';
@@ -137,7 +138,12 @@ export default function AssignTaskModal({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Workspace</Label>
-                      <Input value={codexConfig.workspace ?? ''} onChange={(e) => updateCodexConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className={DIALOG_CONTROL_CLASSNAME} />
+                      <DirectoryInput
+                        value={codexConfig.workspace ?? ''}
+                        onChange={(v) => updateCodexConfig({ workspace: v || undefined })}
+                        runnerId={runnerId || undefined}
+                        className={DIALOG_CONTROL_CLASSNAME}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Model</Label>
@@ -168,7 +174,12 @@ export default function AssignTaskModal({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Workspace</Label>
-                      <Input value={claudeConfig.workspace ?? ''} onChange={(e) => updateClaudeConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className={DIALOG_CONTROL_CLASSNAME} />
+                      <DirectoryInput
+                        value={claudeConfig.workspace ?? ''}
+                        onChange={(v) => updateClaudeConfig({ workspace: v || undefined })}
+                        runnerId={runnerId || undefined}
+                        className={DIALOG_CONTROL_CLASSNAME}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Model</Label>
@@ -206,7 +217,12 @@ export default function AssignTaskModal({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Workspace</Label>
-                      <Input value={cursorConfig.workspace ?? ''} onChange={(e) => updateCursorConfig({ workspace: e.target.value || undefined })} placeholder="/path/to/repo" className={DIALOG_CONTROL_CLASSNAME} />
+                      <DirectoryInput
+                        value={cursorConfig.workspace ?? ''}
+                        onChange={(v) => updateCursorConfig({ workspace: v || undefined })}
+                        runnerId={runnerId || undefined}
+                        className={DIALOG_CONTROL_CLASSNAME}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Model</Label>
