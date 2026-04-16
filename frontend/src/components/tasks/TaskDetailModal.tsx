@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
+import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
 import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
@@ -125,8 +125,8 @@ export default function TaskDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="flex h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-lg">
-        <AppDialogHeader>
+      <AppDialogContent className="flex h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden rounded-none sm:h-auto sm:max-h-[min(90vh,calc(100dvh-1.5rem))] sm:min-h-0 sm:max-w-2xl sm:rounded-lg">
+        <AppDialogHeader className="shrink-0">
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
           <DialogDescription className="sr-only">View and edit task details</DialogDescription>
           <AppDialogEyebrow>Task details</AppDialogEyebrow>
@@ -144,8 +144,9 @@ export default function TaskDetailModal({
           </div>
         </AppDialogHeader>
 
-        <ScrollArea className="min-h-0 min-w-0 flex-1">
-        <div className="flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6">
+        <AppDialogBody className="flex min-h-0 flex-1 flex-col space-y-0 overflow-hidden px-0 py-0 sm:px-0 sm:py-0">
+          <ScrollArea className="min-h-0 min-w-0 flex-1">
+            <div className="flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6">
           {/* Title & Description */}
           {editing ? (
             <div className="flex flex-col gap-4">
@@ -365,8 +366,9 @@ export default function TaskDetailModal({
               </ScrollArea>
             </div>
           )}
-        </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        </AppDialogBody>
 
         <AppDialogFooter className="bg-background shrink-0">
           <div className="flex items-center gap-2">
