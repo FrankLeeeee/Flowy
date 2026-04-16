@@ -49,7 +49,7 @@ export async function fetchTasks(filters?: {
 }
 
 export async function createTask(body: {
-  projectId: string; title: string; description?: string; priority?: string; labels?: string[];
+  projectId: string; title: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
 }): Promise<Task> {
   const { data } = await api.post<Task>('/tasks', body);
   return data;
@@ -62,7 +62,7 @@ export async function getTask(id: string): Promise<Task> {
 
 export async function updateTask(id: string, body: {
   title?: string; description?: string; status?: string; priority?: string;
-  labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
+  labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null; scheduledAt?: string | null;
 }): Promise<Task> {
   const { data } = await api.put<Task>(`/tasks/${id}`, body);
   return data;

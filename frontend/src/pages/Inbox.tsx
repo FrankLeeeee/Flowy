@@ -10,6 +10,7 @@ import KanbanBoard from '../components/tasks/KanbanBoard';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
+import DateFilter from '@/components/DateFilter';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Inbox as InboxIcon, Plus, LayoutGrid, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
+import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 
 export default function Inbox() {
   const successTone = getToneStyles('success');
@@ -35,6 +37,7 @@ export default function Inbox() {
   const [priorityFilter, setPriorityFilter] = useState('_all');
   const [runnerFilter, setRunnerFilter] = useState('_all');
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(defaultDateFilter());
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -49,6 +52,7 @@ export default function Inbox() {
 
       const [t, p, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
       setTasks(t.filter((task) => task.status !== 'done' && task.status !== 'cancelled'));
+      // Date filtering is applied at render time (see visibleTasks below)
       setProjects(p);
       setRunners(r);
       setAllLabels(l);
@@ -86,6 +90,9 @@ export default function Inbox() {
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };
+
+  // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
+  const visibleTasks = filterTasksByDate(tasks, dateFilter);
 
   if (loading) {
     return (
@@ -158,7 +165,9 @@ export default function Inbox() {
           </button>
         </div>
 
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{tasks.length} active</span>
+        <DateFilter value={dateFilter} onChange={setDateFilter} />
+
+        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{visibleTasks.length} active</span>
       </div>
 
       {/* Content */}
@@ -171,9 +180,9 @@ export default function Inbox() {
         style={{ '--motion-delay': '200ms' } as React.CSSProperties}
       >
         {viewMode === 'kanban' ? (
-          <KanbanBoard tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <KanbanBoard tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
-          <TaskListView tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <TaskListView tasks={visibleTasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}
       </div>
 

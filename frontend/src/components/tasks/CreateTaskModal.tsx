@@ -11,9 +11,10 @@ import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, App
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LabelPicker from '@/components/LabelPicker';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { normalizeTimeInput, splitScheduledDateTime, updateScheduledDate, updateScheduledTime } from '@/lib/scheduledDateTime';
 import { cn } from '@/lib/utils';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { Circle, FolderKanban, ArrowRight, X, Sparkles } from 'lucide-react';
+import { Circle, FolderKanban, ArrowRight, X, Sparkles, CalendarClock, Archive } from 'lucide-react';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'none',   label: 'No Priority' },
@@ -29,7 +30,7 @@ export default function CreateTaskModal({
   open: boolean;
   projects: Project[];
   defaultProjectId?: string;
-  onSubmit: (data: { projectId: string; title: string; description: string; priority: TaskPriority; labels: string[] }) => void;
+  onSubmit: (data: { projectId: string; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledAt?: string | null }) => void;
   onClose: () => void;
 }) {
   const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.id ?? '');
@@ -38,14 +39,21 @@ export default function CreateTaskModal({
   const [priority, setPriority] = useState<TaskPriority>('none');
   const [labels, setLabels] = useState<string[]>([]);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
+  const [scheduledAt, setScheduledAt] = useState('');
   const isMobile = useIsMobile();
 
   const selectedProject = projects.find((project) => project.id === projectId);
   const priorityStyles = getTaskPriorityStyles(priority);
+  const scheduledParts = splitScheduledDateTime(scheduledAt);
 
   useEffect(() => {
     if (open) {
       fetchLabels().then(setAllLabels).catch(() => {});
+      setTitle('');
+      setDescription('');
+      setPriority('none');
+      setLabels([]);
+      setScheduledAt('');
     }
   }, [open]);
 
@@ -65,7 +73,8 @@ export default function CreateTaskModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!projectId || !title.trim()) return;
-    onSubmit({ projectId, title: title.trim(), description, priority, labels });
+    // Convert local datetime string to ISO 8601 (keep as local time string for storage)
+    onSubmit({ projectId, title: title.trim(), description, priority, labels, scheduledAt: scheduledAt || null });
   };
 
   return (
@@ -143,47 +152,98 @@ export default function CreateTaskModal({
                 )}
               </AppDialogBody>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-border/40 bg-foreground/[0.015] px-4 py-3 sm:px-6">
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                    <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-                    <SelectValue placeholder="Project" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id} className="rounded-lg py-2 text-[11px]">
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col gap-2 border-t border-border/40 bg-foreground/[0.015] px-4 py-3 sm:px-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={projectId} onValueChange={setProjectId}>
+                    <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
+                      <SelectValue placeholder="Project" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id} className="rounded-lg py-2 text-[11px]">
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-                  <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                    <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
-                    <SelectValue>
-                      {PRIORITIES.find((item) => item.value === priority)?.label}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                    {PRIORITIES.map((item) => (
-                      <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                        <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
-                          <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
-                          {item.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                    <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                      <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
+                      <SelectValue>
+                        {PRIORITIES.find((item) => item.value === priority)?.label}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                      {PRIORITIES.map((item) => (
+                        <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
+                          <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
+                            <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
+                            {item.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <LabelPicker
-                  selectedLabels={labels}
-                  allLabels={allLabels}
-                  onToggle={toggleLabel}
-                  onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
-                  allowCreate={!isMobile}
-                />
+                  <LabelPicker
+                    selectedLabels={labels}
+                    allLabels={allLabels}
+                    onToggle={toggleLabel}
+                    onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
+                    allowCreate={!isMobile}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <div className="flex min-w-0 items-center gap-1.5 sm:mr-1">
+                    <CalendarClock className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                    <span className="shrink-0 text-[11px] text-muted-foreground/70">
+                      {scheduledAt ? 'Scheduled for' : 'No scheduled date'}
+                    </span>
+                    {!scheduledAt && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+                        <Archive className="h-3 w-3" />
+                        Backlog
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[9.75rem_7.25rem]">
+                    <label className="min-w-0">
+                      <span className="sr-only">Schedule date</span>
+                      <Input
+                        type="date"
+                        value={scheduledParts.date}
+                        onChange={(e) => setScheduledAt((current) => updateScheduledDate(current, e.target.value))}
+                        className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                      />
+                    </label>
+                    <label className="min-w-0">
+                      <span className="sr-only">Schedule time</span>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={5}
+                        placeholder="HH:mm"
+                        value={scheduledParts.time}
+                        disabled={!scheduledParts.date}
+                        onChange={(e) => setScheduledAt((current) => updateScheduledTime(current, e.target.value))}
+                        onBlur={(e) => setScheduledAt((current) => updateScheduledTime(current, normalizeTimeInput(e.target.value)))}
+                        className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                      />
+                    </label>
+                  </div>
+                  {scheduledAt && (
+                    <button
+                      type="button"
+                      onClick={() => setScheduledAt('')}
+                      className="text-[10px] text-muted-foreground/70 hover:text-foreground transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </ScrollArea>

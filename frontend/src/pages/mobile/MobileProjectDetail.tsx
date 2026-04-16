@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { ArrowLeft, Plus, SlidersHorizontal, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 
 export default function MobileProjectDetail() {
   const neutralTone = getToneStyles('neutral');
@@ -42,6 +43,7 @@ export default function MobileProjectDetail() {
   const [runnerFilter, setRunnerFilter] = useState('_all');
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(defaultDateFilter());
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -51,7 +53,7 @@ export default function MobileProjectDetail() {
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const hasActiveFilters = statusFilter !== '_all' || priorityFilter !== '_all' || runnerFilter !== '_all' || search !== '';
+  const hasActiveFilters = statusFilter !== '_all' || priorityFilter !== '_all' || runnerFilter !== '_all' || search !== '' || dateFilter.mode !== 'today';
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -102,6 +104,9 @@ export default function MobileProjectDetail() {
     catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete project'); setShowDeleteConfirm(false); }
   };
 
+  // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
+  const visibleTasks = filterTasksByDate(tasks, dateFilter);
+
   if (loading) {
     return (
       <div className="p-4 space-y-4">
@@ -137,7 +142,7 @@ export default function MobileProjectDetail() {
             <div className="min-w-0">
               <h1 className="text-[16px] font-bold tracking-tight text-foreground truncate">{project.name}</h1>
               <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1', neutralTone.pill)}>
-                {tasks.length} tasks
+                {visibleTasks.length} tasks
               </span>
             </div>
           </div>
@@ -187,7 +192,7 @@ export default function MobileProjectDetail() {
       {error && <div className="mx-4 mt-3 rounded-xl px-3 py-2 text-[13px] text-destructive bg-destructive/10 ring-1 ring-destructive/15">{error}</div>}
 
       {/* Task list */}
-      <MobileTaskList tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} />
+      <MobileTaskList tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} />
 
       {/* Filter sheet */}
       <MobileFilterSheet
@@ -203,6 +208,8 @@ export default function MobileProjectDetail() {
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
         showStatus
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
       />
 
       {/* Modals */}

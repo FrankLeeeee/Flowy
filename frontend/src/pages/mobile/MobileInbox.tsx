@@ -12,6 +12,7 @@ import TaskDetailModal from '@/components/tasks/TaskDetailModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
+import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 
 export default function MobileInbox() {
@@ -28,12 +29,13 @@ export default function MobileInbox() {
   const [runnerFilter, setRunnerFilter] = useState('_all');
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(defaultDateFilter());
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
 
-  const hasActiveFilters = priorityFilter !== '_all' || runnerFilter !== '_all' || search !== '';
+  const hasActiveFilters = priorityFilter !== '_all' || runnerFilter !== '_all' || search !== '' || dateFilter.mode !== 'today';
 
   const loadData = useCallback(async () => {
     try {
@@ -44,6 +46,7 @@ export default function MobileInbox() {
 
       const [t, p, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
       setTasks(t.filter((task) => task.status !== 'done' && task.status !== 'cancelled'));
+      // Date filtering applied at render time (visibleTasks below)
       setProjects(p);
       setRunners(r);
       setAllLabels(l);
@@ -72,6 +75,8 @@ export default function MobileInbox() {
   const handleTaskClick = async (task: Task) => {
     try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); }
   };
+
+  const visibleTasks = filterTasksByDate(tasks, dateFilter);
 
   if (loading) {
     return (
@@ -127,7 +132,7 @@ export default function MobileInbox() {
       </div>
 
       {/* Task list */}
-      <MobileTaskList tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} />
+      <MobileTaskList tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} />
 
       {/* Filter sheet */}
       <MobileFilterSheet
@@ -140,6 +145,8 @@ export default function MobileInbox() {
         onPriorityChange={setPriorityFilter}
         runnerFilter={runnerFilter}
         onRunnerChange={setRunnerFilter}
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
       />
 
       {/* Modals (reuse desktop modals — they already scale to full width on small screens) */}
