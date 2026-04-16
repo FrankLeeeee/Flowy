@@ -37,8 +37,8 @@ export default function MobileShell({
         className,
       )}
     >
-      {/* Content area — padded at the bottom to avoid overlap with fixed tab bar */}
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-16 [-webkit-overflow-scrolling:touch]">
+      {/* Content area — flex-1 fills remaining height; pb clears the fixed tab bar */}
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(4rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch]">
         {children}
       </main>
 

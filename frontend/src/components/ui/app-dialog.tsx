@@ -39,7 +39,7 @@ export function AppDialogContent({
       className={cn(
         'overflow-hidden border-border/40 dark:border-border/60 bg-card p-0 shadow-float',
         // Mobile: top-sheet — cap height so the lower half stays free for the keyboard
-        'max-h-[55svh]',
+        'max-h-[78svh]',
         'sm:max-h-none',
         className
       )}
@@ -86,7 +86,7 @@ export function AppDialogBody({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('space-y-3 px-4 py-3 sm:px-6 sm:py-4', className)} {...props} />;
+  return <div className={cn('overflow-y-auto space-y-3 px-4 py-3 sm:px-6 sm:py-4', className)} {...props} />;
 }
 
 export function AppDialogSection({
