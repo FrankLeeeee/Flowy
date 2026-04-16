@@ -1,4 +1,6 @@
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { RegisterResponse, RunnerConfig } from './types';
 import { RunnerApi } from './api';
 import { deleteToken, detectAvailableProviders, saveToken } from './config';
@@ -22,6 +24,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
   let shuttingDown = false;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let pollTimer: ReturnType<typeof setInterval> | undefined;
+  let browsePollTimer: ReturnType<typeof setInterval> | undefined;
 
   const errorMessage = (error: unknown): string => (
     error instanceof Error ? error.message : String(error)
@@ -46,8 +49,10 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
   const clearTimers = () => {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     if (pollTimer) clearInterval(pollTimer);
+    if (browsePollTimer) clearInterval(browsePollTimer);
     heartbeatTimer = undefined;
     pollTimer = undefined;
+    browsePollTimer = undefined;
   };
 
   const handleInvalidToken = (): never => {
@@ -207,12 +212,44 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     }
   };
 
+  // ── Browse-request polling ───────────────────────────────────────────────
+
+  const browsePoll = async () => {
+    if (reconnecting || shuttingDown) return;
+
+    try {
+      const requests = await api.fetchBrowseRequests();
+      for (const { requestId, path: browsePath } of requests) {
+        try {
+          const resolved = path.resolve(browsePath);
+          const dirents = fs.readdirSync(resolved, { withFileTypes: true });
+          const entries = dirents
+            .filter((dirent) => !dirent.name.startsWith('.'))
+            .map((dirent) => ({ name: dirent.name, isDirectory: dirent.isDirectory() }))
+            .sort((a, b) => {
+              if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+              return a.name.localeCompare(b.name);
+            });
+          await api.submitBrowseResult(requestId, entries);
+        } catch (error) {
+          await api.submitBrowseError(requestId, errorMessage(error));
+        }
+      }
+    } catch (error) {
+      console.warn('Browse poll failed:', errorMessage(error));
+      void reconnectAfterFailure(error).catch((reconnectError) => {
+        console.error('Browse poll reconnect failed:', errorMessage(reconnectError));
+      });
+    }
+  };
+
   // ── Intervals ─────────────────────────────────────────────────────────
 
   const startIntervals = () => {
     clearTimers();
     heartbeatTimer = setInterval(heartbeat, 30_000);
     pollTimer = setInterval(poll, config.pollInterval * 1000);
+    browsePollTimer = setInterval(browsePoll, 2_000);
   };
 
   // ── Registration ────────────────────────────────────────────────────────

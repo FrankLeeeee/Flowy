@@ -43,4 +43,17 @@ export class RunnerApi {
   async completeTask(taskId: string, success: boolean, data?: string): Promise<void> {
     await this.client.post(`/runners/tasks/${taskId}/complete`, { success, data });
   }
+
+  async fetchBrowseRequests(): Promise<{ requestId: string; path: string }[]> {
+    const { data } = await this.client.get<{ requestId: string; path: string }[]>('/runners/browse-requests');
+    return data;
+  }
+
+  async submitBrowseResult(requestId: string, entries: { name: string; isDirectory: boolean }[]): Promise<void> {
+    await this.client.post('/runners/browse-result', { requestId, entries });
+  }
+
+  async submitBrowseError(requestId: string, error: string): Promise<void> {
+    await this.client.post('/runners/browse-result', { requestId, error });
+  }
 }

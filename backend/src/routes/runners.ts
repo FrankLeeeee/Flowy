@@ -8,6 +8,36 @@ import { loadSettings } from '../storage';
 
 const router = Router();
 
+// ── In-memory browse-request store ────────────────────────────────────────
+interface PendingBrowseRequest {
+  requestId: string;
+  runnerId: string;
+  path: string;
+  resolve: (entries: { name: string; isDirectory: boolean }[]) => void;
+  reject: (err: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
+// requestId → pending request
+const pendingBrowse = new Map<string, PendingBrowseRequest>();
+
+// runnerId → list of requestIds waiting for that runner
+const runnerBrowseQueue = new Map<string, string[]>();
+
+function enqueueBrowse(runnerId: string, requestId: string): void {
+  const list = runnerBrowseQueue.get(runnerId) ?? [];
+  list.push(requestId);
+  runnerBrowseQueue.set(runnerId, list);
+}
+
+function dequeueBrowseForRunner(runnerId: string): PendingBrowseRequest[] {
+  const ids = runnerBrowseQueue.get(runnerId) ?? [];
+  runnerBrowseQueue.delete(runnerId);
+  return ids.map((id) => pendingBrowse.get(id)).filter(Boolean) as PendingBrowseRequest[];
+}
+
+const BROWSE_TIMEOUT_MS = 10_000;
+
 // ── Public endpoints ──────────────────────────────────────────────────────
 
 // GET /api/runners — list all runners (token omitted)
@@ -48,6 +78,43 @@ router.delete('/:id', (req: Request, res: Response) => {
   const result = getDb().prepare('DELETE FROM runners WHERE id = ?').run(req.params.id);
   if (result.changes === 0) { res.status(404).json({ error: 'Runner not found' }); return; }
   res.json({ ok: true });
+});
+
+// GET /api/runners/:id/browse?path=... — long-poll: ask a runner to list a directory
+router.get('/:id/browse', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const browsePath = (req.query.path as string) || '/';
+
+  const runner = getDb().prepare('SELECT id, status FROM runners WHERE id = ?').get(id) as { id: string; status: string } | undefined;
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+  if (runner.status === 'offline') { res.status(409).json({ error: 'Runner is offline' }); return; }
+
+  const requestId = uuid();
+
+  const timer = setTimeout(() => {
+    pendingBrowse.delete(requestId);
+    if (!res.headersSent) res.status(408).json({ error: 'Runner did not respond in time' });
+  }, BROWSE_TIMEOUT_MS);
+
+  const pending: PendingBrowseRequest = {
+    requestId,
+    runnerId: id,
+    path: browsePath,
+    resolve: (entries) => {
+      clearTimeout(timer);
+      pendingBrowse.delete(requestId);
+      if (!res.headersSent) res.json({ entries });
+    },
+    reject: (err) => {
+      clearTimeout(timer);
+      pendingBrowse.delete(requestId);
+      if (!res.headersSent) res.status(500).json({ error: err.message });
+    },
+    timer,
+  };
+
+  pendingBrowse.set(requestId, pending);
+  enqueueBrowse(id, requestId);
 });
 
 // POST /api/runners/:id/refresh-providers — ask a live runner to rescan installed CLIs
@@ -110,6 +177,36 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   }
 
   res.json({ ok: true, status: newStatus, refreshCli });
+});
+
+// GET /api/runners/browse-requests — runner fetches pending browse requests assigned to it
+router.get('/browse-requests', authenticateRunner, (req: Request, res: Response) => {
+  const runner = req.runner!;
+  const requests = dequeueBrowseForRunner(runner.id);
+  const payload = requests.map(({ requestId, path }) => ({ requestId, path }));
+  res.json(payload);
+});
+
+// POST /api/runners/browse-result — runner submits a directory listing result
+router.post('/browse-result', authenticateRunner, (req: Request, res: Response) => {
+  const { requestId, entries, error } = req.body as {
+    requestId?: string;
+    entries?: { name: string; isDirectory: boolean }[];
+    error?: string;
+  };
+
+  if (!requestId) { res.status(400).json({ error: 'requestId is required' }); return; }
+
+  const pending = pendingBrowse.get(requestId);
+  if (!pending) { res.status(404).json({ error: 'Browse request not found or already resolved' }); return; }
+
+  if (error) {
+    pending.reject(new Error(error));
+  } else {
+    pending.resolve(entries ?? []);
+  }
+
+  res.json({ ok: true });
 });
 
 // GET /api/runners/poll — get next assigned task
