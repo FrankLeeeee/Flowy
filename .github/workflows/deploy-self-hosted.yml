@@ -43,7 +43,7 @@ jobs:
             --name flowy \
             --restart unless-stopped \
             -p 0.0.0.0:3456:8000 \
-            -v "$HOME/.flowy-data:/root/.flowy" \
+            -v "$HOME/.flowy-data:/root/.config/flowy" \
             flowy:latest
 
       - name: Health check
