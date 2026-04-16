@@ -125,7 +125,7 @@ export default function TaskDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 flex flex-col">
+      <AppDialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 flex flex-col overflow-visible">
         <AppDialogHeader>
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
           <DialogDescription className="sr-only">View and edit task details</DialogDescription>

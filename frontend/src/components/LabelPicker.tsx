@@ -1,3 +1,4 @@
+import * as Popover from '@radix-ui/react-popover';
 import { useState, useRef, useEffect } from 'react';
 import { Label, LabelColor } from '../types';
 import { createLabel } from '../api/client';
@@ -11,36 +12,43 @@ export default function LabelPicker({
   allLabels,
   onToggle,
   onLabelsChange,
+  allowCreate = true,
 }: {
   selectedLabels: string[];
   allLabels: Label[];
   onToggle: (labelName: string) => void;
   onLabelsChange: () => void;
+  allowCreate?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [creatingColor, setCreatingColor] = useState<LabelColor | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const trimmed = search.trim();
   const filtered = allLabels.filter((l) =>
     l.name.toLowerCase().includes(trimmed.toLowerCase())
   );
   const exactMatch = allLabels.some((l) => l.name.toLowerCase() === trimmed.toLowerCase());
-  const showCreate = trimmed.length > 0 && !exactMatch;
+  const showCreate = allowCreate && trimmed.length > 0 && !exactMatch;
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch('');
-        setCreatingColor(null);
-      }
+    if (!open) {
+      setSearch('');
+      setCreatingColor(null);
+      return;
     }
-    if (open) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    const frame = window.requestAnimationFrame(() => inputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
   }, [open]);
+
+  useEffect(() => {
+    if (!allowCreate) {
+      setCreatingColor(null);
+    }
+  }, [allowCreate]);
 
   const handleCreate = async (color: LabelColor) => {
     await createLabel({ name: trimmed, color });
@@ -51,34 +59,41 @@ export default function LabelPicker({
   };
 
   return (
-    <div className="relative" ref={containerRef}>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          setOpen((v) => !v);
-          if (!open) setTimeout(() => inputRef.current?.focus(), 50);
-        }}
-        className="h-8 gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft hover:bg-accent"
-      >
-        <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-        Labels
-        {selectedLabels.length > 0 && (
-          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-            {selectedLabels.length}
-          </span>
-        )}
-      </Button>
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger ref={triggerRef} asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-8 gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft hover:bg-accent"
+        >
+          <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+          Labels
+          {selectedLabels.length > 0 && (
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              {selectedLabels.length}
+            </span>
+          )}
+        </Button>
+      </Popover.Trigger>
 
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-border/60 bg-popover p-1 shadow-lg">
+      <Popover.Portal
+        container={triggerRef.current?.closest<HTMLElement>('[role="dialog"]') ?? undefined}
+      >
+        <Popover.Content
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          collisionPadding={12}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="z-[60] w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border/60 bg-popover p-1 shadow-lg"
+        >
           <div className="px-2 pb-1 pt-1">
             <input
               ref={inputRef}
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCreatingColor(null); }}
-              placeholder="Search or create label..."
+              placeholder={allowCreate ? 'Search or create label...' : 'Search labels...'}
               className="w-full bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/50 outline-none"
             />
           </div>
@@ -147,8 +162,8 @@ export default function LabelPicker({
               </div>
             </div>
           )}
-        </div>
-      )}
-    </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

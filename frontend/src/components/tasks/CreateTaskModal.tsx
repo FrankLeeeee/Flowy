@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LabelPicker from '@/components/LabelPicker';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { Circle, FolderKanban, ArrowRight, X, Sparkles } from 'lucide-react';
@@ -37,6 +38,7 @@ export default function CreateTaskModal({
   const [priority, setPriority] = useState<TaskPriority>('none');
   const [labels, setLabels] = useState<string[]>([]);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
+  const isMobile = useIsMobile();
 
   const selectedProject = projects.find((project) => project.id === projectId);
   const priorityStyles = getTaskPriorityStyles(priority);
@@ -68,7 +70,7 @@ export default function CreateTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="flex flex-col gap-0 sm:max-w-2xl">
+      <AppDialogContent className="flex flex-col gap-0 overflow-visible sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
           <DialogDescription className="sr-only">Create a new task with title, description, project, priority, and labels.</DialogDescription>
@@ -180,6 +182,7 @@ export default function CreateTaskModal({
                   allLabels={allLabels}
                   onToggle={toggleLabel}
                   onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
+                  allowCreate={!isMobile}
                 />
               </div>
             </div>
