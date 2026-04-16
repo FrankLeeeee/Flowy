@@ -1,6 +1,6 @@
 {
   "name": "@frankleeeee/flowy",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "AI task orchestration hub — manage and dispatch tasks to local AI CLI runners",
   "bin": {
     "flowy": "./dist/cli.js"
