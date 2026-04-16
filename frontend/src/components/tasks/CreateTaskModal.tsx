@@ -70,7 +70,7 @@ export default function CreateTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="flex flex-col gap-0 sm:max-w-2xl">
+      <AppDialogContent className="flex flex-col gap-0 overflow-visible sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
           <DialogDescription className="sr-only">Create a new task with title, description, project, priority, and labels.</DialogDescription>

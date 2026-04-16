@@ -33,12 +33,12 @@ export default function MobileShell({
   return (
     <div
       className={cn(
-        "min-w-0 bg-background p-[env(safe-area-inset)]",
+        "flex min-w-0 flex-col bg-background p-[env(safe-area-inset)]",
         className,
       )}
     >
       {/* Content area — padded at the bottom to avoid overlap with fixed tab bar */}
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-16 [-webkit-overflow-scrolling:touch]">
         {children}
       </main>
 

@@ -24,6 +24,7 @@ export default function LabelPicker({
   const [search, setSearch] = useState('');
   const [creatingColor, setCreatingColor] = useState<LabelColor | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const trimmed = search.trim();
   const filtered = allLabels.filter((l) =>
@@ -59,7 +60,7 @@ export default function LabelPicker({
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
+      <Popover.Trigger ref={triggerRef} asChild>
         <Button
           type="button"
           variant="outline"
@@ -75,7 +76,9 @@ export default function LabelPicker({
         </Button>
       </Popover.Trigger>
 
-      <Popover.Portal>
+      <Popover.Portal
+        container={triggerRef.current?.closest<HTMLElement>('[role="dialog"]') ?? undefined}
+      >
         <Popover.Content
           side="bottom"
           align="start"
