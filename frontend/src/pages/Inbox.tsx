@@ -98,9 +98,9 @@ export default function Inbox() {
   }
 
   return (
-    <div className="p-6">
+    <div className={cn('flex flex-col p-6', viewMode === 'kanban' ? 'h-screen min-h-0 overflow-hidden' : 'min-h-screen')}>
       {/* Header */}
-      <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
+      <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
           <PageTitle icon={InboxIcon} title="Inbox" />
           <p className="mt-1.5 text-[12px] text-muted-foreground/85">Active issues across all projects</p>
@@ -121,7 +121,7 @@ export default function Inbox() {
       )}
 
       {/* Filters + View toggle */}
-      <div className="motion-section mb-6 flex flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
+      <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
         <Select value={priorityFilter} onValueChange={setPriorityFilter}>
           <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Priority" /></SelectTrigger>
           <SelectContent>
@@ -162,7 +162,14 @@ export default function Inbox() {
       </div>
 
       {/* Content */}
-      <div key={viewMode} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
+      <div
+        key={viewMode}
+        className={cn(
+          'motion-section motion-switch',
+          viewMode === 'kanban' && 'flex min-h-0 flex-1 flex-col',
+        )}
+        style={{ '--motion-delay': '200ms' } as React.CSSProperties}
+      >
         {viewMode === 'kanban' ? (
           <KanbanBoard tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
