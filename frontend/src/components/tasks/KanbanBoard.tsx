@@ -27,7 +27,7 @@ export default function KanbanBoard({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 items-stretch gap-3 overflow-x-auto pb-4">
+      <div className="flex min-h-0 flex-1 items-stretch gap-3 overflow-x-auto overflow-y-hidden pb-4">
         {TASK_STATUSES.map((status) => (
           <div
             key={status}
