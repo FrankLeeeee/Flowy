@@ -98,7 +98,7 @@ export default function Inbox() {
   }
 
   return (
-    <div className="p-6">
+    <div className="flex min-h-screen flex-col p-6">
       {/* Header */}
       <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
@@ -162,7 +162,14 @@ export default function Inbox() {
       </div>
 
       {/* Content */}
-      <div key={viewMode} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
+      <div
+        key={viewMode}
+        className={cn(
+          'motion-section motion-switch',
+          viewMode === 'kanban' && 'flex min-h-0 flex-1 flex-col',
+        )}
+        style={{ '--motion-delay': '200ms' } as React.CSSProperties}
+      >
         {viewMode === 'kanban' ? (
           <KanbanBoard tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
