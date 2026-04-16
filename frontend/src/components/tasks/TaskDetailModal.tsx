@@ -34,17 +34,17 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 
 const TERMINAL_STATUSES: TaskStatus[] = ['done', 'failed', 'cancelled'];
 
-const OUTPUT_MARKDOWN_CLASSNAME = `rounded-lg border border-border/60 bg-foreground/[0.02] p-4 text-[13px] leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none
+const OUTPUT_MARKDOWN_CLASSNAME = `min-w-0 max-w-full overflow-hidden rounded-lg border border-border/60 bg-foreground/[0.02] p-4 text-[13px] leading-relaxed break-words [overflow-wrap:anywhere] prose prose-sm prose-neutral dark:prose-invert max-w-none
   prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
   prose-h1:text-[16px] prose-h2:text-[15px] prose-h3:text-[14px]
-  prose-p:text-muted-foreground prose-p:my-1.5
+  prose-p:text-muted-foreground prose-p:my-1.5 prose-p:max-w-full
   prose-a:text-primary prose-a:no-underline hover:prose-a:underline
   prose-strong:text-foreground prose-strong:font-semibold
-  prose-code:text-[12px] prose-code:font-mono prose-code:bg-foreground/[0.06] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-  prose-pre:bg-[hsl(var(--terminal))] prose-pre:text-[hsl(var(--terminal-foreground))] prose-pre:shadow-[inset_0_0_0_1px_hsl(var(--terminal-border)/0.55)] prose-pre:rounded-lg prose-pre:text-[12px] prose-pre:leading-relaxed
-  prose-li:text-muted-foreground prose-li:my-0.5
+  prose-code:max-w-full prose-code:break-words prose-code:text-[12px] prose-code:font-mono prose-code:bg-foreground/[0.06] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+  prose-pre:max-w-full prose-pre:overflow-x-auto prose-pre:bg-[hsl(var(--terminal))] prose-pre:text-[hsl(var(--terminal-foreground))] prose-pre:shadow-[inset_0_0_0_1px_hsl(var(--terminal-border)/0.55)] prose-pre:rounded-lg prose-pre:text-[12px] prose-pre:leading-relaxed
+  prose-li:text-muted-foreground prose-li:my-0.5 prose-li:max-w-full
   prose-ul:my-1.5 prose-ol:my-1.5
-  prose-table:text-[12px] prose-th:text-foreground prose-th:font-medium prose-td:text-muted-foreground
+  prose-table:block prose-table:max-w-full prose-table:overflow-x-auto prose-table:text-[12px] prose-th:text-foreground prose-th:font-medium prose-td:text-muted-foreground
   prose-hr:border-border/40
   prose-blockquote:border-border/60 prose-blockquote:text-muted-foreground/70`;
 
@@ -125,7 +125,7 @@ export default function TaskDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 flex flex-col overflow-visible">
+      <AppDialogContent className="flex max-h-[90vh] min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
           <DialogDescription className="sr-only">View and edit task details</DialogDescription>
@@ -144,8 +144,8 @@ export default function TaskDetailModal({
           </div>
         </AppDialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
-        <div className="flex flex-col gap-5 px-6 py-5">
+        <ScrollArea className="min-h-0 min-w-0 flex-1">
+        <div className="flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6">
           {/* Title & Description */}
           {editing ? (
             <div className="flex flex-col gap-4">
@@ -306,10 +306,10 @@ export default function TaskDetailModal({
 
           {/* Output */}
           {hasOutput && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
+            <div className="min-w-0">
+              <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
                 <h3 className="text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Output</h3>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                   {canViewFullscreenOutput && (
                     <button
                       type="button"
@@ -338,8 +338,8 @@ export default function TaskDetailModal({
                   </button>
                 </div>
               </div>
-              <ScrollArea className="h-64">
-                <div className={OUTPUT_MARKDOWN_CLASSNAME}>
+              <ScrollArea className="h-64 min-w-0 max-w-full">
+                <div className={cn(OUTPUT_MARKDOWN_CLASSNAME, 'w-full')}>
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
                 </div>
               </ScrollArea>
@@ -394,7 +394,7 @@ export default function TaskDetailModal({
       </AppDialogContent>
 
       <Dialog open={outputFullscreenOpen} onOpenChange={setOutputFullscreenOpen}>
-        <AppDialogContent className="h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] gap-0 bg-background sm:h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl">
+        <AppDialogContent className="h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] w-[calc(100vw-1rem)] min-w-0 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden bg-background sm:h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl">
           <AppDialogHeader className="pr-14">
             <DialogTitle className="sr-only">{task.title} output</DialogTitle>
             <DialogDescription className="sr-only">Full-screen task output</DialogDescription>
@@ -414,9 +414,9 @@ export default function TaskDetailModal({
             </DialogDescription>
           </AppDialogHeader>
 
-          <ScrollArea className="flex-1 min-h-0 bg-muted/20">
-            <div className="w-full px-6 py-6">
-              <div className={cn(OUTPUT_MARKDOWN_CLASSNAME, 'min-h-full bg-background shadow-soft')}>
+          <ScrollArea className="min-h-0 min-w-0 flex-1 bg-muted/20">
+            <div className="w-full min-w-0 px-4 py-4 sm:px-6 sm:py-6">
+              <div className={cn(OUTPUT_MARKDOWN_CLASSNAME, 'min-h-full w-full bg-background shadow-soft')}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
               </div>
             </div>
