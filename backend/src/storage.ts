@@ -3,47 +3,52 @@ import path from 'path';
 import crypto from 'crypto';
 import { Settings } from './types';
 import { DATA_DIR, ensureDataDir } from './dataDir';
+import { getDbSetting, setDbSetting } from './db';
 
 const SETTINGS_DIR = DATA_DIR;
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 
-function createDefaultSettings(): Settings {
-  return {
-    runner: { registrationSecret: generateRunnerSecret() },
-  };
-}
+const DB_KEY_REGISTRATION_SECRET = 'runner.registrationSecret';
 
 function ensureDir() {
   ensureDataDir();
   fs.mkdirSync(SETTINGS_DIR, { recursive: true });
 }
 
+/**
+ * Load settings with the database as the primary source of truth.
+ * Falls back to the JSON file for backward compatibility (e.g. first
+ * startup after the migration), then generates a fresh secret if neither
+ * source has one.
+ */
 export function loadSettings(): Settings {
+  // 1. Try the database first
+  const dbSecret = getDbSetting(DB_KEY_REGISTRATION_SECRET);
+  if (dbSecret) {
+    return { runner: { registrationSecret: dbSecret } };
+  }
+
+  // 2. Fall back to the JSON file (pre-migration installs)
   ensureDir();
-  if (!fs.existsSync(SETTINGS_FILE)) {
-    const settings = createDefaultSettings();
-    saveSettings(settings);
-    return settings;
+  const fileSecret = readSecretFromFile();
+  if (fileSecret) {
+    // Migrate into the database so future loads hit the fast path
+    setDbSetting(DB_KEY_REGISTRATION_SECRET, fileSecret);
+    return { runner: { registrationSecret: fileSecret } };
   }
-  try {
-    const parsed = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')) as Partial<Settings>;
-    const settings = {
-      runner: {
-        registrationSecret: parsed.runner?.registrationSecret?.trim() || generateRunnerSecret(),
-      },
-    };
-    if (!parsed.runner?.registrationSecret?.trim()) {
-      saveSettings(settings);
-    }
-    return settings;
-  } catch {
-    const settings = createDefaultSettings();
-    saveSettings(settings);
-    return settings;
-  }
+
+  // 3. First-time setup — generate, persist everywhere
+  const secret = generateRunnerSecret();
+  const settings: Settings = { runner: { registrationSecret: secret } };
+  saveSettings(settings);
+  return settings;
 }
 
 export function saveSettings(s: Settings): void {
+  // Always write to the database (source of truth)
+  setDbSetting(DB_KEY_REGISTRATION_SECRET, s.runner.registrationSecret);
+
+  // Also write the JSON file as a human-readable backup
   ensureDir();
   const tmp = SETTINGS_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(s, null, 2), 'utf-8');
@@ -69,4 +74,15 @@ function generateRunnerSecret(): string {
     secret += alphabet[byte % alphabet.length];
   }
   return secret;
+}
+
+/** Best-effort read of the registration secret from the legacy JSON file. */
+function readSecretFromFile(): string | undefined {
+  try {
+    if (!fs.existsSync(SETTINGS_FILE)) return undefined;
+    const parsed = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')) as Partial<Settings>;
+    return parsed.runner?.registrationSecret?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }

@@ -118,3 +118,7 @@ Runner tokens are saved to `~/.config/flowy/runner-<name>.json`. On subsequent l
 ## Graceful shutdown
 
 The runner handles `SIGINT` and `SIGTERM` signals for clean shutdown. Press `Ctrl+C` to stop the runner gracefully.
+
+## Automatic reconnection
+
+If the Flowy hub becomes unreachable, the runner pauses heartbeat and polling timers and tries to reconnect instead of exiting immediately. Retry waits start at 5 seconds and double after each failed attempt: 5s, 10s, 20s, 40s, and so on. The runner exits if it cannot reconnect within 5 minutes.
