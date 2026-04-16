@@ -17,7 +17,7 @@ import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessCon
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand } from 'lucide-react';
+import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand, CalendarClock, Archive } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -71,6 +71,7 @@ export default function TaskDetailModal({
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
+  const [scheduledAt, setScheduledAt] = useState(task.scheduled_at ?? '');
   const [outputFullscreenOpen, setOutputFullscreenOpen] = useState(false);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
 
@@ -92,7 +93,10 @@ export default function TaskDetailModal({
 
   const handleSave = async () => {
     const nextLabels = labelsText.split(',').map((label: string) => label.trim()).filter(Boolean);
-    const updated = await updateTask(task.id, { title, description, status, priority, labels: nextLabels });
+    const updated = await updateTask(task.id, {
+      title, description, status, priority, labels: nextLabels,
+      scheduledAt: scheduledAt || null,
+    });
     onUpdate(updated);
     setEditing(false);
   };
@@ -235,6 +239,35 @@ export default function TaskDetailModal({
                 />
               </div>
 
+              {/* Scheduled date/time editor */}
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
+                <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                <span className="text-[11px] font-medium text-muted-foreground/85">
+                  {scheduledAt ? 'Scheduled:' : 'No scheduled date'}
+                  {!scheduledAt && (
+                    <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+                      <Archive className="h-3 w-3" />
+                      Backlog
+                    </span>
+                  )}
+                </span>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="h-7 rounded-full border border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                />
+                {scheduledAt && (
+                  <button
+                    type="button"
+                    onClick={() => setScheduledAt('')}
+                    className="text-muted-foreground/60 hover:text-foreground transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleSave} className="h-8 rounded-full px-4 text-[11px]">
                   Save changes
@@ -243,6 +276,7 @@ export default function TaskDetailModal({
                 <Button size="sm" variant="ghost" className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground" onClick={() => {
                   setEditing(false); setTitle(task.title); setDescription(task.description);
                   setStatus(task.status); setPriority(task.priority); setLabelsText(JSON.parse(task.labels || '[]').join(', '));
+                  setScheduledAt(task.scheduled_at ?? '');
                 }}>Cancel</Button>
               </div>
             </div>
@@ -295,6 +329,24 @@ export default function TaskDetailModal({
               <p className="text-[13px] text-muted-foreground/75">Not assigned</p>
             )}
           </AppDialogSection>
+
+          {/* Scheduled date */}
+          {!editing && (
+            <div className={cn('flex items-center gap-2 rounded-lg px-3 py-2.5 text-[12px]', task.scheduled_at ? 'bg-primary/[0.06] ring-1 ring-primary/15' : 'bg-muted/40')}>
+              <CalendarClock className={cn('h-3.5 w-3.5 shrink-0', task.scheduled_at ? 'text-primary/70' : 'text-muted-foreground/50')} />
+              {task.scheduled_at ? (
+                <div>
+                  <span className="font-medium text-foreground/80">Scheduled: </span>
+                  <span className="text-muted-foreground/85">{fmtTime(task.scheduled_at)}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Archive className="h-3 w-3 text-muted-foreground/50" />
+                  <span className="text-muted-foreground/70">No schedule — stored in backlog</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Timestamps */}
           <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/75">

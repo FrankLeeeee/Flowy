@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
+import { DateFilterState, defaultDateFilter, DateFilterMode, getTodayDateString } from '@/lib/dateFilter';
+import { cn } from '@/lib/utils';
 
 export default function MobileFilterSheet({
   open, onClose, runners, search, onSearchChange,
@@ -12,6 +14,7 @@ export default function MobileFilterSheet({
   runnerFilter, onRunnerChange,
   statusFilter, onStatusChange,
   showStatus = false,
+  dateFilter, onDateFilterChange,
 }: {
   open: boolean;
   onClose: () => void;
@@ -25,7 +28,16 @@ export default function MobileFilterSheet({
   statusFilter?: string;
   onStatusChange?: (v: string) => void;
   showStatus?: boolean;
+  dateFilter?: DateFilterState;
+  onDateFilterChange?: (f: DateFilterState) => void;
 }) {
+  const activeDateFilter = dateFilter ?? defaultDateFilter();
+
+  const handleDatePreset = (mode: DateFilterMode) => {
+    if (!onDateFilterChange) return;
+    const today = getTodayDateString();
+    onDateFilterChange({ mode, startDate: today, endDate: today });
+  };
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <AppDialogContent className="sm:max-w-[400px]">
@@ -88,6 +100,50 @@ export default function MobileFilterSheet({
               </SelectContent>
             </Select>
           </div>
+
+          {onDateFilterChange && (
+            <div className="space-y-1.5">
+              <label className="text-[12px] font-medium text-muted-foreground/85">Date</label>
+              <div className="flex gap-2">
+                {(['today', 'week'] as DateFilterMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => handleDatePreset(mode)}
+                    className={cn(
+                      'flex-1 h-10 rounded-xl border text-[13px] font-medium transition-colors',
+                      activeDateFilter.mode === mode
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : 'border-border/60 bg-card text-muted-foreground hover:bg-muted/50',
+                    )}
+                  >
+                    {mode === 'today' ? 'Today' : 'This week'}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[11px] text-muted-foreground/70">From</label>
+                  <Input
+                    type="date"
+                    value={activeDateFilter.startDate}
+                    onChange={(e) => onDateFilterChange({ mode: 'custom', startDate: e.target.value, endDate: activeDateFilter.endDate >= e.target.value ? activeDateFilter.endDate : e.target.value })}
+                    className="h-10 rounded-xl text-[13px]"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[11px] text-muted-foreground/70">To</label>
+                  <Input
+                    type="date"
+                    value={activeDateFilter.endDate}
+                    min={activeDateFilter.startDate}
+                    onChange={(e) => onDateFilterChange({ mode: 'custom', startDate: activeDateFilter.startDate, endDate: e.target.value })}
+                    className="h-10 rounded-xl text-[13px]"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <AppDialogFooter>

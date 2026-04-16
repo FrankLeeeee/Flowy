@@ -26,8 +26,8 @@ router.get('/', (req: Request, res: Response) => {
 
 // POST /api/tasks
 router.post('/', (req: Request, res: Response) => {
-  const { projectId, title, description, priority, labels } = req.body as {
-    projectId?: string; title?: string; description?: string; priority?: string; labels?: string[];
+  const { projectId, title, description, priority, labels, scheduledAt } = req.body as {
+    projectId?: string; title?: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
   };
   if (!projectId || !title) { res.status(400).json({ error: 'projectId and title are required' }); return; }
 
@@ -38,12 +38,14 @@ router.post('/', (req: Request, res: Response) => {
   const taskNumber = project.next_task_num;
   const taskKey = formatTaskKey(project.name, taskNumber);
   const id = uuid();
+  // Tasks with a scheduled date start as 'todo'; unscheduled tasks go to backlog.
+  const initialStatus = scheduledAt ? 'todo' : 'backlog';
 
   const insertTask = db.transaction(() => {
     db.prepare(`
-      INSERT INTO tasks (id, project_id, task_number, task_key, title, description, priority, labels)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, projectId, taskNumber, taskKey, title, description ?? '', priority ?? 'none', JSON.stringify(labels ?? []));
+      INSERT INTO tasks (id, project_id, task_number, task_key, title, description, priority, labels, scheduled_at, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, projectId, taskNumber, taskKey, title, description ?? '', priority ?? 'none', JSON.stringify(labels ?? []), scheduledAt ?? null, initialStatus);
 
     db.prepare('UPDATE projects SET next_task_num = next_task_num + 1, updated_at = datetime(\'now\') WHERE id = ?').run(projectId);
   });
@@ -66,25 +68,36 @@ router.put('/:id', (req: Request, res: Response) => {
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task | undefined;
   if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
 
-  const { title, description, status, priority, labels, runnerId, aiProvider, harnessConfig } = req.body as {
+  const { title, description, status, priority, labels, runnerId, aiProvider, harnessConfig, scheduledAt } = req.body as {
     title?: string; description?: string; status?: string; priority?: string;
-    labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown;
+    labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown; scheduledAt?: string | null;
   };
+
+  // When clearing a scheduled date, move back to backlog (unless already in a non-todo active status)
+  let resolvedStatus = status ?? task.status;
+  if (scheduledAt !== undefined) {
+    if (scheduledAt && task.status === 'backlog') {
+      resolvedStatus = status ?? 'todo';
+    } else if (!scheduledAt && resolvedStatus === 'todo' && !task.runner_id) {
+      resolvedStatus = 'backlog';
+    }
+  }
 
   db.prepare(`
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
-      labels = ?, runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = datetime('now')
+      labels = ?, runner_id = ?, ai_provider = ?, harness_config = ?, scheduled_at = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
     title ?? task.title,
     description ?? task.description,
-    status ?? task.status,
+    resolvedStatus,
     priority ?? task.priority,
     labels ? JSON.stringify(labels) : task.labels,
     runnerId !== undefined ? runnerId : task.runner_id,
     aiProvider !== undefined ? aiProvider : task.ai_provider,
     harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config,
+    scheduledAt !== undefined ? scheduledAt : task.scheduled_at,
     req.params.id,
   );
 

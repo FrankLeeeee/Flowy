@@ -25,6 +25,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
+import DateFilter from '@/components/DateFilter';
+import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 
 export default function ProjectDetail() {
   const neutralTone = getToneStyles('neutral');
@@ -46,6 +48,7 @@ export default function ProjectDetail() {
   const [priorityFilter, setPriorityFilter] = useState('_all');
   const [runnerFilter, setRunnerFilter] = useState('_all');
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(defaultDateFilter());
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -108,6 +111,9 @@ export default function ProjectDetail() {
     try { await deleteProject(project.id); setShowDeleteConfirm(false); navigate('/inbox'); }
     catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete project'); setShowDeleteConfirm(false); }
   };
+
+  // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
+  const visibleTasks = filterTasksByDate(tasks, dateFilter);
 
   if (loading) {
     return (
@@ -220,14 +226,16 @@ export default function ProjectDetail() {
           </button>
         </div>
 
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{tasks.length} tasks</span>
+        <DateFilter value={dateFilter} onChange={setDateFilter} />
+
+        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{visibleTasks.length} tasks</span>
       </div>
 
       <div key={viewMode} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
         {viewMode === 'kanban' ? (
-          <KanbanBoard tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <KanbanBoard tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
-          <TaskListView tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <TaskListView tasks={visibleTasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}
       </div>
 
