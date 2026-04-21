@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label } from '../types';
+import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label, Stats } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -129,4 +129,11 @@ export async function browseRunnerDirectory(runnerId: string, path: string): Pro
     timeout: 12_000,
   });
   return data.entries;
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+
+export async function fetchStats(): Promise<Stats> {
+  const { data } = await api.get<Stats>('/stats');
+  return data;
 }

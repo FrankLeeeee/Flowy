@@ -13,7 +13,7 @@ import ConfirmDialog from './ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import {
-  Inbox, FolderKanban, Bot, Tags,
+  Inbox, FolderKanban, Bot, Tags, BarChart2,
   Plus, ChevronRight, Trash2,
   Sun, Moon, Monitor,
   ArrowRight, Sparkles,
@@ -184,6 +184,10 @@ export default function Sidebar() {
               <NavLink to="/runners" className={navLinkClass}>
                 <Bot className="h-4 w-4 shrink-0 opacity-60" />
                 Runners
+              </NavLink>
+              <NavLink to="/stats" className={navLinkClass}>
+                <BarChart2 className="h-4 w-4 shrink-0 opacity-60" />
+                Stats
               </NavLink>
             </div>
 
