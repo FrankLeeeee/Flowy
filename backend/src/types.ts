@@ -10,7 +10,7 @@ export interface Settings {
 // ── Task management types ─────────────────────────────────────────────────
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'failed' | 'done' | 'cancelled';
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
-export type AiProvider = 'claude-code' | 'codex' | 'cursor-agent';
+export type AiProvider = 'claude-code' | 'codex' | 'cursor-agent' | 'gemini-cli';
 export type RunnerStatus = 'online' | 'offline' | 'busy';
 
 export interface CodexHarnessConfig {
@@ -34,10 +34,18 @@ export interface CursorAgentHarnessConfig {
   worktree?: string;
 }
 
+export interface GeminiHarnessConfig {
+  workspace?: string;
+  model?: 'auto' | 'pro' | 'flash' | 'flash-lite';
+  sandbox?: boolean;
+  worktree?: string;
+}
+
 export interface HarnessConfig {
   codex?: CodexHarnessConfig;
   claudeCode?: ClaudeCodeHarnessConfig;
   cursorAgent?: CursorAgentHarnessConfig;
+  gemini?: GeminiHarnessConfig;
 }
 
 export interface Project {

@@ -64,7 +64,7 @@ function migrate(): void {
       priority      TEXT NOT NULL DEFAULT 'none'
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
-      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli') OR ai_provider IS NULL),
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
@@ -102,6 +102,7 @@ function migrate(): void {
   seedDefaultLabels();
 
   migrateTaskStatuses();
+  migrateAddGeminiProvider();
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
@@ -199,7 +200,7 @@ function migrateTaskStatuses(): void {
       priority      TEXT NOT NULL DEFAULT 'none'
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
-      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli') OR ai_provider IS NULL),
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
@@ -216,6 +217,55 @@ function migrateTaskStatuses(): void {
     SELECT
       id, project_id, task_number, task_key, title, description, status, priority,
       runner_id, ai_provider, '{}' AS harness_config, labels, output, started_at, completed_at, created_at, updated_at
+    FROM tasks;
+
+    DROP TABLE tasks;
+    ALTER TABLE tasks_new RENAME TO tasks;
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_runner_id ON tasks(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+  `);
+}
+
+function migrateAddGeminiProvider(): void {
+  const table = db.prepare(`
+    SELECT sql FROM sqlite_master
+    WHERE type = 'table' AND name = 'tasks'
+  `).get() as { sql?: string } | undefined;
+
+  if (table?.sql?.includes("'gemini-cli'")) return;
+
+  db.exec(`
+    CREATE TABLE tasks_new (
+      id            TEXT PRIMARY KEY,
+      project_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      task_number   INTEGER NOT NULL,
+      task_key      TEXT NOT NULL UNIQUE,
+      title         TEXT NOT NULL,
+      description   TEXT NOT NULL DEFAULT '',
+      status        TEXT NOT NULL DEFAULT 'backlog'
+                    CHECK (status IN ('backlog','todo','in_progress','failed','done','cancelled')),
+      priority      TEXT NOT NULL DEFAULT 'none'
+                    CHECK (priority IN ('urgent','high','medium','low','none')),
+      runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli') OR ai_provider IS NULL),
+      harness_config TEXT NOT NULL DEFAULT '{}',
+      labels        TEXT NOT NULL DEFAULT '[]',
+      output        TEXT,
+      started_at    TEXT,
+      completed_at  TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO tasks_new (
+      id, project_id, task_number, task_key, title, description, status, priority,
+      runner_id, ai_provider, harness_config, labels, output, started_at, completed_at, created_at, updated_at
+    )
+    SELECT
+      id, project_id, task_number, task_key, title, description, status, priority,
+      runner_id, ai_provider, harness_config, labels, output, started_at, completed_at, created_at, updated_at
     FROM tasks;
 
     DROP TABLE tasks;

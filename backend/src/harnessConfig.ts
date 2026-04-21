@@ -25,6 +25,7 @@ function normalizeConfigObject(input: unknown): RecordLike {
   const codex = asRecord(root.codex);
   const claudeCode = asRecord(root.claudeCode);
   const cursorAgent = asRecord(root.cursorAgent);
+  const gemini = asRecord(root.gemini);
 
   return pruneObject({
     codex: codex ? pruneObject({
@@ -44,6 +45,12 @@ function normalizeConfigObject(input: unknown): RecordLike {
       mode: getString(cursorAgent.mode),
       sandbox: getString(cursorAgent.sandbox),
       worktree: getString(cursorAgent.worktree),
+    }) : undefined,
+    gemini: gemini ? pruneObject({
+      workspace: getString(gemini.workspace),
+      model: getString(gemini.model),
+      sandbox: typeof gemini.sandbox === 'boolean' ? gemini.sandbox : undefined,
+      worktree: getString(gemini.worktree),
     }) : undefined,
   }) ?? {};
 }
