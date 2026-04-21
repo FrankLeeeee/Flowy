@@ -116,6 +116,28 @@ export interface Label {
   updated_at: string;
 }
 
+export type SessionStatus = 'idle' | 'busy' | 'stopped';
+export type SessionMessageRole = 'user' | 'assistant' | 'system';
+
+export interface Session {
+  id: string;
+  title: string;
+  runner_id: string;
+  ai_provider: AiProvider;
+  harness_config: string;
+  status: SessionStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionMessage {
+  id: string;
+  session_id: string;
+  role: SessionMessageRole;
+  content: string;
+  created_at: string;
+}
+
 export interface TaskLog {
   id: string;
   task_id: string;

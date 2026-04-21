@@ -6,6 +6,7 @@ import projectsRouter  from './routes/projects';
 import tasksRouter     from './routes/tasks';
 import runnersRouter   from './routes/runners';
 import labelsRouter    from './routes/labels';
+import sessionsRouter  from './routes/sessions';
 import { initDb }      from './db';
 import { DATA_DIR }    from './dataDir';
 
@@ -22,6 +23,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/tasks',    tasksRouter);
 app.use('/api/runners',  runnersRouter);
 app.use('/api/labels',   labelsRouter);
+app.use('/api/sessions', sessionsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

@@ -12,6 +12,8 @@ import Inbox from "./pages/Inbox";
 import ProjectDetail from "./pages/ProjectDetail";
 import Runners from "./pages/Runners";
 import Labels from "./pages/Labels";
+import Sessions from "./pages/Sessions";
+import MobileSessions from "./pages/mobile/MobileSessions";
 import MobileInbox from "./pages/mobile/MobileInbox";
 import MobileProjects from "./pages/mobile/MobileProjects";
 import MobileProjectDetail from "./pages/mobile/MobileProjectDetail";
@@ -32,6 +34,7 @@ function DesktopShell() {
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="/runners" element={<Runners />} />
             <Route path="/labels" element={<Labels />} />
+            <Route path="/sessions" element={<Sessions />} />
             <Route
               path="/projects"
               element={<Navigate to="/inbox" replace />}
@@ -61,6 +64,7 @@ function MobileApp() {
           <Route path="/project/:id" element={<MobileProjectDetail />} />
           <Route path="/runners" element={<MobileRunners />} />
           <Route path="/labels" element={<MobileLabels />} />
+          <Route path="/sessions" element={<MobileSessions />} />
           <Route path="/usage" element={<Navigate to="/runners" replace />} />
           <Route
             path="/settings"

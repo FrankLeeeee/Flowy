@@ -85,6 +85,31 @@ function migrate(): void {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id             TEXT PRIMARY KEY,
+      title          TEXT NOT NULL,
+      runner_id      TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
+      ai_provider    TEXT NOT NULL CHECK (ai_provider IN ('claude-code','codex','cursor-agent')),
+      harness_config TEXT NOT NULL DEFAULT '{}',
+      status         TEXT NOT NULL DEFAULT 'idle'
+                     CHECK (status IN ('idle','busy','stopped')),
+      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_runner_id ON sessions(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+
+    CREATE TABLE IF NOT EXISTS session_messages (
+      id         TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      role       TEXT NOT NULL CHECK (role IN ('user','assistant','system')),
+      content    TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_session_messages_session_id ON session_messages(session_id);
+
     CREATE TABLE IF NOT EXISTS labels (
       id         TEXT PRIMARY KEY,
       name       TEXT NOT NULL UNIQUE,

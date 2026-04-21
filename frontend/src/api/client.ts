@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label } from '../types';
+import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label, Session, SessionMessage } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -129,4 +129,40 @@ export async function browseRunnerDirectory(runnerId: string, path: string): Pro
     timeout: 12_000,
   });
   return data.entries;
+}
+
+// ── Sessions ─────────────────────────────────────────────────────────────
+
+export async function fetchSessions(): Promise<Session[]> {
+  const { data } = await api.get<Session[]>('/sessions');
+  return data;
+}
+
+export async function createSession(body: {
+  title: string;
+  runnerId: string;
+  aiProvider: string;
+  harnessConfig?: HarnessConfig;
+}): Promise<Session> {
+  const { data } = await api.post<Session>('/sessions', body);
+  return data;
+}
+
+export async function fetchSession(id: string): Promise<{ session: Session; messages: SessionMessage[] }> {
+  const { data } = await api.get<{ session: Session; messages: SessionMessage[] }>(`/sessions/${id}`);
+  return data;
+}
+
+export async function sendSessionInput(id: string, content: string): Promise<Session> {
+  const { data } = await api.post<Session>(`/sessions/${id}/input`, { content });
+  return data;
+}
+
+export async function stopSession(id: string): Promise<Session> {
+  const { data } = await api.post<Session>(`/sessions/${id}/stop`);
+  return data;
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  await api.delete(`/sessions/${id}`);
 }
