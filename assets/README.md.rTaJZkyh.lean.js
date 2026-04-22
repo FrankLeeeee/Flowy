@@ -1,0 +1,1 @@
+import{_ as a,o as s,c as i,ae as t}from"./chunks/framework.BtCEPByy.js";const u=JSON.parse('{"title":"Flowy Docs","description":"","frontmatter":{},"headers":[],"relativePath":"README.md","filePath":"README.md"}'),l={name:"README.md"};function o(n,e,h,d,r,c){return s(),i("div",null,[...e[0]||(e[0]=[t("",13)])])}const k=a(l,[["render",o]]);export{u as __pageData,k as default};
