@@ -25,6 +25,7 @@ const PROVIDERS = [
   { value: 'claude-code', label: 'Claude Code' },
   { value: 'codex', label: 'Codex' },
   { value: 'cursor-agent', label: 'Cursor Agent' },
+  { value: 'gemini-cli', label: 'Gemini CLI' },
 ];
 
 /** Parse trailing numbered options from assistant text: "1. foo\n2. bar" */
@@ -176,7 +177,7 @@ export default function SessionsPage({ mobile = false }: SessionsPageProps) {
                   type="button"
                   onClick={() => setSelectedId(s.id)}
                   className={cn(
-                    'group relative flex w-full flex-col items-start gap-1 rounded-md border border-transparent px-3 py-2 text-left transition-colors',
+                    'group flex w-full flex-col items-start gap-1 rounded-md border border-transparent px-3 py-2 text-left transition-colors',
                     selectedId === s.id
                       ? 'border-primary/40 bg-primary/8 text-foreground'
                       : 'text-muted-foreground/90 hover:bg-primary/4 hover:text-foreground',
@@ -194,20 +195,20 @@ export default function SessionsPage({ mobile = false }: SessionsPageProps) {
                     >
                       {s.status}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
+                      className="shrink-0 rounded-md p-1 text-muted-foreground/60 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                      aria-label="Delete session"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   </div>
                   <div className="flex w-full items-center gap-2 text-[11px] text-muted-foreground/70">
                     <span className="truncate">{runnerName(s.runner_id)}</span>
                     <span>·</span>
                     <span>{s.ai_provider}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
-                    className="absolute right-1.5 top-1.5 rounded-md p-1 text-muted-foreground/60 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                    aria-label="Delete session"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
                 </button>
               ))}
             </div>

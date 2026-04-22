@@ -89,7 +89,7 @@ function migrate(): void {
       id             TEXT PRIMARY KEY,
       title          TEXT NOT NULL,
       runner_id      TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
-      ai_provider    TEXT NOT NULL CHECK (ai_provider IN ('claude-code','codex','cursor-agent')),
+      ai_provider    TEXT NOT NULL CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli')),
       harness_config TEXT NOT NULL DEFAULT '{}',
       status         TEXT NOT NULL DEFAULT 'idle'
                      CHECK (status IN ('idle','busy','stopped')),
@@ -128,6 +128,7 @@ function migrate(): void {
 
   migrateTaskStatuses();
   migrateAddGeminiProvider();
+  migrateAddGeminiProviderToSessions();
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
@@ -301,6 +302,43 @@ function migrateAddGeminiProvider(): void {
     CREATE INDEX IF NOT EXISTS idx_tasks_runner_id ON tasks(runner_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
   `);
+}
+
+function migrateAddGeminiProviderToSessions(): void {
+  const table = db.prepare(`
+    SELECT sql FROM sqlite_master
+    WHERE type = 'table' AND name = 'sessions'
+  `).get() as { sql?: string } | undefined;
+
+  if (table?.sql?.includes("'gemini-cli'")) return;
+
+  // Foreign keys must be OFF while we drop and recreate the table because
+  // session_messages has a FK reference to sessions.
+  db.pragma('foreign_keys = OFF');
+  db.exec(`
+    CREATE TABLE sessions_new (
+      id             TEXT PRIMARY KEY,
+      title          TEXT NOT NULL,
+      runner_id      TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
+      ai_provider    TEXT NOT NULL CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli')),
+      harness_config TEXT NOT NULL DEFAULT '{}',
+      status         TEXT NOT NULL DEFAULT 'idle'
+                     CHECK (status IN ('idle','busy','stopped')),
+      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO sessions_new (id, title, runner_id, ai_provider, harness_config, status, created_at, updated_at)
+    SELECT id, title, runner_id, ai_provider, harness_config, status, created_at, updated_at
+    FROM sessions;
+
+    DROP TABLE sessions;
+    ALTER TABLE sessions_new RENAME TO sessions;
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_runner_id ON sessions(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+  `);
+  db.pragma('foreign_keys = ON');
 }
 
 function ensureColumn(table: string, column: string, definition: string): void {
