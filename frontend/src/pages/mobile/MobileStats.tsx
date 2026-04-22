@@ -9,7 +9,7 @@ import {
   getRunnerStatusStyles, LABEL_COLORS,
 } from '@/lib/semanticColors';
 import { AiProvider, LabelColor, RunnerStatus, TaskStatus } from '../../types';
-import { CheckCircle2, TrendingUp, Clock, AlertTriangle, Target, Activity, Bot, Zap, BarChart2 } from 'lucide-react';
+import { AlertTriangle, Target, Activity, Bot, Zap, BarChart2 } from 'lucide-react';
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low', none: 'None',

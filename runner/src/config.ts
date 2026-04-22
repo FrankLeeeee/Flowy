@@ -9,6 +9,7 @@ const SUPPORTED_PROVIDERS = [
   { id: 'claude-code', command: 'claude' },
   { id: 'codex', command: 'codex' },
   { id: 'cursor-agent', command: 'agent' },
+  { id: 'gemini-cli', command: 'gemini' },
 ] as const;
 
 export function parseArgs(argv: string[]): RunnerConfig {
@@ -60,7 +61,7 @@ export function parseArgs(argv: string[]): RunnerConfig {
   const providers = detectAvailableProviders();
   if (providers.length === 0) {
     console.error('No supported AI CLIs were detected on this machine.');
-    console.error('Install one of: claude, codex, agent');
+    console.error('Install one of: claude, codex, agent, gemini');
     process.exit(1);
   }
 

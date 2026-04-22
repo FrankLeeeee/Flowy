@@ -13,12 +13,14 @@ describe('detectAvailableProviders', () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0 } as ReturnType<typeof config.childProcess.spawnSync>)
       .mockReturnValueOnce({ status: 1 } as ReturnType<typeof config.childProcess.spawnSync>)
+      .mockReturnValueOnce({ status: 1 } as ReturnType<typeof config.childProcess.spawnSync>)
       .mockReturnValueOnce({ status: 1 } as ReturnType<typeof config.childProcess.spawnSync>);
 
     expect(config.detectAvailableProviders()).toEqual(['claude-code']);
     expect(spawnSyncMock).toHaveBeenNthCalledWith(1, 'which', ['claude'], { stdio: 'ignore' });
     expect(spawnSyncMock).toHaveBeenNthCalledWith(2, 'which', ['codex'], { stdio: 'ignore' });
     expect(spawnSyncMock).toHaveBeenNthCalledWith(3, 'which', ['agent'], { stdio: 'ignore' });
+    expect(spawnSyncMock).toHaveBeenNthCalledWith(4, 'which', ['gemini'], { stdio: 'ignore' });
   });
 
   it('uses the Windows command resolver on win32', () => {
@@ -66,6 +68,6 @@ describe('parseArgs', () => {
 
     expect(parsed.token).toBe('existing-token');
     expect(parsed.secret).toBeUndefined();
-    expect(parsed.providers).toEqual(['claude-code', 'codex', 'cursor-agent']);
+    expect(parsed.providers).toEqual(['claude-code', 'codex', 'cursor-agent', 'gemini-cli']);
   });
 });

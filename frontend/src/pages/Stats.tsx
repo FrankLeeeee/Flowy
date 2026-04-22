@@ -139,7 +139,7 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div className="w-full px-6 py-8 space-y-8">
         <div className="space-y-1">
           <Skeleton className="h-7 w-24" />
           <Skeleton className="h-4 w-48" />
@@ -156,7 +156,7 @@ export default function StatsPage() {
 
   if (error) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="w-full px-6 py-8">
         <div className={cn('rounded-xl px-4 py-3 text-[13px] ring-1', getToneStyles('danger').panel, getToneStyles('danger').text)}>
           {error}
         </div>
@@ -186,7 +186,7 @@ export default function StatsPage() {
   const maxLabelCount = Math.max(...topLabels.map((l) => l.count), 1);
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+    <div className="w-full px-6 py-8 space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-[22px] font-bold tracking-[-0.025em] text-foreground">Stats</h1>

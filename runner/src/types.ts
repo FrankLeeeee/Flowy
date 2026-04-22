@@ -50,10 +50,18 @@ export interface CursorAgentHarnessConfig {
   worktree?: string;
 }
 
+export interface GeminiHarnessConfig {
+  workspace?: string;
+  model?: 'auto' | 'pro' | 'flash' | 'flash-lite';
+  sandbox?: boolean;
+  worktree?: string;
+}
+
 export interface HarnessConfig {
   codex?: CodexHarnessConfig;
   claudeCode?: ClaudeCodeHarnessConfig;
   cursorAgent?: CursorAgentHarnessConfig;
+  gemini?: GeminiHarnessConfig;
 }
 
 export interface RegisterResponse {

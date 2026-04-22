@@ -25,6 +25,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
+import DateFilter from '@/components/DateFilter';
+import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 
 export default function ProjectDetail() {
   const neutralTone = getToneStyles('neutral');
@@ -46,6 +48,7 @@ export default function ProjectDetail() {
   const [priorityFilter, setPriorityFilter] = useState('_all');
   const [runnerFilter, setRunnerFilter] = useState('_all');
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(defaultDateFilter());
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -109,6 +112,9 @@ export default function ProjectDetail() {
     catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete project'); setShowDeleteConfirm(false); }
   };
 
+  // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
+  const visibleTasks = filterTasksByDate(tasks, dateFilter);
+
   if (loading) {
     return (
       <div className="p-6 space-y-5 motion-section" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
@@ -129,9 +135,9 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="p-6">
+    <div className={cn('flex flex-col p-6', viewMode === 'kanban' ? 'h-screen min-h-0 overflow-hidden' : 'min-h-screen')}>
       {/* Header */}
-      <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
+      <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
           <PageTitle icon={FolderOpen} title={project.name} />
           {project.description && (
@@ -173,7 +179,7 @@ export default function ProjectDetail() {
       {error && <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>{error}</div>}
 
       {/* Filters */}
-      <div className="motion-section mb-6 flex flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
+      <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
@@ -220,14 +226,23 @@ export default function ProjectDetail() {
           </button>
         </div>
 
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{tasks.length} tasks</span>
+        <DateFilter value={dateFilter} onChange={setDateFilter} />
+
+        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{visibleTasks.length} tasks</span>
       </div>
 
-      <div key={viewMode} className="motion-section motion-switch" style={{ '--motion-delay': '200ms' } as React.CSSProperties}>
+      <div
+        key={viewMode}
+        className={cn(
+          'motion-section motion-switch',
+          viewMode === 'kanban' && 'flex min-h-0 flex-1 flex-col',
+        )}
+        style={{ '--motion-delay': '200ms' } as React.CSSProperties}
+      >
         {viewMode === 'kanban' ? (
-          <KanbanBoard tasks={tasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <KanbanBoard tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
-          <TaskListView tasks={tasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <TaskListView tasks={visibleTasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}
       </div>
 

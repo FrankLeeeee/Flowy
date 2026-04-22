@@ -43,7 +43,7 @@ export default function KanbanColumn({
   return (
     <div
       className={cn(
-        'surface-tint flex flex-col w-[300px] shrink-0 rounded-[20px] border border-border/40 dark:border-border/60 interactive-lift overflow-hidden',
+        'surface-tint flex h-full min-h-0 flex-col w-[300px] shrink-0 rounded-[20px] border border-border/40 dark:border-border/60 interactive-lift overflow-hidden',
         tone.border,
         dragOver && 'bg-primary/[0.04] ring-1 ring-primary/20 motion-safe:-translate-y-0.5',
       )}
@@ -60,7 +60,7 @@ export default function KanbanColumn({
 
       {/* Cards */}
       <div className={cn(
-        'flex flex-col gap-1.5 flex-1 min-h-[200px] rounded-b-[20px] px-2 pb-2 transition-colors duration-150',
+        'flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden rounded-b-[20px] px-2 pb-2 transition-colors duration-150',
         dragOver && 'border-t border-dashed border-primary/30 bg-primary/[0.03]',
       )}>
         {tasks.map((task, index) => (

@@ -8,16 +8,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
+import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
 import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
+import { formatScheduledDateTime, normalizeTimeInput, splitScheduledDateTime, updateScheduledDate, updateScheduledTime } from '@/lib/scheduledDateTime';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand } from 'lucide-react';
+import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand, CalendarClock, Archive } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -71,6 +72,7 @@ export default function TaskDetailModal({
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
+  const [scheduledAt, setScheduledAt] = useState(task.scheduled_at ?? '');
   const [outputFullscreenOpen, setOutputFullscreenOpen] = useState(false);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
 
@@ -92,7 +94,10 @@ export default function TaskDetailModal({
 
   const handleSave = async () => {
     const nextLabels = labelsText.split(',').map((label: string) => label.trim()).filter(Boolean);
-    const updated = await updateTask(task.id, { title, description, status, priority, labels: nextLabels });
+    const updated = await updateTask(task.id, {
+      title, description, status, priority, labels: nextLabels,
+      scheduledAt: scheduledAt || null,
+    });
     onUpdate(updated);
     setEditing(false);
   };
@@ -109,6 +114,7 @@ export default function TaskDetailModal({
   const editingStatusStyles = getTaskStatusStyles(status);
   const priorityStyles = getTaskPriorityStyles(task.priority);
   const editingPriorityStyles = getTaskPriorityStyles(priority);
+  const scheduledParts = splitScheduledDateTime(scheduledAt);
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
@@ -125,8 +131,8 @@ export default function TaskDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="flex h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-lg">
-        <AppDialogHeader>
+      <AppDialogContent className="flex h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden rounded-none sm:h-auto sm:max-h-[min(90vh,calc(100dvh-1.5rem))] sm:min-h-0 sm:max-w-2xl sm:rounded-lg">
+        <AppDialogHeader className="shrink-0">
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
           <DialogDescription className="sr-only">View and edit task details</DialogDescription>
           <AppDialogEyebrow>Task details</AppDialogEyebrow>
@@ -144,8 +150,9 @@ export default function TaskDetailModal({
           </div>
         </AppDialogHeader>
 
-        <ScrollArea className="min-h-0 min-w-0 flex-1">
-        <div className="flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6">
+        <AppDialogBody className="flex min-h-0 flex-1 flex-col space-y-0 overflow-hidden px-0 py-0 sm:px-0 sm:py-0">
+          <ScrollArea className="min-h-0 min-w-0 flex-1">
+            <div className="flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6">
           {/* Title & Description */}
           {editing ? (
             <div className="flex flex-col gap-4">
@@ -235,6 +242,55 @@ export default function TaskDetailModal({
                 />
               </div>
 
+              <div className="flex flex-col gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="flex min-w-0 items-center gap-2">
+                  <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                  <span className="text-[11px] font-medium text-muted-foreground/85">
+                    {scheduledAt ? 'Scheduled:' : 'No scheduled date'}
+                    {!scheduledAt && (
+                      <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+                        <Archive className="h-3 w-3" />
+                        Backlog
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[9.75rem_7.25rem]">
+                  <label className="min-w-0">
+                    <span className="sr-only">Schedule date</span>
+                    <Input
+                      type="date"
+                      value={scheduledParts.date}
+                      onChange={(e) => setScheduledAt((current) => updateScheduledDate(current, e.target.value))}
+                      className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </label>
+                  <label className="min-w-0">
+                    <span className="sr-only">Schedule time</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      placeholder="HH:mm"
+                      value={scheduledParts.time}
+                      disabled={!scheduledParts.date}
+                      onChange={(e) => setScheduledAt((current) => updateScheduledTime(current, e.target.value))}
+                      onBlur={(e) => setScheduledAt((current) => updateScheduledTime(current, normalizeTimeInput(e.target.value)))}
+                      className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </label>
+                </div>
+                {scheduledAt && (
+                  <button
+                    type="button"
+                    onClick={() => setScheduledAt('')}
+                    className="text-muted-foreground/60 hover:text-foreground transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleSave} className="h-8 rounded-full px-4 text-[11px]">
                   Save changes
@@ -243,6 +299,7 @@ export default function TaskDetailModal({
                 <Button size="sm" variant="ghost" className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground" onClick={() => {
                   setEditing(false); setTitle(task.title); setDescription(task.description);
                   setStatus(task.status); setPriority(task.priority); setLabelsText(JSON.parse(task.labels || '[]').join(', '));
+                  setScheduledAt(task.scheduled_at ?? '');
                 }}>Cancel</Button>
               </div>
             </div>
@@ -295,6 +352,24 @@ export default function TaskDetailModal({
               <p className="text-[13px] text-muted-foreground/75">Not assigned</p>
             )}
           </AppDialogSection>
+
+          {/* Scheduled date */}
+          {!editing && (
+            <div className={cn('flex items-center gap-2 rounded-lg px-3 py-2.5 text-[12px]', task.scheduled_at ? 'bg-primary/[0.06] ring-1 ring-primary/15' : 'bg-muted/40')}>
+              <CalendarClock className={cn('h-3.5 w-3.5 shrink-0', task.scheduled_at ? 'text-primary/70' : 'text-muted-foreground/50')} />
+              {task.scheduled_at ? (
+                <div>
+                  <span className="font-medium text-foreground/80">Scheduled: </span>
+                  <span className="text-muted-foreground/85">{formatScheduledDateTime(task.scheduled_at)}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Archive className="h-3 w-3 text-muted-foreground/50" />
+                  <span className="text-muted-foreground/70">No schedule — stored in backlog</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Timestamps */}
           <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/75">
@@ -365,8 +440,9 @@ export default function TaskDetailModal({
               </ScrollArea>
             </div>
           )}
-        </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        </AppDialogBody>
 
         <AppDialogFooter className="bg-background shrink-0">
           <div className="flex items-center gap-2">
@@ -394,7 +470,7 @@ export default function TaskDetailModal({
       </AppDialogContent>
 
       <Dialog open={outputFullscreenOpen} onOpenChange={setOutputFullscreenOpen}>
-        <AppDialogContent className="h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] w-[calc(100vw-1rem)] min-w-0 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden bg-background sm:h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl">
+        <AppDialogContent className="h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] w-full min-w-0 max-w-none gap-0 overflow-hidden bg-background sm:h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl">
           <AppDialogHeader className="pr-14">
             <DialogTitle className="sr-only">{task.title} output</DialogTitle>
             <DialogDescription className="sr-only">Full-screen task output</DialogDescription>

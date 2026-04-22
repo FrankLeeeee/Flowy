@@ -74,6 +74,21 @@ export function buildCommandWithConfig(aiProvider: string, prompt: string, rawHa
         streamOutput: true,
       };
     }
+    case 'gemini-cli': {
+      const config = harnessConfig.gemini ?? {};
+      const args = ['--prompt', prompt];
+
+      if (config.model) args.push('--model', config.model);
+      if (config.sandbox) args.push('--sandbox');
+      if (config.worktree) args.push('--worktree', config.worktree);
+
+      return {
+        cmd: 'gemini',
+        args,
+        cwd: config.workspace,
+        streamOutput: true,
+      };
+    }
     default:
       throw new Error(`Unknown AI provider: ${aiProvider}`);
   }
