@@ -146,3 +146,29 @@ export interface TaskLog {
   data: string;
   created_at: string;
 }
+
+export interface Stats {
+  totals: {
+    total: number;
+    done: number;
+    failed: number;
+    in_progress: number;
+    cancelled: number;
+    todo: number;
+    backlog: number;
+  };
+  runnerCounts: {
+    total: number;
+    online: number;
+    busy: number;
+    offline: number;
+  };
+  tasksByStatus: Array<{ status: string; count: number }>;
+  tasksByProject: Array<{ project_name: string; total: number; done: number }>;
+  tasksByProvider: Array<{ ai_provider: string; count: number }>;
+  tasksByPriority: Array<{ priority: string; count: number }>;
+  tasksByRunner: Array<{ runner_name: string; count: number; runner_status: string }>;
+  avgCompletionMinutes: number | null;
+  dailyCompleted: Array<{ date: string; count: number }>;
+  topLabels: Array<{ name: string; color: string; count: number }>;
+}
