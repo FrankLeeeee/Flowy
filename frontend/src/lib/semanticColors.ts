@@ -99,6 +99,7 @@ export const AI_PROVIDER_TONES: Record<AiProvider, SemanticTone> = {
   'claude-code': 'warning',
   codex: 'brand',
   'cursor-agent': 'neutral',
+  'gemini-cli': 'neutral',
 };
 
 export type LabelColorStyles = {
