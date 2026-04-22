@@ -5,6 +5,7 @@ import { getDb } from '../db';
 import { Runner, Task, TaskLog } from '../types';
 import { authenticateRunner } from '../middleware/runnerAuth';
 import { loadSettings } from '../storage';
+import { drainSessionCommands } from './sessionCommandQueue';
 
 const router = Router();
 
@@ -319,6 +320,73 @@ router.post('/tasks/:taskId/complete', authenticateRunner, (req: Request, res: R
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(task.id) as Task;
   res.json(updated);
+});
+
+// ── Session command endpoints ─────────────────────────────────────────────
+
+// GET /api/runners/session-commands — runner drains pending session commands
+router.get('/session-commands', authenticateRunner, (req: Request, res: Response) => {
+  const runner = req.runner!;
+  res.json(drainSessionCommands(runner.id));
+});
+
+// POST /api/runners/sessions/:sessionId/output — append output to current assistant message
+router.post('/sessions/:sessionId/output', authenticateRunner, (req: Request, res: Response) => {
+  const { messageId, data } = req.body as { messageId?: string; data?: string };
+  if (!messageId || data === undefined) {
+    res.status(400).json({ error: 'messageId and data are required' });
+    return;
+  }
+
+  const db = getDb();
+  const runner = req.runner!;
+  const session = db
+    .prepare('SELECT id FROM sessions WHERE id = (SELECT session_id FROM session_messages WHERE id = ?) AND runner_id = ?')
+    .get(messageId, runner.id) as { id: string } | undefined;
+  if (!session) { res.status(404).json({ error: 'Message not found for this runner' }); return; }
+
+  db.prepare(
+    "UPDATE session_messages SET content = content || ? WHERE id = ?",
+  ).run(data, messageId);
+  db.prepare(
+    "UPDATE sessions SET updated_at = datetime('now') WHERE id = ?",
+  ).run(session.id);
+
+  res.json({ ok: true });
+});
+
+// POST /api/runners/sessions/:sessionId/complete — finalize current turn
+router.post('/sessions/:sessionId/complete', authenticateRunner, (req: Request, res: Response) => {
+  const { messageId, data, success } = req.body as {
+    messageId?: string; data?: string; success?: boolean;
+  };
+
+  const db = getDb();
+  const runner = req.runner!;
+  const session = db
+    .prepare('SELECT * FROM sessions WHERE id = ? AND runner_id = ?')
+    .get(req.params.sessionId, runner.id) as { id: string; status: string } | undefined;
+  if (!session) { res.status(404).json({ error: 'Session not found for this runner' }); return; }
+
+  db.transaction(() => {
+    if (messageId && data) {
+      db.prepare(
+        "UPDATE session_messages SET content = content || ? WHERE id = ?",
+      ).run(data, messageId);
+    }
+    if (session.status !== 'stopped') {
+      db.prepare(
+        "UPDATE sessions SET status = 'idle', updated_at = datetime('now') WHERE id = ?",
+      ).run(session.id);
+    }
+    if (success === false) {
+      db.prepare(
+        "INSERT INTO session_messages (id, session_id, role, content) VALUES (?, ?, ?, ?)",
+      ).run(uuid(), session.id, 'system', '[Turn failed]');
+    }
+  })();
+
+  res.json({ ok: true });
 });
 
 export default router;
