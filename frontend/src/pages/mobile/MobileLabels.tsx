@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Label as LabelType, LabelColor } from '../../types';
 import { fetchLabels, createLabel, updateLabel, deleteLabel } from '../../api/client';
 import { Button } from '@/components/ui/button';
@@ -9,9 +10,10 @@ import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, App
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { LABEL_COLORS, LABEL_COLOR_LIST, getToneStyles } from '@/lib/semanticColors';
 import { cn } from '@/lib/utils';
-import { Tags, Plus, Pencil, Trash2, ArrowRight, Sparkles } from 'lucide-react';
+import { Tags, Plus, Pencil, Trash2, ArrowRight, Sparkles, ArrowLeft } from 'lucide-react';
 
 export default function MobileLabels() {
+  const navigate = useNavigate();
   const neutralTone = getToneStyles('neutral');
 
   const [labels, setLabels] = useState<LabelType[]>([]);
@@ -81,11 +83,20 @@ export default function MobileLabels() {
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-[18px] font-bold tracking-tight text-foreground">Labels</h1>
-            <span className={cn('mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1', neutralTone.pill)}>
-              {labels.length} labels
-            </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/settings')}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 active:bg-muted/50"
+            >
+              <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <div>
+              <h1 className="text-[18px] font-bold tracking-tight text-foreground">Labels</h1>
+              <span className={cn('mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1', neutralTone.pill)}>
+                {labels.length} labels
+              </span>
+            </div>
           </div>
           <button
             type="button"

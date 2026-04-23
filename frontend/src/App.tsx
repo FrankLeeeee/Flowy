@@ -23,6 +23,7 @@ import MobileLabels from "./pages/mobile/MobileLabels";
 import MobileSkills from "./pages/mobile/MobileSkills";
 import Stats from "./pages/Stats";
 import MobileStats from "./pages/mobile/MobileStats";
+import MobileSettings from "./pages/mobile/MobileSettings";
 
 function DesktopShell() {
   const location = useLocation();
@@ -74,10 +75,7 @@ function MobileApp() {
           <Route path="/stats" element={<MobileStats />} />
           <Route path="/sessions" element={<MobileSessions />} />
           <Route path="/usage" element={<Navigate to="/runners" replace />} />
-          <Route
-            path="/settings"
-            element={<Navigate to="/runners" replace />}
-          />
+          <Route path="/settings" element={<MobileSettings />} />
         </Routes>
       </div>
     </MobileShell>
