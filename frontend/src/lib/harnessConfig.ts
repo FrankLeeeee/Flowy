@@ -34,14 +34,6 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
       claudeCode: claudeCode ? {
         workspace: getString(claudeCode.workspace),
         model: getString(claudeCode.model),
-        mode: getString(claudeCode.mode) as
-          | 'acceptEdits'
-          | 'auto'
-          | 'bypassPermissions'
-          | 'default'
-          | 'dontAsk'
-          | 'plan'
-          | undefined,
         worktree: getString(claudeCode.worktree),
       } : undefined,
       cursorAgent: cursorAgent ? {
@@ -82,7 +74,6 @@ export function getHarnessConfigBadges(provider: AiProvider | null, config: Harn
       return [
         harness.workspace ? `Workspace: ${harness.workspace}` : null,
         harness.model ? `Model: ${harness.model}` : null,
-        harness.mode ? `Mode: ${harness.mode}` : null,
         harness.worktree ? `Worktree: ${harness.worktree}` : null,
       ].filter((entry): entry is string => Boolean(entry));
     }

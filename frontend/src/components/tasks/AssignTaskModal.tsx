@@ -192,20 +192,6 @@ export default function AssignTaskModal({
                       <Input value={claudeConfig.model ?? ''} onChange={(e) => updateClaudeConfig({ model: e.target.value || undefined })} placeholder="sonnet" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[13px] font-medium">Mode</Label>
-                      <Select value={claudeConfig.mode ?? DEFAULT_SELECT} onValueChange={(value) => updateClaudeConfig({ mode: value === DEFAULT_SELECT ? undefined : value as ClaudeCodeHarnessConfig['mode'] })}>
-                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Default" /></SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
-                          <SelectItem value="acceptEdits" className="rounded-lg py-2 text-[11px]">acceptEdits</SelectItem>
-                          <SelectItem value="auto" className="rounded-lg py-2 text-[11px]">auto</SelectItem>
-                          <SelectItem value="bypassPermissions" className="rounded-lg py-2 text-[11px]">bypassPermissions</SelectItem>
-                          <SelectItem value="dontAsk" className="rounded-lg py-2 text-[11px]">dontAsk</SelectItem>
-                          <SelectItem value="plan" className="rounded-lg py-2 text-[11px]">plan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Worktree name</Label>
                       <Input value={claudeConfig.worktree ?? ''} onChange={(e) => updateClaudeConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>

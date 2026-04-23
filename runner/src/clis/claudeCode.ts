@@ -4,7 +4,6 @@ import { asRecord, getString, parseRootConfig } from './utils';
 export interface ClaudeCodeConfig {
   workspace?: string;
   model?: string;
-  mode?: 'acceptEdits' | 'auto' | 'bypassPermissions' | 'default' | 'dontAsk' | 'plan';
   worktree?: string;
 }
 
@@ -15,7 +14,6 @@ function parseConfig(raw: string | null | undefined): ClaudeCodeConfig {
   return {
     workspace: getString(section.workspace),
     model: getString(section.model),
-    mode: getString(section.mode) as ClaudeCodeConfig['mode'],
     worktree: getString(section.worktree),
   };
 }
@@ -28,7 +26,7 @@ export const claudeCodeProvider: CLIProvider = {
     const args = ['-p'];
 
     if (config.model) args.push('--model', config.model);
-    if (config.mode) args.push('--permission-mode', config.mode);
+    args.push('--permission-mode', 'bypassPermissions');
     if (config.worktree) args.push('--worktree', config.worktree);
 
     args.push(prompt);
