@@ -23,7 +23,7 @@ export function buildCommandWithConfig(aiProvider: string, prompt: string, rawHa
       const args = ['-p'];
 
       if (config.model) args.push('--model', config.model);
-      if (config.mode) args.push('--permission-mode', config.mode);
+      args.push('--permission-mode', 'bypassPermissions');
       if (config.worktree) args.push('--worktree', config.worktree);
 
       args.push(prompt);

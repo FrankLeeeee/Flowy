@@ -38,7 +38,6 @@ export interface CodexHarnessConfig {
 export interface ClaudeCodeHarnessConfig {
   workspace?: string;
   model?: string;
-  mode?: 'acceptEdits' | 'auto' | 'bypassPermissions' | 'default' | 'dontAsk' | 'plan';
   worktree?: string;
 }
 

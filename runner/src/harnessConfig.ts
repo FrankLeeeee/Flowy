@@ -34,14 +34,6 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
       claudeCode: claudeCode ? {
         workspace: getString(claudeCode.workspace),
         model: getString(claudeCode.model),
-        mode: getString(claudeCode.mode) as
-          | 'acceptEdits'
-          | 'auto'
-          | 'bypassPermissions'
-          | 'default'
-          | 'dontAsk'
-          | 'plan'
-          | undefined,
         worktree: getString(claudeCode.worktree),
       } : undefined,
       cursorAgent: cursorAgent ? {
