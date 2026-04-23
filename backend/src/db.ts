@@ -64,7 +64,7 @@ function migrate(): void {
       priority      TEXT NOT NULL DEFAULT 'none'
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
-      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli') OR ai_provider IS NULL),
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
@@ -85,6 +85,31 @@ function migrate(): void {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id             TEXT PRIMARY KEY,
+      title          TEXT NOT NULL,
+      runner_id      TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
+      ai_provider    TEXT NOT NULL CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli')),
+      harness_config TEXT NOT NULL DEFAULT '{}',
+      status         TEXT NOT NULL DEFAULT 'idle'
+                     CHECK (status IN ('idle','busy','stopped')),
+      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_runner_id ON sessions(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+
+    CREATE TABLE IF NOT EXISTS session_messages (
+      id         TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      role       TEXT NOT NULL CHECK (role IN ('user','assistant','system')),
+      content    TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_session_messages_session_id ON session_messages(session_id);
+
     CREATE TABLE IF NOT EXISTS labels (
       id         TEXT PRIMARY KEY,
       name       TEXT NOT NULL UNIQUE,
@@ -117,9 +142,12 @@ function migrate(): void {
   seedDefaultLabels();
 
   migrateTaskStatuses();
+  migrateAddGeminiProvider();
+  migrateAddGeminiProviderToSessions();
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
+  ensureColumn('tasks', 'scheduled_at', 'TEXT');
   seedDefaultProject();
   normalizeProjectNames();
   ensureUniqueProjectNamesIndex();
@@ -214,7 +242,7 @@ function migrateTaskStatuses(): void {
       priority      TEXT NOT NULL DEFAULT 'none'
                     CHECK (priority IN ('urgent','high','medium','low','none')),
       runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
-      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent') OR ai_provider IS NULL),
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli') OR ai_provider IS NULL),
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
@@ -240,6 +268,92 @@ function migrateTaskStatuses(): void {
     CREATE INDEX IF NOT EXISTS idx_tasks_runner_id ON tasks(runner_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
   `);
+}
+
+function migrateAddGeminiProvider(): void {
+  const table = db.prepare(`
+    SELECT sql FROM sqlite_master
+    WHERE type = 'table' AND name = 'tasks'
+  `).get() as { sql?: string } | undefined;
+
+  if (table?.sql?.includes("'gemini-cli'")) return;
+
+  db.exec(`
+    CREATE TABLE tasks_new (
+      id            TEXT PRIMARY KEY,
+      project_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      task_number   INTEGER NOT NULL,
+      task_key      TEXT NOT NULL UNIQUE,
+      title         TEXT NOT NULL,
+      description   TEXT NOT NULL DEFAULT '',
+      status        TEXT NOT NULL DEFAULT 'backlog'
+                    CHECK (status IN ('backlog','todo','in_progress','failed','done','cancelled')),
+      priority      TEXT NOT NULL DEFAULT 'none'
+                    CHECK (priority IN ('urgent','high','medium','low','none')),
+      runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli') OR ai_provider IS NULL),
+      harness_config TEXT NOT NULL DEFAULT '{}',
+      labels        TEXT NOT NULL DEFAULT '[]',
+      output        TEXT,
+      started_at    TEXT,
+      completed_at  TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO tasks_new (
+      id, project_id, task_number, task_key, title, description, status, priority,
+      runner_id, ai_provider, harness_config, labels, output, started_at, completed_at, created_at, updated_at
+    )
+    SELECT
+      id, project_id, task_number, task_key, title, description, status, priority,
+      runner_id, ai_provider, harness_config, labels, output, started_at, completed_at, created_at, updated_at
+    FROM tasks;
+
+    DROP TABLE tasks;
+    ALTER TABLE tasks_new RENAME TO tasks;
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_runner_id ON tasks(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+  `);
+}
+
+function migrateAddGeminiProviderToSessions(): void {
+  const table = db.prepare(`
+    SELECT sql FROM sqlite_master
+    WHERE type = 'table' AND name = 'sessions'
+  `).get() as { sql?: string } | undefined;
+
+  if (table?.sql?.includes("'gemini-cli'")) return;
+
+  // Foreign keys must be OFF while we drop and recreate the table because
+  // session_messages has a FK reference to sessions.
+  db.pragma('foreign_keys = OFF');
+  db.exec(`
+    CREATE TABLE sessions_new (
+      id             TEXT PRIMARY KEY,
+      title          TEXT NOT NULL,
+      runner_id      TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
+      ai_provider    TEXT NOT NULL CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli')),
+      harness_config TEXT NOT NULL DEFAULT '{}',
+      status         TEXT NOT NULL DEFAULT 'idle'
+                     CHECK (status IN ('idle','busy','stopped')),
+      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO sessions_new (id, title, runner_id, ai_provider, harness_config, status, created_at, updated_at)
+    SELECT id, title, runner_id, ai_provider, harness_config, status, created_at, updated_at
+    FROM sessions;
+
+    DROP TABLE sessions;
+    ALTER TABLE sessions_new RENAME TO sessions;
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_runner_id ON sessions(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+  `);
+  db.pragma('foreign_keys = ON');
 }
 
 function ensureColumn(table: string, column: string, definition: string): void {

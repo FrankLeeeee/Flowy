@@ -65,4 +65,30 @@ export class RunnerApi {
   async submitSkillResult(commandId: string, error?: string): Promise<void> {
     await this.client.post('/runners/skill-result', { commandId, error });
   }
+
+  async fetchSessionCommands(): Promise<SessionCommand[]> {
+    const { data } = await this.client.get<SessionCommand[]>('/runners/session-commands');
+    return data;
+  }
+
+  async sendSessionOutput(sessionId: string, messageId: string, data: string): Promise<void> {
+    await this.client.post(`/runners/sessions/${sessionId}/output`, { messageId, data });
+  }
+
+  async completeSessionTurn(sessionId: string, messageId: string, success: boolean, data?: string): Promise<void> {
+    await this.client.post(`/runners/sessions/${sessionId}/complete`, { messageId, success, data });
+  }
+}
+
+export interface SessionCommand {
+  id: string;
+  sessionId: string;
+  kind: 'send-prompt' | 'stop';
+  payload: {
+    aiProvider?: string;
+    harnessConfig?: string;
+    history?: { role: 'user' | 'assistant' | 'system'; content: string }[];
+    prompt?: string;
+    assistantMessageId?: string;
+  };
 }

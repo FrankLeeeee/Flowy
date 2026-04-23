@@ -1,13 +1,15 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Inbox, FolderKanban, Bot, Tags, Wand2 } from "lucide-react";
+import { Inbox, FolderKanban, Bot, Tags, Wand2, BarChart2, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { to: "/inbox", icon: Inbox, label: "Inbox" },
   { to: "/projects", icon: FolderKanban, label: "Projects" },
+  { to: "/sessions", icon: MessagesSquare, label: "Sessions" },
   { to: "/runners", icon: Bot, label: "Runners" },
   { to: "/skills", icon: Wand2, label: "Skills" },
   { to: "/labels", icon: Tags, label: "Labels" },
+  { to: "/stats", icon: BarChart2, label: "Stats" },
 ] as const;
 
 function isPWAStandalone() {

@@ -29,6 +29,7 @@ export const AI_LABELS: Record<AiProvider, string> = {
   'claude-code':  'Claude Code',
   'codex':        'Codex',
   'cursor-agent': 'Cursor Agent',
+  'gemini-cli':   'Gemini CLI',
 };
 
 /** Ordered list of all task statuses for column/group layout. */

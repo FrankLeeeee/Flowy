@@ -23,6 +23,8 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
     const claudeCode = asRecord(root.claudeCode);
     const cursorAgent = asRecord(root.cursorAgent);
 
+    const gemini = asRecord(root.gemini);
+
     return {
       codex: codex ? {
         workspace: getString(codex.workspace),
@@ -32,14 +34,6 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
       claudeCode: claudeCode ? {
         workspace: getString(claudeCode.workspace),
         model: getString(claudeCode.model),
-        mode: getString(claudeCode.mode) as
-          | 'acceptEdits'
-          | 'auto'
-          | 'bypassPermissions'
-          | 'default'
-          | 'dontAsk'
-          | 'plan'
-          | undefined,
         worktree: getString(claudeCode.worktree),
       } : undefined,
       cursorAgent: cursorAgent ? {
@@ -48,6 +42,12 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
         mode: getString(cursorAgent.mode) as 'plan' | 'ask' | undefined,
         sandbox: getString(cursorAgent.sandbox) as 'enabled' | 'disabled' | undefined,
         worktree: getString(cursorAgent.worktree),
+      } : undefined,
+      gemini: gemini ? {
+        workspace: getString(gemini.workspace),
+        model: getString(gemini.model) as 'auto' | 'pro' | 'flash' | 'flash-lite' | undefined,
+        sandbox: typeof gemini.sandbox === 'boolean' ? gemini.sandbox : undefined,
+        worktree: getString(gemini.worktree),
       } : undefined,
     };
   } catch {
@@ -74,7 +74,6 @@ export function getHarnessConfigBadges(provider: AiProvider | null, config: Harn
       return [
         harness.workspace ? `Workspace: ${harness.workspace}` : null,
         harness.model ? `Model: ${harness.model}` : null,
-        harness.mode ? `Mode: ${harness.mode}` : null,
         harness.worktree ? `Worktree: ${harness.worktree}` : null,
       ].filter((entry): entry is string => Boolean(entry));
     }
@@ -86,6 +85,16 @@ export function getHarnessConfigBadges(provider: AiProvider | null, config: Harn
         harness.model ? `Model: ${harness.model}` : null,
         harness.mode ? `Mode: ${harness.mode}` : null,
         harness.sandbox ? `Sandbox: ${harness.sandbox}` : null,
+        harness.worktree ? `Worktree: ${harness.worktree}` : null,
+      ].filter((entry): entry is string => Boolean(entry));
+    }
+    case 'gemini-cli': {
+      const harness = config.gemini;
+      if (!harness) return [];
+      return [
+        harness.workspace ? `Workspace: ${harness.workspace}` : null,
+        harness.model ? `Model: ${harness.model}` : null,
+        harness.sandbox ? 'Sandbox: enabled' : null,
         harness.worktree ? `Worktree: ${harness.worktree}` : null,
       ].filter((entry): entry is string => Boolean(entry));
     }

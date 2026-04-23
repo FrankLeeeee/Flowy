@@ -2,10 +2,11 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { RegisterResponse, RunnerConfig } from './types';
-import { RunnerApi } from './api';
+import { RunnerApi, SessionCommand } from './api';
 import { deleteToken, detectAvailableProviders, saveToken } from './config';
 import { executeTask } from './executor';
 import { applySkillCommand } from './skills';
+import { executeSessionTurn } from './sessionExecutor';
 import { getRunnerTokenPath } from './configDir';
 import {
   MAX_RECONNECT_DURATION_MS,
@@ -27,6 +28,9 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
   let pollTimer: ReturnType<typeof setInterval> | undefined;
   let browsePollTimer: ReturnType<typeof setInterval> | undefined;
   let skillPollTimer: ReturnType<typeof setInterval> | undefined;
+  let sessionPollTimer: ReturnType<typeof setInterval> | undefined;
+  const activeSessions = new Map<string, () => void>(); // sessionId → kill
+  let sessionPolling = false;
 
   const errorMessage = (error: unknown): string => (
     error instanceof Error ? error.message : String(error)
@@ -53,10 +57,12 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     if (pollTimer) clearInterval(pollTimer);
     if (browsePollTimer) clearInterval(browsePollTimer);
     if (skillPollTimer) clearInterval(skillPollTimer);
+    if (sessionPollTimer) clearInterval(sessionPollTimer);
     heartbeatTimer = undefined;
     pollTimer = undefined;
     browsePollTimer = undefined;
     skillPollTimer = undefined;
+    sessionPollTimer = undefined;
   };
 
   const handleInvalidToken = (): never => {
@@ -75,6 +81,12 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
       console.log('Killing running task...');
       killCurrent();
     }
+
+    for (const [sessionId, kill] of activeSessions) {
+      console.log(`Killing active session ${sessionId.slice(0, 8)}...`);
+      kill();
+    }
+    activeSessions.clear();
 
     // Give a moment for cleanup.
     setTimeout(() => process.exit(0), 500);
@@ -273,6 +285,73 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     }
   };
 
+  // ── Session command polling ──────────────────────────────────────────────
+
+  const runSessionCommand = async (cmd: SessionCommand): Promise<void> => {
+    if (cmd.kind === 'stop') {
+      const kill = activeSessions.get(cmd.sessionId);
+      if (kill) {
+        console.log(`  [session ${cmd.sessionId.slice(0, 8)}] Stop requested.`);
+        kill();
+      }
+      return;
+    }
+
+    if (cmd.kind !== 'send-prompt') return;
+
+    const { aiProvider, harnessConfig, history, prompt, assistantMessageId } = cmd.payload;
+    if (!aiProvider || !assistantMessageId || !prompt) {
+      console.warn('  [session] Skipping malformed send-prompt command');
+      return;
+    }
+
+    console.log(`\n[session ${cmd.sessionId.slice(0, 8)}] Running turn with ${aiProvider}`);
+
+    const { promise, kill } = executeSessionTurn(
+      {
+        aiProvider,
+        harnessConfig,
+        history: history ?? [],
+        prompt,
+      },
+      async (chunk) => {
+        try {
+          await api.sendSessionOutput(cmd.sessionId, assistantMessageId, chunk);
+        } catch (error) {
+          console.warn('  [session] Failed to send output chunk:', errorMessage(error));
+        }
+      },
+    );
+
+    activeSessions.set(cmd.sessionId, kill);
+
+    try {
+      const result = await promise;
+      await api.completeSessionTurn(cmd.sessionId, assistantMessageId, result.success);
+      console.log(`[session ${cmd.sessionId.slice(0, 8)}] Turn ${result.success ? 'completed' : 'failed'}`);
+    } catch (error) {
+      console.warn('  [session] Completion failed:', errorMessage(error));
+    } finally {
+      activeSessions.delete(cmd.sessionId);
+    }
+  };
+
+  const sessionPoll = async () => {
+    if (reconnecting || shuttingDown || sessionPolling) return;
+    sessionPolling = true;
+    try {
+      const commands = await api.fetchSessionCommands();
+      for (const cmd of commands) {
+        // Run sequentially per runner to avoid spawning parallel CLIs.
+        await runSessionCommand(cmd);
+      }
+    } catch (error) {
+      console.warn('Session poll failed:', errorMessage(error));
+    } finally {
+      sessionPolling = false;
+    }
+  };
+
   // ── Intervals ─────────────────────────────────────────────────────────
 
   const startIntervals = () => {
@@ -281,6 +360,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     pollTimer = setInterval(poll, config.pollInterval * 1000);
     browsePollTimer = setInterval(browsePoll, 2_000);
     skillPollTimer = setInterval(skillPoll, 3_000);
+    sessionPollTimer = setInterval(sessionPoll, 2_000);
   };
 
   // ── Registration ────────────────────────────────────────────────────────

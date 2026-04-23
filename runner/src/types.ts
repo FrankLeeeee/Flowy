@@ -29,33 +29,6 @@ export interface Task {
   updated_at: string;
 }
 
-export interface CodexHarnessConfig {
-  workspace?: string;
-  model?: string;
-  sandbox?: 'read-only' | 'workspace-write' | 'danger-full-access';
-}
-
-export interface ClaudeCodeHarnessConfig {
-  workspace?: string;
-  model?: string;
-  mode?: 'acceptEdits' | 'auto' | 'bypassPermissions' | 'default' | 'dontAsk' | 'plan';
-  worktree?: string;
-}
-
-export interface CursorAgentHarnessConfig {
-  workspace?: string;
-  model?: string;
-  mode?: 'plan' | 'ask';
-  sandbox?: 'enabled' | 'disabled';
-  worktree?: string;
-}
-
-export interface HarnessConfig {
-  codex?: CodexHarnessConfig;
-  claudeCode?: ClaudeCodeHarnessConfig;
-  cursorAgent?: CursorAgentHarnessConfig;
-}
-
 export interface RegisterResponse {
   id: string;
   token: string;

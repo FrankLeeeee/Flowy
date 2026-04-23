@@ -49,12 +49,14 @@ const CLI_LABEL: Record<AiProvider, string> = {
   "claude-code": "Claude Code",
   "codex": "Codex",
   "cursor-agent": "Cursor Agent",
+  "gemini-cli": "Gemini CLI",
 };
 
 const CLI_DIR: Record<AiProvider, string> = {
   "claude-code": "~/.claude/skills/<name>/SKILL.md",
   "codex": "~/.codex/skills/<name>/SKILL.md",
   "cursor-agent": "~/.cursor/skills-cursor/<name>/SKILL.md",
+  "gemini-cli": "",
 };
 
 function runnerProviders(runner: Runner): AiProvider[] {

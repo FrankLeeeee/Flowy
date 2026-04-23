@@ -13,12 +13,16 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Runners from "./pages/Runners";
 import Labels from "./pages/Labels";
 import Skills from "./pages/Skills";
+import Sessions from "./pages/Sessions";
+import MobileSessions from "./pages/mobile/MobileSessions";
 import MobileInbox from "./pages/mobile/MobileInbox";
 import MobileProjects from "./pages/mobile/MobileProjects";
 import MobileProjectDetail from "./pages/mobile/MobileProjectDetail";
 import MobileRunners from "./pages/mobile/MobileRunners";
 import MobileLabels from "./pages/mobile/MobileLabels";
 import MobileSkills from "./pages/mobile/MobileSkills";
+import Stats from "./pages/Stats";
+import MobileStats from "./pages/mobile/MobileStats";
 
 function DesktopShell() {
   const location = useLocation();
@@ -35,6 +39,8 @@ function DesktopShell() {
             <Route path="/runners" element={<Runners />} />
             <Route path="/labels" element={<Labels />} />
             <Route path="/skills" element={<Skills />} />
+            <Route path="/stats" element={<Stats />} />
+            <Route path="/sessions" element={<Sessions />} />
             <Route
               path="/projects"
               element={<Navigate to="/inbox" replace />}
@@ -65,6 +71,8 @@ function MobileApp() {
           <Route path="/runners" element={<MobileRunners />} />
           <Route path="/labels" element={<MobileLabels />} />
           <Route path="/skills" element={<MobileSkills />} />
+          <Route path="/stats" element={<MobileStats />} />
+          <Route path="/sessions" element={<MobileSessions />} />
           <Route path="/usage" element={<Navigate to="/runners" replace />} />
           <Route
             path="/settings"

@@ -13,7 +13,7 @@ import ConfirmDialog from './ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import {
-  Inbox, FolderKanban, Bot, Tags,
+  Inbox, FolderKanban, Bot, Tags, BarChart2, MessagesSquare,
   Plus, ChevronRight, Trash2, Wand2,
   Sun, Moon, Monitor,
   ArrowRight, Sparkles,
@@ -181,6 +181,10 @@ export default function Sidebar() {
                 <Tags className="h-4 w-4 shrink-0 opacity-60" />
                 Labels
               </NavLink>
+              <NavLink to="/sessions" className={navLinkClass}>
+                <MessagesSquare className="h-4 w-4 shrink-0 opacity-60" />
+                Sessions
+              </NavLink>
               <NavLink to="/runners" className={navLinkClass}>
                 <Bot className="h-4 w-4 shrink-0 opacity-60" />
                 Runners
@@ -188,6 +192,10 @@ export default function Sidebar() {
               <NavLink to="/skills" className={navLinkClass}>
                 <Wand2 className="h-4 w-4 shrink-0 opacity-60" />
                 Skills
+              </NavLink>
+              <NavLink to="/stats" className={navLinkClass}>
+                <BarChart2 className="h-4 w-4 shrink-0 opacity-60" />
+                Stats
               </NavLink>
             </div>
 

@@ -7,6 +7,8 @@ import tasksRouter     from './routes/tasks';
 import runnersRouter   from './routes/runners';
 import labelsRouter    from './routes/labels';
 import skillsRouter    from './routes/skills';
+import statsRouter     from './routes/stats';
+import sessionsRouter  from './routes/sessions';
 import { initDb }      from './db';
 import { DATA_DIR }    from './dataDir';
 
@@ -24,6 +26,8 @@ app.use('/api/tasks',    tasksRouter);
 app.use('/api/runners',  runnersRouter);
 app.use('/api/labels',   labelsRouter);
 app.use('/api/skills',   skillsRouter);
+app.use('/api/stats',    statsRouter);
+app.use('/api/sessions', sessionsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

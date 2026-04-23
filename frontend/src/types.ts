@@ -8,7 +8,7 @@ export interface Settings {
 // ── Task management types ─────────────────────────────────────────────────
 export type TaskStatus   = 'backlog' | 'todo' | 'in_progress' | 'failed' | 'done' | 'cancelled';
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
-export type AiProvider   = 'claude-code' | 'codex' | 'cursor-agent';
+export type AiProvider   = 'claude-code' | 'codex' | 'cursor-agent' | 'gemini-cli';
 export type RunnerStatus = 'online' | 'offline' | 'busy';
 
 export interface CodexHarnessConfig {
@@ -20,7 +20,6 @@ export interface CodexHarnessConfig {
 export interface ClaudeCodeHarnessConfig {
   workspace?: string;
   model?: string;
-  mode?: 'acceptEdits' | 'auto' | 'bypassPermissions' | 'default' | 'dontAsk' | 'plan';
   worktree?: string;
 }
 
@@ -32,10 +31,18 @@ export interface CursorAgentHarnessConfig {
   worktree?: string;
 }
 
+export interface GeminiHarnessConfig {
+  workspace?: string;
+  model?: 'auto' | 'pro' | 'flash' | 'flash-lite';
+  sandbox?: boolean;
+  worktree?: string;
+}
+
 export interface HarnessConfig {
   codex?: CodexHarnessConfig;
   claudeCode?: ClaudeCodeHarnessConfig;
   cursorAgent?: CursorAgentHarnessConfig;
+  gemini?: GeminiHarnessConfig;
 }
 
 export interface Project {
@@ -61,6 +68,7 @@ export interface Task {
   harness_config: string;
   labels: string;
   output: string | null;
+  scheduled_at: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -118,6 +126,28 @@ export interface Skill {
   updated_at: string;
 }
 
+export type SessionStatus = 'idle' | 'busy' | 'stopped';
+export type SessionMessageRole = 'user' | 'assistant' | 'system';
+
+export interface Session {
+  id: string;
+  title: string;
+  runner_id: string;
+  ai_provider: AiProvider;
+  harness_config: string;
+  status: SessionStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionMessage {
+  id: string;
+  session_id: string;
+  role: SessionMessageRole;
+  content: string;
+  created_at: string;
+}
+
 export interface TaskLog {
   id: string;
   task_id: string;
@@ -125,4 +155,30 @@ export interface TaskLog {
   event: string;
   data: string;
   created_at: string;
+}
+
+export interface Stats {
+  totals: {
+    total: number;
+    done: number;
+    failed: number;
+    in_progress: number;
+    cancelled: number;
+    todo: number;
+    backlog: number;
+  };
+  runnerCounts: {
+    total: number;
+    online: number;
+    busy: number;
+    offline: number;
+  };
+  tasksByStatus: Array<{ status: string; count: number }>;
+  tasksByProject: Array<{ project_name: string; total: number; done: number }>;
+  tasksByProvider: Array<{ ai_provider: string; count: number; total_minutes: number | null }>;
+  tasksByPriority: Array<{ priority: string; count: number }>;
+  tasksByRunner: Array<{ runner_name: string; count: number; runner_status: string; total_minutes: number | null }>;
+  avgCompletionMinutes: number | null;
+  dailyCompleted: Array<{ date: string; count: number }>;
+  topLabels: Array<{ name: string; color: string; count: number }>;
 }

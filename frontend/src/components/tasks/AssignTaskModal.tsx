@@ -7,6 +7,7 @@ import {
   CodexHarnessConfig,
   ClaudeCodeHarnessConfig,
   CursorAgentHarnessConfig,
+  GeminiHarnessConfig,
 } from '../../types';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
@@ -51,6 +52,7 @@ export default function AssignTaskModal({
   const codexConfig = harnessConfig.codex ?? {};
   const claudeConfig = harnessConfig.claudeCode ?? {};
   const cursorConfig = harnessConfig.cursorAgent ?? {};
+  const geminiConfig = harnessConfig.gemini ?? {};
 
   const updateCodexConfig = (patch: Partial<CodexHarnessConfig>) => {
     setHarnessConfig((prev) => ({ ...prev, codex: { ...(prev.codex ?? {}), ...patch } }));
@@ -62,6 +64,10 @@ export default function AssignTaskModal({
 
   const updateCursorConfig = (patch: Partial<CursorAgentHarnessConfig>) => {
     setHarnessConfig((prev) => ({ ...prev, cursorAgent: { ...(prev.cursorAgent ?? {}), ...patch } }));
+  };
+
+  const updateGeminiConfig = (patch: Partial<GeminiHarnessConfig>) => {
+    setHarnessConfig((prev) => ({ ...prev, gemini: { ...(prev.gemini ?? {}), ...patch } }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -186,20 +192,6 @@ export default function AssignTaskModal({
                       <Input value={claudeConfig.model ?? ''} onChange={(e) => updateClaudeConfig({ model: e.target.value || undefined })} placeholder="sonnet" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[13px] font-medium">Mode</Label>
-                      <Select value={claudeConfig.mode ?? DEFAULT_SELECT} onValueChange={(value) => updateClaudeConfig({ mode: value === DEFAULT_SELECT ? undefined : value as ClaudeCodeHarnessConfig['mode'] })}>
-                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Default" /></SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
-                          <SelectItem value="acceptEdits" className="rounded-lg py-2 text-[11px]">acceptEdits</SelectItem>
-                          <SelectItem value="auto" className="rounded-lg py-2 text-[11px]">auto</SelectItem>
-                          <SelectItem value="bypassPermissions" className="rounded-lg py-2 text-[11px]">bypassPermissions</SelectItem>
-                          <SelectItem value="dontAsk" className="rounded-lg py-2 text-[11px]">dontAsk</SelectItem>
-                          <SelectItem value="plan" className="rounded-lg py-2 text-[11px]">plan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Worktree name</Label>
                       <Input value={claudeConfig.worktree ?? ''} onChange={(e) => updateClaudeConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
@@ -253,6 +245,54 @@ export default function AssignTaskModal({
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Worktree name</Label>
                       <Input value={cursorConfig.worktree ?? ''} onChange={(e) => updateCursorConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className={DIALOG_CONTROL_CLASSNAME} />
+                    </div>
+                  </div>
+                </AppDialogSection>
+              )}
+              {aiProvider === 'gemini-cli' && (
+                <AppDialogSection className="space-y-4">
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-foreground">Gemini CLI settings</h3>
+                    <p className="mt-1 text-[12px] text-muted-foreground/80">Maps to `gemini` flags for workspace, model, sandbox, and worktree.</p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Workspace</Label>
+                      <DirectoryInput
+                        value={geminiConfig.workspace ?? ''}
+                        onChange={(v) => updateGeminiConfig({ workspace: v || undefined })}
+                        runnerId={runnerId || undefined}
+                        className={DIALOG_CONTROL_CLASSNAME}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Model</Label>
+                      <Select value={geminiConfig.model ?? DEFAULT_SELECT} onValueChange={(value) => updateGeminiConfig({ model: value === DEFAULT_SELECT ? undefined : value as GeminiHarnessConfig['model'] })}>
+                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Default" /></SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
+                          <SelectItem value="auto" className="rounded-lg py-2 text-[11px]">auto</SelectItem>
+                          <SelectItem value="pro" className="rounded-lg py-2 text-[11px]">pro</SelectItem>
+                          <SelectItem value="flash" className="rounded-lg py-2 text-[11px]">flash</SelectItem>
+                          <SelectItem value="flash-lite" className="rounded-lg py-2 text-[11px]">flash-lite</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Sandbox</Label>
+                      <Select value={geminiConfig.sandbox === true ? 'enabled' : geminiConfig.sandbox === false ? 'disabled' : DEFAULT_SELECT} onValueChange={(value) => updateGeminiConfig({ sandbox: value === DEFAULT_SELECT ? undefined : value === 'enabled' })}>
+                        <SelectTrigger className={DIALOG_SELECT_TRIGGER_CLASSNAME}><SelectValue placeholder="Default" /></SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
+                          <SelectItem value="enabled" className="rounded-lg py-2 text-[11px]">enabled</SelectItem>
+                          <SelectItem value="disabled" className="rounded-lg py-2 text-[11px]">disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Worktree name</Label>
+                      <Input value={geminiConfig.worktree ?? ''} onChange={(e) => updateGeminiConfig({ worktree: e.target.value || undefined })} placeholder="feature-branch" className={DIALOG_CONTROL_CLASSNAME} />
                     </div>
                   </div>
                 </AppDialogSection>
