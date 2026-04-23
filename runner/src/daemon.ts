@@ -5,7 +5,7 @@ import { RegisterResponse, RunnerConfig } from './types';
 import { RunnerApi, SessionCommand } from './api';
 import { deleteToken, detectAvailableProviders, saveToken } from './config';
 import { executeTask } from './executor';
-import { applySkillCommand } from './skills';
+import { applySkillCommand, listSkills } from './skills';
 import { executeSessionTurn } from './sessionExecutor';
 import { getRunnerTokenPath } from './configDir';
 import {
@@ -275,6 +275,15 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
           const message = errorMessage(error);
           console.warn(`Skill ${command.action} failed for ${command.cli}/${command.name}: ${message}`);
           try { await api.submitSkillResult(command.commandId, message); } catch { /* noop */ }
+        }
+      }
+
+      const inventoryRequests = await api.fetchSkillInventoryRequests();
+      for (const { requestId } of inventoryRequests) {
+        try {
+          await api.submitSkillInventoryResult(requestId, listSkills());
+        } catch (error) {
+          await api.submitSkillInventoryError(requestId, errorMessage(error));
         }
       }
     } catch (error) {

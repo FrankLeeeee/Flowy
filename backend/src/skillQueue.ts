@@ -1,7 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import { AiProvider } from './types';
 
-export type SkillAction = 'write' | 'delete';
+export type SkillAction = 'write' | 'delete' | 'install';
 
 export interface SkillCommand {
   commandId: string;
@@ -11,6 +11,7 @@ export interface SkillCommand {
   name: string;
   description?: string;
   content?: string;
+  installCommand?: string;
 }
 
 // runnerId → pending commands (FIFO)

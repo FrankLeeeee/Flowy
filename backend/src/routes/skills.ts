@@ -1,173 +1,180 @@
 import { Router, Request, Response } from 'express';
-import { v4 as uuid } from 'uuid';
 import { getDb } from '../db';
 import { AiProvider, Runner, Skill } from '../types';
 import { enqueueSkillCommand } from '../skillQueue';
+import { requestRunnerSkillInventory, RunnerSkillEntry } from '../skillInventory';
 
 const router = Router();
 
-const SUPPORTED_CLIS: AiProvider[] = ['claude-code', 'codex', 'cursor-agent'];
 const SKILL_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
+const SKILLS_REPO_URL = 'https://github.com/vercel-labs/skills';
+const SKILLS_INSTALL_AGENTS = ['claude-code', 'codex', 'cursor', 'gemini-cli'] as const;
+const SKILLS_RECORD_CLI: AiProvider = 'codex';
 
-function isValidCli(cli: unknown): cli is AiProvider {
-  return typeof cli === 'string' && (SUPPORTED_CLIS as string[]).includes(cli);
+function buildSkillsInstallCommand(name: string): string {
+  const agentFlags = SKILLS_INSTALL_AGENTS.map((agent) => `--agent ${agent}`).join(' ');
+  return `npx skills add ${SKILLS_REPO_URL} --skill ${name} ${agentFlags} -g -y`;
 }
 
-function getRunner(id: string): Runner | undefined {
-  return getDb().prepare('SELECT * FROM runners WHERE id = ?').get(id) as Runner | undefined;
+function skillId(runnerId: string, cli: AiProvider, name: string): string {
+  return `${runnerId}::${cli}::${name}`;
 }
 
-function getSkill(id: string): Skill | undefined {
-  return getDb().prepare('SELECT * FROM skills WHERE id = ?').get(id) as Skill | undefined;
+function parseSkillId(id: string): { runnerId: string; cli: AiProvider; name: string } | null {
+  const [runnerId, cli, ...nameParts] = id.split('::');
+  const name = nameParts.join('::');
+  if (!runnerId || !cli || !name) return null;
+  if (!['claude-code', 'codex', 'cursor-agent', 'gemini-cli'].includes(cli)) return null;
+  return { runnerId, cli: cli as AiProvider, name };
 }
 
-// GET /api/skills?runner=&cli= — list skills
-router.get('/', (req: Request, res: Response) => {
-  const { runner, cli } = req.query as { runner?: string; cli?: string };
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  if (runner) { conditions.push('runner_id = ?'); params.push(runner); }
-  if (cli) {
-    if (!isValidCli(cli)) { res.status(400).json({ error: 'Invalid cli filter' }); return; }
-    conditions.push('cli = ?'); params.push(cli);
+function toSkill(runnerId: string, entry: RunnerSkillEntry): Skill {
+  return {
+    id: skillId(runnerId, entry.cli, entry.name),
+    runner_id: runnerId,
+    cli: entry.cli,
+    name: entry.name,
+    description: entry.description,
+    content: entry.content || `Path: ${entry.path}`,
+    created_at: '',
+    updated_at: '',
+  };
+}
+
+async function listRunnerSkills(runner: Runner): Promise<Skill[]> {
+  if (runner.status === 'offline') return [];
+  try {
+    const entries = await requestRunnerSkillInventory(runner.id);
+    return entries.map((entry) => toSkill(runner.id, entry));
+  } catch {
+    return [];
   }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const rows = getDb()
-    .prepare(`SELECT * FROM skills ${where} ORDER BY cli ASC, name ASC`)
-    .all(...params) as Skill[];
-  res.json(rows);
+}
+
+// GET /api/skills?runner=&cli= — live list from each runner's local skill directories
+router.get('/', async (req: Request, res: Response) => {
+  const { runner, cli } = req.query as { runner?: string; cli?: string };
+  const runners = (runner
+    ? getDb().prepare('SELECT * FROM runners WHERE id = ?').all(runner)
+    : getDb().prepare('SELECT * FROM runners ORDER BY created_at DESC').all()) as Runner[];
+
+  const nested = await Promise.all(runners.map(listRunnerSkills));
+  const skills = nested
+    .flat()
+    .filter((skill) => !cli || skill.cli === cli)
+    .sort((a, b) => `${a.runner_id}:${a.cli}:${a.name}`.localeCompare(`${b.runner_id}:${b.cli}:${b.name}`));
+
+  res.json(skills);
 });
 
-// GET /api/skills/:id — full skill with content
-router.get('/:id', (req: Request, res: Response) => {
-  const skill = getSkill(req.params.id);
+// GET /api/skills/:id — live detail from the runner inventory
+router.get('/:id', async (req: Request, res: Response) => {
+  const parsed = parseSkillId(req.params.id);
+  if (!parsed) { res.status(400).json({ error: 'Invalid skill id' }); return; }
+
+  const runner = getDb().prepare('SELECT * FROM runners WHERE id = ?').get(parsed.runnerId) as Runner | undefined;
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+
+  const skills = await listRunnerSkills(runner);
+  const skill = skills.find((candidate) => candidate.cli === parsed.cli && candidate.name === parsed.name);
   if (!skill) { res.status(404).json({ error: 'Skill not found' }); return; }
   res.json(skill);
 });
 
-// POST /api/skills — create or replace a skill on a runner
+// POST /api/skills — install a skills.sh skill on a runner
 router.post('/', (req: Request, res: Response) => {
-  const { runnerId, cli, name, description, content } = req.body as {
-    runnerId?: string; cli?: string; name?: string; description?: string; content?: string;
-  };
+  const { runnerId, name } = req.body as { runnerId?: string; name?: string };
 
   if (!runnerId) { res.status(400).json({ error: 'runnerId is required' }); return; }
-  if (!isValidCli(cli)) { res.status(400).json({ error: 'cli must be one of claude-code, codex, cursor-agent' }); return; }
-  if (!name || !SKILL_NAME_RE.test(name)) {
+  const normalizedName = name?.trim() || '';
+  if (!normalizedName || !SKILL_NAME_RE.test(normalizedName)) {
     res.status(400).json({ error: 'Invalid skill name (letters, digits, underscore, hyphen; up to 64 chars)' });
     return;
   }
 
-  const runner = getRunner(runnerId);
+  const runner = getDb().prepare('SELECT * FROM runners WHERE id = ?').get(runnerId) as Runner | undefined;
   if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
 
-  const db = getDb();
-  const existing = db
-    .prepare('SELECT id FROM skills WHERE runner_id = ? AND cli = ? AND name = ?')
-    .get(runnerId, cli, name) as { id: string } | undefined;
-
-  const id = existing?.id ?? uuid();
-  const desc = description ?? '';
-  const body = content ?? '';
-
-  if (existing) {
-    db.prepare(`
-      UPDATE skills SET description = ?, content = ?, updated_at = datetime('now') WHERE id = ?
-    `).run(desc, body, existing.id);
-  } else {
-    db.prepare(`
-      INSERT INTO skills (id, runner_id, cli, name, description, content) VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, runnerId, cli, name, desc, body);
-  }
-
   enqueueSkillCommand(runnerId, {
-    action: 'write',
-    cli,
-    name,
-    description: desc,
-    content: body,
+    action: 'install',
+    cli: SKILLS_RECORD_CLI,
+    name: normalizedName,
+    description: 'Installed from skills.sh for all agents.',
+    installCommand: buildSkillsInstallCommand(normalizedName),
   });
 
-  const saved = getSkill(id)!;
-  res.status(existing ? 200 : 201).json(saved);
+  res.status(202).json({
+    id: skillId(runnerId, SKILLS_RECORD_CLI, normalizedName),
+    runner_id: runnerId,
+    cli: SKILLS_RECORD_CLI,
+    name: normalizedName,
+    description: 'Install queued for all supported agents.',
+    content: `Queued: ${buildSkillsInstallCommand(normalizedName)}`,
+    created_at: '',
+    updated_at: '',
+  } satisfies Skill);
 });
 
-// DELETE /api/skills/:id
+// DELETE /api/skills/:id — remove a skill from the selected provider directory on its runner
 router.delete('/:id', (req: Request, res: Response) => {
-  const skill = getSkill(req.params.id);
-  if (!skill) { res.status(404).json({ error: 'Skill not found' }); return; }
+  const parsed = parseSkillId(req.params.id);
+  if (!parsed) { res.status(400).json({ error: 'Invalid skill id' }); return; }
 
-  getDb().prepare('DELETE FROM skills WHERE id = ?').run(skill.id);
-  enqueueSkillCommand(skill.runner_id, {
+  const runner = getDb().prepare('SELECT id FROM runners WHERE id = ?').get(parsed.runnerId);
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+
+  enqueueSkillCommand(parsed.runnerId, {
     action: 'delete',
-    cli: skill.cli,
-    name: skill.name,
+    cli: parsed.cli,
+    name: parsed.name,
   });
 
   res.json({ ok: true });
 });
 
-// POST /api/skills/:id/broadcast — copy this skill to other runners that have the matching CLI
+// POST /api/skills/:id/broadcast — install this skills.sh skill on other runners
 router.post('/:id/broadcast', (req: Request, res: Response) => {
-  const source = getSkill(req.params.id);
-  if (!source) { res.status(404).json({ error: 'Skill not found' }); return; }
+  const parsed = parseSkillId(req.params.id);
+  if (!parsed) { res.status(400).json({ error: 'Invalid skill id' }); return; }
 
   const { runnerIds } = req.body as { runnerIds?: string[] };
-
   const allRunners = getDb().prepare('SELECT * FROM runners').all() as Runner[];
-  const targets = allRunners.filter((r) => {
-    if (r.id === source.runner_id) return false;
-    let providers: string[] = [];
-    try { providers = JSON.parse(r.ai_providers || '[]'); } catch { /* noop */ }
-    if (!providers.includes(source.cli)) return false;
-    if (runnerIds && runnerIds.length > 0) return runnerIds.includes(r.id);
+  const targets = allRunners.filter((runner) => {
+    if (runner.id === parsed.runnerId) return false;
+    if (runnerIds && runnerIds.length > 0) return runnerIds.includes(runner.id);
     return true;
   });
 
-  const db = getDb();
+  const installCommand = buildSkillsInstallCommand(parsed.name);
   const results: Array<{ runnerId: string; skillId: string; created: boolean }> = [];
-
   for (const runner of targets) {
-    const existing = db
-      .prepare('SELECT id FROM skills WHERE runner_id = ? AND cli = ? AND name = ?')
-      .get(runner.id, source.cli, source.name) as { id: string } | undefined;
-
-    const id = existing?.id ?? uuid();
-    if (existing) {
-      db.prepare(`
-        UPDATE skills SET description = ?, content = ?, updated_at = datetime('now') WHERE id = ?
-      `).run(source.description, source.content, existing.id);
-    } else {
-      db.prepare(`
-        INSERT INTO skills (id, runner_id, cli, name, description, content) VALUES (?, ?, ?, ?, ?, ?)
-      `).run(id, runner.id, source.cli, source.name, source.description, source.content);
-    }
-
     enqueueSkillCommand(runner.id, {
-      action: 'write',
-      cli: source.cli,
-      name: source.name,
-      description: source.description,
-      content: source.content,
+      action: 'install',
+      cli: SKILLS_RECORD_CLI,
+      name: parsed.name,
+      description: 'Installed from skills.sh for all agents.',
+      installCommand,
     });
-
-    results.push({ runnerId: runner.id, skillId: id, created: !existing });
+    results.push({ runnerId: runner.id, skillId: skillId(runner.id, SKILLS_RECORD_CLI, parsed.name), created: true });
   }
 
   res.json({ broadcast: results.length, results });
 });
 
-// POST /api/skills/:id/resync — re-enqueue write for this skill's runner
+// POST /api/skills/:id/resync — re-run skills.sh install on this skill's runner
 router.post('/:id/resync', (req: Request, res: Response) => {
-  const skill = getSkill(req.params.id);
-  if (!skill) { res.status(404).json({ error: 'Skill not found' }); return; }
+  const parsed = parseSkillId(req.params.id);
+  if (!parsed) { res.status(400).json({ error: 'Invalid skill id' }); return; }
 
-  enqueueSkillCommand(skill.runner_id, {
-    action: 'write',
-    cli: skill.cli,
-    name: skill.name,
-    description: skill.description,
-    content: skill.content,
+  const runner = getDb().prepare('SELECT id FROM runners WHERE id = ?').get(parsed.runnerId);
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+
+  enqueueSkillCommand(parsed.runnerId, {
+    action: 'install',
+    cli: SKILLS_RECORD_CLI,
+    name: parsed.name,
+    description: 'Installed from skills.sh for all agents.',
+    installCommand: buildSkillsInstallCommand(parsed.name),
   });
 
   res.json({ ok: true });

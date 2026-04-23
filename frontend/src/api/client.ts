@@ -136,7 +136,7 @@ export async function fetchSkill(id: string): Promise<Skill> {
 }
 
 export async function createOrUpdateSkill(body: {
-  runnerId: string; cli: AiProvider; name: string; description?: string; content?: string;
+  runnerId: string; name: string;
 }): Promise<Skill> {
   const { data } = await api.post<Skill>('/skills', body);
   return data;

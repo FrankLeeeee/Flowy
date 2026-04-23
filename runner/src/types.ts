@@ -40,8 +40,8 @@ export interface HeartbeatResponse {
   refreshCli?: boolean;
 }
 
-export type SkillCli = 'claude-code' | 'codex' | 'cursor-agent';
-export type SkillAction = 'write' | 'delete';
+export type SkillCli = 'claude-code' | 'codex' | 'cursor-agent' | 'gemini-cli';
+export type SkillAction = 'write' | 'delete' | 'install';
 
 export interface SkillCommand {
   commandId: string;
@@ -50,4 +50,13 @@ export interface SkillCommand {
   name: string;
   description?: string;
   content?: string;
+  installCommand?: string;
+}
+
+export interface SkillInventoryEntry {
+  cli: SkillCli;
+  name: string;
+  description: string;
+  content: string;
+  path: string;
 }
