@@ -51,14 +51,23 @@ router.get('/', (_req: Request, res: Response) => {
     LIMIT 10
   `).all() as Array<{ project_name: string; total: number; done: number }>;
 
-  // AI provider preference (tasks run by each provider)
+  // AI provider preference and elapsed task time by provider
   const tasksByProvider = db.prepare(`
-    SELECT ai_provider, COUNT(*) as count
+    SELECT
+      ai_provider,
+      COUNT(*) as count,
+      SUM(
+        CASE
+          WHEN started_at IS NOT NULL AND completed_at IS NOT NULL
+            THEN (julianday(completed_at) - julianday(started_at)) * 24 * 60
+          ELSE 0
+        END
+      ) as total_minutes
     FROM tasks
     WHERE ai_provider IS NOT NULL
     GROUP BY ai_provider
     ORDER BY count DESC
-  `).all() as Array<{ ai_provider: string; count: number }>;
+  `).all() as Array<{ ai_provider: string; count: number; total_minutes: number | null }>;
 
   // Priority distribution
   const tasksByPriority = db.prepare(`
@@ -68,16 +77,26 @@ router.get('/', (_req: Request, res: Response) => {
     ORDER BY count DESC
   `).all() as Array<{ priority: string; count: number }>;
 
-  // Runner usage (tasks handled by each runner)
+  // Runner usage and elapsed task time by runner
   const tasksByRunner = db.prepare(`
-    SELECT r.name as runner_name, COUNT(t.id) as count, r.status as runner_status
+    SELECT
+      r.name as runner_name,
+      COUNT(t.id) as count,
+      r.status as runner_status,
+      SUM(
+        CASE
+          WHEN t.started_at IS NOT NULL AND t.completed_at IS NOT NULL
+            THEN (julianday(t.completed_at) - julianday(t.started_at)) * 24 * 60
+          ELSE 0
+        END
+      ) as total_minutes
     FROM tasks t
     JOIN runners r ON r.id = t.runner_id
     WHERE t.runner_id IS NOT NULL
     GROUP BY t.runner_id, r.name, r.status
     ORDER BY count DESC
     LIMIT 10
-  `).all() as Array<{ runner_name: string; count: number; runner_status: string }>;
+  `).all() as Array<{ runner_name: string; count: number; runner_status: string; total_minutes: number | null }>;
 
   // Average completion time in minutes (done tasks only)
   const avgCompletionRow = db.prepare(`

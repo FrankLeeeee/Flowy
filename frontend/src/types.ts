@@ -164,9 +164,9 @@ export interface Stats {
   };
   tasksByStatus: Array<{ status: string; count: number }>;
   tasksByProject: Array<{ project_name: string; total: number; done: number }>;
-  tasksByProvider: Array<{ ai_provider: string; count: number }>;
+  tasksByProvider: Array<{ ai_provider: string; count: number; total_minutes: number | null }>;
   tasksByPriority: Array<{ priority: string; count: number }>;
-  tasksByRunner: Array<{ runner_name: string; count: number; runner_status: string }>;
+  tasksByRunner: Array<{ runner_name: string; count: number; runner_status: string; total_minutes: number | null }>;
   avgCompletionMinutes: number | null;
   dailyCompleted: Array<{ date: string; count: number }>;
   topLabels: Array<{ name: string; color: string; count: number }>;
