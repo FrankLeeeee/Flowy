@@ -16,7 +16,7 @@ import {
 import { AiProvider, LabelColor, RunnerStatus, TaskPriority, TaskStatus } from '../types';
 import {
   BarChart2, CheckCircle2, Zap, Bot, TrendingUp,
-  Clock, AlertTriangle, Target, Activity,
+  Clock, AlertTriangle, Target, Activity, FolderOpen, Terminal,
 } from 'lucide-react';
 
 type StatTone = 'success' | 'danger' | 'warning' | 'brand' | 'neutral';
@@ -110,6 +110,36 @@ function StatPanel({
       style={{ '--motion-delay': `${delay ?? 0}ms` } as React.CSSProperties}
     >
       <SectionHeader title={title} icon={icon} />
+      {children}
+    </section>
+  );
+}
+
+function StatsSection({
+  title,
+  icon: Icon,
+  children,
+  delay,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <section
+      className="motion-section space-y-4"
+      style={{ '--motion-delay': `${delay ?? 0}ms` } as React.CSSProperties}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-border/70 bg-foreground/[0.03] text-primary shadow-soft"
+          aria-hidden="true"
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
+      </div>
       {children}
     </section>
   );
@@ -225,13 +255,9 @@ export default function StatsPage() {
   const maxLabelCount = Math.max(...topLabels.map((l) => l.count), 1);
   const activeRunners = runnerCounts.online + runnerCounts.busy;
   const completedLast30 = dailyCompleted.reduce((sum, day) => sum + day.count, 0);
-  const neutralTone = getToneStyles('neutral');
-  const successTone = getToneStyles('success');
-  const dangerTone = getToneStyles('danger');
 
   return (
     <div className="w-full space-y-6 p-6">
-      {/* Header */}
       <div
         className="motion-section flex flex-wrap items-start justify-between gap-3"
         style={{ '--motion-delay': '80ms' } as React.CSSProperties}
@@ -241,202 +267,184 @@ export default function StatsPage() {
           <p className="mt-1.5 text-[12px] text-muted-foreground/85">
             Productivity, completion health, and runner usage across your workspace
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>
-              {totals.total} total tasks
-            </span>
-            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', successTone.pill)}>
-              {completedLast30} completed in 30d
-            </span>
-            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', activeRunners > 0 ? successTone.pill : neutralTone.pill)}>
-              {activeRunners} active runners
-            </span>
-            {totals.failed > 0 && (
-              <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', dangerTone.pill)}>
-                {totals.failed} failed
-              </span>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <SummaryCard
-          label="Total Tasks"
-          value={totals.total}
-          sub={`${totals.in_progress} in progress`}
-          tone="neutral"
-          icon={Target}
-          delay={120}
-        />
-        <SummaryCard
-          label="Completed"
-          value={totals.done}
-          sub={`${totals.cancelled} cancelled`}
-          tone="success"
-          icon={CheckCircle2}
-          delay={150}
-        />
-        <SummaryCard
-          label="Success Rate"
-          value={successRate != null ? `${successRate}%` : '—'}
-          sub={`${totals.failed} failed`}
-          tone={successRate == null ? 'neutral' : successRate >= 80 ? 'success' : successRate >= 50 ? 'warning' : 'danger'}
-          icon={TrendingUp}
-          delay={180}
-        />
-        <SummaryCard
-          label="Avg. Completion"
-          value={avgTimeLabel}
-          sub="per completed task"
-          tone="brand"
-          icon={Clock}
-          delay={210}
-        />
-      </div>
+      <StatsSection title="Projects" icon={FolderOpen} delay={120}>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <SummaryCard
+            label="Total Tasks"
+            value={totals.total}
+            sub={`${totals.in_progress} in progress`}
+            tone="neutral"
+            icon={Target}
+            delay={150}
+          />
+          <SummaryCard
+            label="Completed"
+            value={totals.done}
+            sub={`${totals.cancelled} cancelled`}
+            tone="success"
+            icon={CheckCircle2}
+            delay={180}
+          />
+          <SummaryCard
+            label="Success Rate"
+            value={successRate != null ? `${successRate}%` : '—'}
+            sub={`${totals.failed} failed`}
+            tone={successRate == null ? 'neutral' : successRate >= 80 ? 'success' : successRate >= 50 ? 'warning' : 'danger'}
+            icon={TrendingUp}
+            delay={210}
+          />
+          <SummaryCard
+            label="Avg. Completion"
+            value={avgTimeLabel}
+            sub="per completed task"
+            tone="brand"
+            icon={Clock}
+            delay={240}
+          />
+        </div>
 
-      {/* Runner summary */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <SummaryCard
-          label="Total Runners"
-          value={runnerCounts.total}
-          sub={`${activeRunners} active`}
-          tone="neutral"
-          icon={Bot}
-          delay={240}
-        />
-        <SummaryCard
-          label="Online / Busy"
-          value={activeRunners}
-          sub={`${runnerCounts.online} online, ${runnerCounts.busy} busy`}
-          tone="success"
-          icon={Zap}
-          delay={270}
-        />
-        <SummaryCard
-          label="Failed Tasks"
-          value={totals.failed}
-          sub={`${totals.backlog} in backlog`}
-          tone={totals.failed > 0 ? 'danger' : 'neutral'}
-          icon={AlertTriangle}
-          delay={300}
-        />
-      </div>
-
-      {/* Activity chart */}
-      <StatPanel title="Daily Completed Tasks (Last 30 Days)" icon={Activity} delay={330}>
-        {dailyCompleted.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground/60 py-6 text-center">No completed tasks yet.</p>
-        ) : (
-          <ActivityChart days={dailyCompleted} />
-        )}
-        <p className="mt-3 text-[11px] text-muted-foreground/50 text-right">
-          {completedLast30} total in last 30 days
-        </p>
-      </StatPanel>
-
-      {/* Two-column grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-        {/* Task status distribution */}
-        <StatPanel title="Tasks by Status" icon={BarChart2} delay={360}>
-          <div className="space-y-3">
-            {tasksByStatus.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground/60">No tasks yet.</p>
-            ) : tasksByStatus.map(({ status, count }) => {
-              const cfg = STATUS_CONFIG[status as TaskStatus];
-              return (
-                <HorizontalBar
-                  key={status}
-                  label={cfg?.label ?? status}
-                  count={count}
-                  max={maxStatusCount}
-                  tone={TASK_STATUS_TONES[status as TaskStatus] ?? 'neutral'}
-                />
-              );
-            })}
-          </div>
-        </StatPanel>
-
-        {/* Tasks by project */}
-        <StatPanel title="Tasks by Project" icon={BarChart2} delay={390}>
-          <div className="space-y-3">
-            {tasksByProject.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground/60">No projects yet.</p>
-            ) : tasksByProject.map(({ project_name, total, done }) => (
-              <div key={project_name} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-muted-foreground/85 truncate max-w-[140px]">{project_name}</span>
-                  <span className="text-[11px] text-muted-foreground/60">{done}/{total} done</span>
-                </div>
-                <div className="h-2 rounded-full bg-foreground/[0.05] overflow-hidden">
-                  <div className="flex h-full rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 transition-all duration-500"
-                      style={{ width: `${maxProjectCount > 0 ? (done / maxProjectCount) * 100 : 0}%` }}
-                    />
-                    <div
-                      className="h-full bg-primary/30 transition-all duration-500"
-                      style={{ width: `${maxProjectCount > 0 ? ((total - done) / maxProjectCount) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {tasksByProject.length > 0 && (
-            <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground/60">
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Done</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary/30 inline-block" /> Remaining</span>
-            </div>
-          )}
-        </StatPanel>
-
-        {/* AI provider preference */}
-        <StatPanel title="AI Provider Preference" icon={Zap} delay={420}>
-          {tasksByProvider.length === 0 ? (
-            <p className="text-[12px] text-muted-foreground/60">No tasks assigned to an AI provider yet.</p>
+        <StatPanel title="Daily Completed Tasks (Last 30 Days)" icon={Activity} delay={270}>
+          {dailyCompleted.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground/60 py-6 text-center">No completed tasks yet.</p>
           ) : (
+            <ActivityChart days={dailyCompleted} />
+          )}
+          <p className="mt-3 text-[11px] text-muted-foreground/50 text-right">
+            {completedLast30} total in last 30 days
+          </p>
+        </StatPanel>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <StatPanel title="Tasks by Status" icon={BarChart2} delay={300}>
             <div className="space-y-3">
-              {tasksByProvider.map(({ ai_provider, count }) => {
-                const label = AI_LABELS[ai_provider as AiProvider] ?? ai_provider;
+              {tasksByStatus.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground/60">No tasks yet.</p>
+              ) : tasksByStatus.map(({ status, count }) => {
+                const cfg = STATUS_CONFIG[status as TaskStatus];
                 return (
                   <HorizontalBar
-                    key={ai_provider}
-                    label={label}
+                    key={status}
+                    label={cfg?.label ?? status}
                     count={count}
-                    max={maxProviderCount}
-                    tone={AI_PROVIDER_TONES[ai_provider as AiProvider] ?? 'neutral'}
+                    max={maxStatusCount}
+                    tone={TASK_STATUS_TONES[status as TaskStatus] ?? 'neutral'}
                   />
                 );
               })}
             </div>
-          )}
-        </StatPanel>
+          </StatPanel>
 
-        {/* Priority distribution */}
-        <StatPanel title="Priority Distribution" icon={AlertTriangle} delay={450}>
-          {tasksByPriority.length === 0 ? (
-            <p className="text-[12px] text-muted-foreground/60">No tasks yet.</p>
-          ) : (
+          <StatPanel title="Tasks by Project" icon={BarChart2} delay={330}>
             <div className="space-y-3">
-              {tasksByPriority.map(({ priority, count }) => (
-                <HorizontalBar
-                  key={priority}
-                  label={PRIORITY_LABELS[priority] ?? priority}
-                  count={count}
-                  max={maxPriorityCount}
-                  tone={TASK_PRIORITY_TONES[priority as TaskPriority] ?? 'neutral'}
-                />
+              {tasksByProject.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground/60">No projects yet.</p>
+              ) : tasksByProject.map(({ project_name, total, done }) => (
+                <div key={project_name} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-muted-foreground/85 truncate max-w-[140px]">{project_name}</span>
+                    <span className="text-[11px] text-muted-foreground/60">{done}/{total} done</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-foreground/[0.05] overflow-hidden">
+                    <div className="flex h-full rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${maxProjectCount > 0 ? (done / maxProjectCount) * 100 : 0}%` }}
+                      />
+                      <div
+                        className="h-full bg-primary/30 transition-all duration-500"
+                        style={{ width: `${maxProjectCount > 0 ? ((total - done) / maxProjectCount) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-          )}
-        </StatPanel>
+            {tasksByProject.length > 0 && (
+              <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground/60">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Done</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary/30 inline-block" /> Remaining</span>
+              </div>
+            )}
+          </StatPanel>
 
-        {/* Runner usage */}
+          <StatPanel title="Priority Distribution" icon={AlertTriangle} delay={360}>
+            {tasksByPriority.length === 0 ? (
+              <p className="text-[12px] text-muted-foreground/60">No tasks yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {tasksByPriority.map(({ priority, count }) => (
+                  <HorizontalBar
+                    key={priority}
+                    label={PRIORITY_LABELS[priority] ?? priority}
+                    count={count}
+                    max={maxPriorityCount}
+                    tone={TASK_PRIORITY_TONES[priority as TaskPriority] ?? 'neutral'}
+                  />
+                ))}
+              </div>
+            )}
+          </StatPanel>
+
+          {topLabels.length > 0 && (
+            <StatPanel title="Most Used Labels" icon={Target} delay={390}>
+              <div className="space-y-3">
+                {topLabels.map(({ name, color, count }) => {
+                  const colorStyles = LABEL_COLORS[color as LabelColor] ?? LABEL_COLORS['gray'];
+                  return (
+                    <div key={name} className="flex items-center gap-3">
+                      <div className="w-[110px] shrink-0 flex items-center gap-1.5 min-w-0">
+                        <span className={cn('h-2 w-2 shrink-0 rounded-full', colorStyles.dot)} />
+                        <span className="truncate text-[12px] text-muted-foreground/85">{name}</span>
+                      </div>
+                      <div className="flex-1 h-2 rounded-full bg-foreground/[0.05] overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all duration-500', colorStyles.dot)}
+                          style={{ width: `${maxLabelCount > 0 ? (count / maxLabelCount) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="w-8 shrink-0 text-right text-[12px] font-semibold tabular-nums text-foreground/80">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </StatPanel>
+          )}
+        </div>
+      </StatsSection>
+
+      <StatsSection title="Runners" icon={Bot} delay={420}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <SummaryCard
+            label="Total Runners"
+            value={runnerCounts.total}
+            sub={`${activeRunners} active`}
+            tone="neutral"
+            icon={Bot}
+            delay={450}
+          />
+          <SummaryCard
+            label="Online / Busy"
+            value={activeRunners}
+            sub={`${runnerCounts.online} online, ${runnerCounts.busy} busy`}
+            tone="success"
+            icon={Zap}
+            delay={480}
+          />
+          <SummaryCard
+            label="Failed Tasks"
+            value={totals.failed}
+            sub={`${totals.backlog} in backlog`}
+            tone={totals.failed > 0 ? 'danger' : 'neutral'}
+            icon={AlertTriangle}
+            delay={510}
+          />
+        </div>
+
         {tasksByRunner.length > 0 && (
-          <StatPanel title="Tasks per Runner" icon={Bot} delay={480}>
+          <StatPanel title="Tasks per Runner" icon={Bot} delay={540}>
             <div className="space-y-3">
               {tasksByRunner.map(({ runner_name, count, runner_status }) => {
                 const statusStyles = getRunnerStatusStyles(runner_status as RunnerStatus);
@@ -459,34 +467,30 @@ export default function StatsPage() {
             </div>
           </StatPanel>
         )}
+      </StatsSection>
 
-        {/* Top labels */}
-        {topLabels.length > 0 && (
-          <StatPanel title="Most Used Labels" icon={Target} delay={510}>
+      <StatsSection title="CLI" icon={Terminal} delay={570}>
+        <StatPanel title="AI Provider Preference" icon={Zap} delay={600}>
+          {tasksByProvider.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground/60">No tasks assigned to an AI provider yet.</p>
+          ) : (
             <div className="space-y-3">
-              {topLabels.map(({ name, color, count }) => {
-                const colorStyles = LABEL_COLORS[color as LabelColor] ?? LABEL_COLORS['gray'];
+              {tasksByProvider.map(({ ai_provider, count }) => {
+                const label = AI_LABELS[ai_provider as AiProvider] ?? ai_provider;
                 return (
-                  <div key={name} className="flex items-center gap-3">
-                    <div className="w-[110px] shrink-0 flex items-center gap-1.5 min-w-0">
-                      <span className={cn('h-2 w-2 shrink-0 rounded-full', colorStyles.dot)} />
-                      <span className="truncate text-[12px] text-muted-foreground/85">{name}</span>
-                    </div>
-                    <div className="flex-1 h-2 rounded-full bg-foreground/[0.05] overflow-hidden">
-                      <div
-                        className={cn('h-full rounded-full transition-all duration-500', colorStyles.dot)}
-                        style={{ width: `${maxLabelCount > 0 ? (count / maxLabelCount) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="w-8 shrink-0 text-right text-[12px] font-semibold tabular-nums text-foreground/80">{count}</span>
-                  </div>
+                  <HorizontalBar
+                    key={ai_provider}
+                    label={label}
+                    count={count}
+                    max={maxProviderCount}
+                    tone={AI_PROVIDER_TONES[ai_provider as AiProvider] ?? 'neutral'}
+                  />
                 );
               })}
             </div>
-          </StatPanel>
-        )}
-
-      </div>
+          )}
+        </StatPanel>
+      </StatsSection>
     </div>
   );
 }
