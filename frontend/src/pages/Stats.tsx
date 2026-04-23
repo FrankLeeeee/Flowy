@@ -3,39 +3,53 @@ import { fetchStats } from '../api/client';
 import { Stats } from '../types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import PageTitle from '@/components/PageTitle';
 import { AI_LABELS, STATUS_CONFIG } from '@/lib/taskConstants';
-import { getToneStyles, getTaskStatusStyles, getAiProviderStyles, getRunnerStatusStyles, LABEL_COLORS } from '@/lib/semanticColors';
-import { AiProvider, LabelColor, RunnerStatus, TaskStatus } from '../types';
+import {
+  AI_PROVIDER_TONES,
+  LABEL_COLORS,
+  TASK_PRIORITY_TONES,
+  TASK_STATUS_TONES,
+  getRunnerStatusStyles,
+  getToneStyles,
+} from '@/lib/semanticColors';
+import { AiProvider, LabelColor, RunnerStatus, TaskPriority, TaskStatus } from '../types';
 import {
   BarChart2, CheckCircle2, Zap, Bot, TrendingUp,
   Clock, AlertTriangle, Target, Activity,
 } from 'lucide-react';
+
+type StatTone = 'success' | 'danger' | 'warning' | 'brand' | 'neutral';
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low', none: 'None',
 };
 
 function SummaryCard({
-  label, value, sub, tone, icon: Icon,
+  label, value, sub, tone, icon: Icon, delay,
 }: {
   label: string;
   value: string | number;
   sub?: string;
-  tone?: 'success' | 'danger' | 'warning' | 'brand' | 'neutral';
+  tone?: StatTone;
   icon: React.ComponentType<{ className?: string }>;
+  delay?: number;
 }) {
   const styles = getToneStyles(tone ?? 'neutral');
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 flex flex-col gap-3">
+    <div
+      className="motion-card flex min-h-[112px] flex-col justify-between rounded-lg border border-border/80 bg-card p-4 shadow-soft"
+      style={{ '--motion-delay': `${delay ?? 0}ms` } as React.CSSProperties}
+    >
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-medium text-muted-foreground/80">{label}</span>
-        <span className={cn('flex h-7 w-7 items-center justify-center rounded-lg', styles.panel)}>
+        <span className="text-[12px] font-medium text-muted-foreground/85">{label}</span>
+        <span className={cn('flex h-7 w-7 items-center justify-center rounded-md ring-1', styles.panel)}>
           <Icon className={cn('h-3.5 w-3.5', styles.icon)} />
         </span>
       </div>
       <div>
-        <p className="text-[28px] font-bold tracking-[-0.03em] text-foreground leading-none">{value}</p>
-        {sub && <p className="mt-1 text-[11px] text-muted-foreground/70">{sub}</p>}
+        <p className="text-[24px] font-semibold text-foreground leading-none tabular-nums">{value}</p>
+        {sub && <p className="mt-1.5 text-[11px] text-muted-foreground/75">{sub}</p>}
       </div>
     </div>
   );
@@ -47,7 +61,7 @@ function HorizontalBar({
   label: string;
   count: number;
   max: number;
-  tone?: 'success' | 'danger' | 'warning' | 'brand' | 'neutral';
+  tone?: StatTone;
   suffix?: string;
 }) {
   const styles = getToneStyles(tone ?? 'neutral');
@@ -55,7 +69,7 @@ function HorizontalBar({
   return (
     <div className="flex items-center gap-3">
       <span className="w-[110px] shrink-0 truncate text-[12px] text-muted-foreground/85">{label}</span>
-      <div className="flex-1 h-2 rounded-full bg-foreground/[0.05] overflow-hidden">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-foreground/[0.05]">
         <div
           className={cn('h-full rounded-full transition-all duration-500', styles.bar)}
           style={{ width: `${pct}%` }}
@@ -70,10 +84,34 @@ function HorizontalBar({
 
 function SectionHeader({ title, icon: Icon }: { title: string; icon: React.ComponentType<{ className?: string }> }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <Icon className="h-4 w-4 text-muted-foreground/60" />
+    <div className="mb-4 flex items-center gap-2">
+      <Icon className="h-4 w-4 text-muted-foreground/65" />
       <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2>
     </div>
+  );
+}
+
+function StatPanel({
+  title,
+  icon,
+  children,
+  className,
+  delay,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  return (
+    <section
+      className={cn('motion-card rounded-lg border border-border/80 bg-card p-5 shadow-soft', className)}
+      style={{ '--motion-delay': `${delay ?? 0}ms` } as React.CSSProperties}
+    >
+      <SectionHeader title={title} icon={icon} />
+      {children}
+    </section>
   );
 }
 
@@ -139,25 +177,26 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="w-full px-6 py-8 space-y-8">
+      <div className="w-full space-y-6 p-6">
         <div className="space-y-1">
-          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-7 w-32" />
           <Skeleton className="h-4 w-48" />
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
         </div>
       </div>
     );
   }
 
   if (error) {
+    const dangerTone = getToneStyles('danger');
     return (
-      <div className="w-full px-6 py-8">
-        <div className={cn('rounded-xl px-4 py-3 text-[13px] ring-1', getToneStyles('danger').panel, getToneStyles('danger').text)}>
+      <div className="w-full p-6">
+        <div className={cn('rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>
           {error}
         </div>
       </div>
@@ -184,13 +223,41 @@ export default function StatsPage() {
   const maxRunnerCount = Math.max(...tasksByRunner.map((r) => r.count), 1);
   const maxProviderCount = Math.max(...tasksByProvider.map((p) => p.count), 1);
   const maxLabelCount = Math.max(...topLabels.map((l) => l.count), 1);
+  const activeRunners = runnerCounts.online + runnerCounts.busy;
+  const completedLast30 = dailyCompleted.reduce((sum, day) => sum + day.count, 0);
+  const neutralTone = getToneStyles('neutral');
+  const successTone = getToneStyles('success');
+  const dangerTone = getToneStyles('danger');
 
   return (
-    <div className="w-full px-6 py-8 space-y-8">
+    <div className="w-full space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-[22px] font-bold tracking-[-0.025em] text-foreground">Stats</h1>
-        <p className="mt-0.5 text-[13px] text-muted-foreground/75">Your productivity overview across all projects and runners.</p>
+      <div
+        className="motion-section flex flex-wrap items-start justify-between gap-3"
+        style={{ '--motion-delay': '80ms' } as React.CSSProperties}
+      >
+        <div>
+          <PageTitle icon={BarChart2} title="Stats" />
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85">
+            Productivity, completion health, and runner usage across your workspace
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>
+              {totals.total} total tasks
+            </span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', successTone.pill)}>
+              {completedLast30} completed in 30d
+            </span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', activeRunners > 0 ? successTone.pill : neutralTone.pill)}>
+              {activeRunners} active runners
+            </span>
+            {totals.failed > 0 && (
+              <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', dangerTone.pill)}>
+                {totals.failed} failed
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -201,6 +268,7 @@ export default function StatsPage() {
           sub={`${totals.in_progress} in progress`}
           tone="neutral"
           icon={Target}
+          delay={120}
         />
         <SummaryCard
           label="Completed"
@@ -208,6 +276,7 @@ export default function StatsPage() {
           sub={`${totals.cancelled} cancelled`}
           tone="success"
           icon={CheckCircle2}
+          delay={150}
         />
         <SummaryCard
           label="Success Rate"
@@ -215,6 +284,7 @@ export default function StatsPage() {
           sub={`${totals.failed} failed`}
           tone={successRate == null ? 'neutral' : successRate >= 80 ? 'success' : successRate >= 50 ? 'warning' : 'danger'}
           icon={TrendingUp}
+          delay={180}
         />
         <SummaryCard
           label="Avg. Completion"
@@ -222,24 +292,27 @@ export default function StatsPage() {
           sub="per completed task"
           tone="brand"
           icon={Clock}
+          delay={210}
         />
       </div>
 
       {/* Runner summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <SummaryCard
           label="Total Runners"
           value={runnerCounts.total}
-          sub={`${runnerCounts.online + runnerCounts.busy} active`}
+          sub={`${activeRunners} active`}
           tone="neutral"
           icon={Bot}
+          delay={240}
         />
         <SummaryCard
           label="Online / Busy"
-          value={runnerCounts.online + runnerCounts.busy}
+          value={activeRunners}
           sub={`${runnerCounts.online} online, ${runnerCounts.busy} busy`}
           tone="success"
           icon={Zap}
+          delay={270}
         />
         <SummaryCard
           label="Failed Tasks"
@@ -247,54 +320,47 @@ export default function StatsPage() {
           sub={`${totals.backlog} in backlog`}
           tone={totals.failed > 0 ? 'danger' : 'neutral'}
           icon={AlertTriangle}
+          delay={300}
         />
       </div>
 
       {/* Activity chart */}
-      <div className="rounded-xl border border-border/60 bg-card p-5">
-        <SectionHeader title="Daily Completed Tasks (Last 30 Days)" icon={Activity} />
+      <StatPanel title="Daily Completed Tasks (Last 30 Days)" icon={Activity} delay={330}>
         {dailyCompleted.length === 0 ? (
           <p className="text-[12px] text-muted-foreground/60 py-6 text-center">No completed tasks yet.</p>
         ) : (
           <ActivityChart days={dailyCompleted} />
         )}
         <p className="mt-3 text-[11px] text-muted-foreground/50 text-right">
-          {dailyCompleted.reduce((s, d) => s + d.count, 0)} total in last 30 days
+          {completedLast30} total in last 30 days
         </p>
-      </div>
+      </StatPanel>
 
       {/* Two-column grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         {/* Task status distribution */}
-        <div className="rounded-xl border border-border/60 bg-card p-5">
-          <SectionHeader title="Tasks by Status" icon={BarChart2} />
+        <StatPanel title="Tasks by Status" icon={BarChart2} delay={360}>
           <div className="space-y-3">
             {tasksByStatus.length === 0 ? (
               <p className="text-[12px] text-muted-foreground/60">No tasks yet.</p>
             ) : tasksByStatus.map(({ status, count }) => {
               const cfg = STATUS_CONFIG[status as TaskStatus];
-              const styles = getTaskStatusStyles(status as TaskStatus);
               return (
                 <HorizontalBar
                   key={status}
                   label={cfg?.label ?? status}
                   count={count}
                   max={maxStatusCount}
-                  tone={styles === getToneStyles('neutral') ? 'neutral'
-                    : styles === getToneStyles('success') ? 'success'
-                    : styles === getToneStyles('danger') ? 'danger'
-                    : styles === getToneStyles('warning') ? 'warning'
-                    : 'brand'}
+                  tone={TASK_STATUS_TONES[status as TaskStatus] ?? 'neutral'}
                 />
               );
             })}
           </div>
-        </div>
+        </StatPanel>
 
         {/* Tasks by project */}
-        <div className="rounded-xl border border-border/60 bg-card p-5">
-          <SectionHeader title="Tasks by Project" icon={BarChart2} />
+        <StatPanel title="Tasks by Project" icon={BarChart2} delay={390}>
           <div className="space-y-3">
             {tasksByProject.length === 0 ? (
               <p className="text-[12px] text-muted-foreground/60">No projects yet.</p>
@@ -325,17 +391,15 @@ export default function StatsPage() {
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary/30 inline-block" /> Remaining</span>
             </div>
           )}
-        </div>
+        </StatPanel>
 
         {/* AI provider preference */}
-        <div className="rounded-xl border border-border/60 bg-card p-5">
-          <SectionHeader title="AI Provider Preference" icon={Zap} />
+        <StatPanel title="AI Provider Preference" icon={Zap} delay={420}>
           {tasksByProvider.length === 0 ? (
             <p className="text-[12px] text-muted-foreground/60">No tasks assigned to an AI provider yet.</p>
           ) : (
             <div className="space-y-3">
               {tasksByProvider.map(({ ai_provider, count }) => {
-                const styles = getAiProviderStyles(ai_provider as AiProvider);
                 const label = AI_LABELS[ai_provider as AiProvider] ?? ai_provider;
                 return (
                   <HorizontalBar
@@ -343,19 +407,16 @@ export default function StatsPage() {
                     label={label}
                     count={count}
                     max={maxProviderCount}
-                    tone={styles === getToneStyles('warning') ? 'warning'
-                      : styles === getToneStyles('brand') ? 'brand'
-                      : 'neutral'}
+                    tone={AI_PROVIDER_TONES[ai_provider as AiProvider] ?? 'neutral'}
                   />
                 );
               })}
             </div>
           )}
-        </div>
+        </StatPanel>
 
         {/* Priority distribution */}
-        <div className="rounded-xl border border-border/60 bg-card p-5">
-          <SectionHeader title="Priority Distribution" icon={AlertTriangle} />
+        <StatPanel title="Priority Distribution" icon={AlertTriangle} delay={450}>
           {tasksByPriority.length === 0 ? (
             <p className="text-[12px] text-muted-foreground/60">No tasks yet.</p>
           ) : (
@@ -366,17 +427,16 @@ export default function StatsPage() {
                   label={PRIORITY_LABELS[priority] ?? priority}
                   count={count}
                   max={maxPriorityCount}
-                  tone={priority === 'urgent' ? 'danger' : priority === 'high' ? 'warning' : priority === 'medium' ? 'warning' : 'neutral'}
+                  tone={TASK_PRIORITY_TONES[priority as TaskPriority] ?? 'neutral'}
                 />
               ))}
             </div>
           )}
-        </div>
+        </StatPanel>
 
         {/* Runner usage */}
         {tasksByRunner.length > 0 && (
-          <div className="rounded-xl border border-border/60 bg-card p-5">
-            <SectionHeader title="Tasks per Runner" icon={Bot} />
+          <StatPanel title="Tasks per Runner" icon={Bot} delay={480}>
             <div className="space-y-3">
               {tasksByRunner.map(({ runner_name, count, runner_status }) => {
                 const statusStyles = getRunnerStatusStyles(runner_status as RunnerStatus);
@@ -397,13 +457,12 @@ export default function StatsPage() {
                 );
               })}
             </div>
-          </div>
+          </StatPanel>
         )}
 
         {/* Top labels */}
         {topLabels.length > 0 && (
-          <div className="rounded-xl border border-border/60 bg-card p-5">
-            <SectionHeader title="Most Used Labels" icon={Target} />
+          <StatPanel title="Most Used Labels" icon={Target} delay={510}>
             <div className="space-y-3">
               {topLabels.map(({ name, color, count }) => {
                 const colorStyles = LABEL_COLORS[color as LabelColor] ?? LABEL_COLORS['gray'];
@@ -424,7 +483,7 @@ export default function StatsPage() {
                 );
               })}
             </div>
-          </div>
+          </StatPanel>
         )}
 
       </div>
