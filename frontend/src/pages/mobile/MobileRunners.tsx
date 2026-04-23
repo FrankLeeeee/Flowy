@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Runner, Task, AiProvider } from '../../types';
 import {
   fetchRunners, fetchTasks, deleteRunner, refreshRunnerProviders,
@@ -16,10 +17,11 @@ import { cn, timeAgo } from '@/lib/utils';
 import { getToneStyles, getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
 import {
   Bot, Plus, Shield, Copy, CheckCircle2, Sparkles, Terminal,
-  Trash2, RefreshCw, Loader2,
+  Trash2, RefreshCw, Loader2, ArrowLeft,
 } from 'lucide-react';
 
 export default function MobileRunners() {
+  const navigate = useNavigate();
   const neutralTone = getToneStyles('neutral');
   const successTone = getToneStyles('success');
   const dangerTone = getToneStyles('danger');
@@ -113,11 +115,20 @@ export default function MobileRunners() {
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-[18px] font-bold tracking-tight text-foreground">Runners</h1>
-            <div className="mt-1 flex items-center gap-2 text-[11px]">
-              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', successTone.pill)}>{onlineCount} online</span>
-              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', neutralTone.pill)}>{offlineCount} offline</span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/settings')}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 active:bg-muted/50"
+            >
+              <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <div>
+              <h1 className="text-[18px] font-bold tracking-tight text-foreground">Runners</h1>
+              <div className="mt-1 flex items-center gap-2 text-[11px]">
+                <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', successTone.pill)}>{onlineCount} online</span>
+                <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', neutralTone.pill)}>{offlineCount} offline</span>
+              </div>
             </div>
           </div>
           {tab === 'runners' && (

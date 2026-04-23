@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { AiProvider, Runner, Skill } from "../../types";
 import {
   fetchRunners,
@@ -31,6 +32,7 @@ import {
   Eye,
   Radio,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +78,7 @@ function groupSkills(skills: Skill[]): SkillGroup[] {
 }
 
 export default function MobileSkills() {
+  const navigate = useNavigate();
   const [runners, setRunners] = useState<Runner[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,13 +183,29 @@ export default function MobileSkills() {
     <div className="flex min-h-full flex-col">
       <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] backdrop-blur-lg">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-[18px] font-bold tracking-tight text-foreground">Skills</h1>
-            <p className="text-[11px] text-muted-foreground/70">
-              {skillGroups.length} skill{skillGroups.length === 1 ? "" : "s"}
-            </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 active:bg-muted/50"
+            >
+              <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <div>
+              <h1 className="text-[18px] font-bold tracking-tight text-foreground">
+                Skills
+              </h1>
+              <p className="text-[11px] text-muted-foreground/70">
+                {skillGroups.length} skill{skillGroups.length === 1 ? "" : "s"}
+              </p>
+            </div>
           </div>
-          <Button size="sm" disabled={runners.length === 0} onClick={() => setShowCreate(true)} className="h-8 rounded-full px-3 text-[11px]">
+          <Button
+            size="sm"
+            disabled={runners.length === 0}
+            onClick={() => setShowCreate(true)}
+            className="h-8 rounded-full px-3 text-[11px]"
+          >
             <Plus className="mr-1 h-3.5 w-3.5" />
             Add
           </Button>

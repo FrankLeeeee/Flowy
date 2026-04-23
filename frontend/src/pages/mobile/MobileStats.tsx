@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchStats } from '../../api/client';
 import { Stats } from '../../types';
 import { cn } from '@/lib/utils';
@@ -9,7 +10,7 @@ import {
   getRunnerStatusStyles, LABEL_COLORS,
 } from '@/lib/semanticColors';
 import { AiProvider, LabelColor, RunnerStatus, TaskStatus } from '../../types';
-import { AlertTriangle, Target, Activity, Bot, Zap, BarChart2 } from 'lucide-react';
+import { AlertTriangle, Target, Activity, Bot, Zap, BarChart2, ArrowLeft } from 'lucide-react';
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low', none: 'None',
@@ -67,6 +68,7 @@ function ActivityChart({ days }: { days: Array<{ date: string; count: number }> 
 }
 
 export default function MobileStats() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -125,14 +127,24 @@ export default function MobileStats() {
   const maxPriorityCount = Math.max(...tasksByPriority.map((p) => p.count), 1);
   const maxRunnerCount = Math.max(...tasksByRunner.map((r) => r.count), 1);
   const maxLabelCount = Math.max(...topLabels.map((l) => l.count), 1);
-
-  return (
-    <div className="flex flex-col min-h-full">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
-        <h1 className="text-[18px] font-bold tracking-tight text-foreground">Stats</h1>
-        <p className="text-[11px] text-muted-foreground/70 mt-0.5">Productivity overview</p>
+return (
+  <div className="flex flex-col min-h-full">
+    {/* Sticky header */}
+    <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/settings')}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 active:bg-muted/50"
+        >
+          <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <div>
+          <h1 className="text-[18px] font-bold tracking-tight text-foreground">Stats</h1>
+          <p className="mt-1 text-[11px] text-muted-foreground/75">Productivity & Usage</p>
+        </div>
       </div>
+    </div>
 
       <div className="p-4 space-y-4 pb-6">
 
