@@ -25,15 +25,14 @@ export default function MobileShell({
   );
 
   return (
-    <div className="flex h-[100dvh] min-w-0 flex-col bg-background">
+    <div className="flex min-w-0 h-screen flex-col bg-background">
       {/* Content area — flex-1 fills remaining height; pb clears the fixed tab bar */}
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(4rem+env(safe-area-inset-bottom)*0.6)] [-webkit-overflow-scrolling:touch]">
         {children}
       </main>
-
       {/* Bottom tab bar — fixed to bottom of viewport */}
-      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 pb-[calc(env(safe-area-inset-bottom)*0.6)] backdrop-blur-lg">
-        <div className="flex h-14 items-stretch">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-lg">
+        <div className="flex h-12 items-stretch">
           {TABS.map(({ to, icon: Icon, label }) => {
             let isActive = undefined;
             if (to === "/projects") {
@@ -49,7 +48,7 @@ export default function MobileShell({
                 className={({ isActive: navActive }) => {
                   const active = isActive ?? navActive;
                   return cn(
-                    "flex flex-1 flex-col items-center justify-center text-[10px] font-medium transition-colors duration-150",
+                    "flex flex-1 flex-col items-center justify-end text-[10px] font-medium transition-colors duration-150",
                     active
                       ? "text-primary"
                       : "text-muted-foreground/70 active:text-foreground",
@@ -66,4 +65,3 @@ export default function MobileShell({
     </div>
   );
 }
-

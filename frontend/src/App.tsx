@@ -63,7 +63,7 @@ function MobileApp() {
 
   return (
     <MobileShell>
-      <div key={location.pathname} className="motion-page min-h-full">
+      <div key={location.pathname} className="motion-page min-h-screen">
         <Routes>
           <Route path="/" element={<Navigate to="/inbox" replace />} />
           <Route path="/inbox" element={<MobileInbox />} />
