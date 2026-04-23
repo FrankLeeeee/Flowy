@@ -122,6 +122,7 @@ function migrate(): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
   `);
 
   seedDefaultLabels();

@@ -189,6 +189,10 @@ export default function Sidebar() {
                 <Bot className="h-4 w-4 shrink-0 opacity-60" />
                 Runners
               </NavLink>
+              <NavLink to="/skills" className={navLinkClass}>
+                <Sparkles className="h-4 w-4 shrink-0 opacity-60" />
+                Skills
+              </NavLink>
               <NavLink to="/stats" className={navLinkClass}>
                 <BarChart2 className="h-4 w-4 shrink-0 opacity-60" />
                 Stats

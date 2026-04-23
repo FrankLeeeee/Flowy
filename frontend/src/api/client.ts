@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label, Stats, Session, SessionMessage } from '../types';
+import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label, Skill, AiProvider, Stats, Session, SessionMessage } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -121,6 +121,37 @@ export async function refreshRunnerProviders(id: string): Promise<void> {
 export interface BrowseEntry {
   name: string;
   isDirectory: boolean;
+}
+
+// ── Skills ────────────────────────────────────────────────────────────────
+
+export async function fetchSkills(filters?: { runner?: string; cli?: AiProvider }): Promise<Skill[]> {
+  const { data } = await api.get<Skill[]>('/skills', { params: filters });
+  return data;
+}
+
+export async function fetchSkill(id: string): Promise<Skill> {
+  const { data } = await api.get<Skill>(`/skills/${id}`);
+  return data;
+}
+
+export async function createOrUpdateSkill(body: {
+  runnerId: string; name: string;
+}): Promise<Skill> {
+  const { data } = await api.post<Skill>('/skills', body);
+  return data;
+}
+
+export async function deleteSkill(id: string): Promise<void> {
+  await api.delete(`/skills/${id}`);
+}
+
+export async function broadcastSkill(id: string, runnerIds?: string[]): Promise<{
+  broadcast: number;
+  results: { runnerId: string; skillId: string; created: boolean }[];
+}> {
+  const { data } = await api.post(`/skills/${id}/broadcast`, runnerIds ? { runnerIds } : {});
+  return data;
 }
 
 export async function browseRunnerDirectory(runnerId: string, path: string): Promise<BrowseEntry[]> {

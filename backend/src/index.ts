@@ -6,6 +6,7 @@ import projectsRouter  from './routes/projects';
 import tasksRouter     from './routes/tasks';
 import runnersRouter   from './routes/runners';
 import labelsRouter    from './routes/labels';
+import skillsRouter    from './routes/skills';
 import statsRouter     from './routes/stats';
 import sessionsRouter  from './routes/sessions';
 import { initDb }      from './db';
@@ -15,7 +16,7 @@ const app  = express();
 const PORT = process.env.PORT ?? 3001;
 
 app.use(cors(process.env.NODE_ENV === 'production' ? {} : { origin: 'http://localhost:5173' }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 initDb();
 
@@ -24,6 +25,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/tasks',    tasksRouter);
 app.use('/api/runners',  runnersRouter);
 app.use('/api/labels',   labelsRouter);
+app.use('/api/skills',   skillsRouter);
 app.use('/api/stats',    statsRouter);
 app.use('/api/sessions', sessionsRouter);
 

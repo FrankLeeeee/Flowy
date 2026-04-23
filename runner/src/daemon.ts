@@ -5,6 +5,7 @@ import { RegisterResponse, RunnerConfig } from './types';
 import { RunnerApi, SessionCommand } from './api';
 import { deleteToken, detectAvailableProviders, saveToken } from './config';
 import { executeTask } from './executor';
+import { applySkillCommand, listSkills } from './skills';
 import { executeSessionTurn } from './sessionExecutor';
 import { getRunnerTokenPath } from './configDir';
 import {
@@ -26,6 +27,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let pollTimer: ReturnType<typeof setInterval> | undefined;
   let browsePollTimer: ReturnType<typeof setInterval> | undefined;
+  let skillPollTimer: ReturnType<typeof setInterval> | undefined;
   let sessionPollTimer: ReturnType<typeof setInterval> | undefined;
   const activeSessions = new Map<string, () => void>(); // sessionId → kill
   let sessionPolling = false;
@@ -54,10 +56,12 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     if (pollTimer) clearInterval(pollTimer);
     if (browsePollTimer) clearInterval(browsePollTimer);
+    if (skillPollTimer) clearInterval(skillPollTimer);
     if (sessionPollTimer) clearInterval(sessionPollTimer);
     heartbeatTimer = undefined;
     pollTimer = undefined;
     browsePollTimer = undefined;
+    skillPollTimer = undefined;
     sessionPollTimer = undefined;
   };
 
@@ -255,6 +259,41 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     }
   };
 
+  // ── Skill-command polling ─────────────────────────────────────────────
+
+  const skillPoll = async () => {
+    if (reconnecting || shuttingDown) return;
+
+    try {
+      const commands = await api.fetchSkillCommands();
+      for (const command of commands) {
+        try {
+          applySkillCommand(command);
+          console.log(`Applied skill ${command.action}: ${command.cli}/${command.name}`);
+          await api.submitSkillResult(command.commandId);
+        } catch (error) {
+          const message = errorMessage(error);
+          console.warn(`Skill ${command.action} failed for ${command.cli}/${command.name}: ${message}`);
+          try { await api.submitSkillResult(command.commandId, message); } catch { /* noop */ }
+        }
+      }
+
+      const inventoryRequests = await api.fetchSkillInventoryRequests();
+      for (const { requestId } of inventoryRequests) {
+        try {
+          await api.submitSkillInventoryResult(requestId, listSkills());
+        } catch (error) {
+          await api.submitSkillInventoryError(requestId, errorMessage(error));
+        }
+      }
+    } catch (error) {
+      console.warn('Skill poll failed:', errorMessage(error));
+      void reconnectAfterFailure(error).catch((reconnectError) => {
+        console.error('Skill poll reconnect failed:', errorMessage(reconnectError));
+      });
+    }
+  };
+
   // ── Session command polling ──────────────────────────────────────────────
 
   const runSessionCommand = async (cmd: SessionCommand): Promise<void> => {
@@ -329,6 +368,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     heartbeatTimer = setInterval(heartbeat, 30_000);
     pollTimer = setInterval(poll, config.pollInterval * 1000);
     browsePollTimer = setInterval(browsePoll, 2_000);
+    skillPollTimer = setInterval(skillPoll, 3_000);
     sessionPollTimer = setInterval(sessionPoll, 2_000);
   };
 

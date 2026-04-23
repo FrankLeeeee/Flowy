@@ -115,6 +115,17 @@ export interface Label {
   updated_at: string;
 }
 
+export interface Skill {
+  id: string;
+  runner_id: string;
+  cli: AiProvider;
+  name: string;
+  description: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export type SessionStatus = 'idle' | 'busy' | 'stopped';
 export type SessionMessageRole = 'user' | 'assistant' | 'system';
 

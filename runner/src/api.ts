@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { Task, RegisterResponse, HeartbeatResponse } from './types';
+import { Task, RegisterResponse, HeartbeatResponse, SkillCommand, SkillInventoryEntry } from './types';
 
 export class RunnerApi {
   private client: AxiosInstance;
@@ -55,6 +55,28 @@ export class RunnerApi {
 
   async submitBrowseError(requestId: string, error: string): Promise<void> {
     await this.client.post('/runners/browse-result', { requestId, error });
+  }
+
+  async fetchSkillCommands(): Promise<SkillCommand[]> {
+    const { data } = await this.client.get<SkillCommand[]>('/runners/skill-commands');
+    return data;
+  }
+
+  async submitSkillResult(commandId: string, error?: string): Promise<void> {
+    await this.client.post('/runners/skill-result', { commandId, error });
+  }
+
+  async fetchSkillInventoryRequests(): Promise<{ requestId: string }[]> {
+    const { data } = await this.client.get<{ requestId: string }[]>('/runners/skill-inventory-requests');
+    return data;
+  }
+
+  async submitSkillInventoryResult(requestId: string, skills: SkillInventoryEntry[]): Promise<void> {
+    await this.client.post('/runners/skill-inventory-result', { requestId, skills });
+  }
+
+  async submitSkillInventoryError(requestId: string, error: string): Promise<void> {
+    await this.client.post('/runners/skill-inventory-result', { requestId, error });
   }
 
   async fetchSessionCommands(): Promise<SessionCommand[]> {

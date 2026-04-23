@@ -5,6 +5,8 @@ import { getDb } from '../db';
 import { Runner, Task, TaskLog } from '../types';
 import { authenticateRunner } from '../middleware/runnerAuth';
 import { loadSettings } from '../storage';
+import { drainSkillCommandsFor } from '../skillQueue';
+import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSkillEntry } from '../skillInventory';
 import { drainSessionCommands } from './sessionCommandQueue';
 
 const router = Router();
@@ -218,6 +220,46 @@ router.post('/browse-result', authenticateRunner, (req: Request, res: Response) 
   } else {
     pending.resolve(entries ?? []);
   }
+
+  res.json({ ok: true });
+});
+
+// GET /api/runners/skill-commands — runner fetches pending skill sync commands
+router.get('/skill-commands', authenticateRunner, (req: Request, res: Response) => {
+  const runner = req.runner!;
+  const commands = drainSkillCommandsFor(runner.id);
+  res.json(commands.map(({ commandId, action, cli, name, description, content, installCommand }) => ({
+    commandId, action, cli, name, description, content, installCommand,
+  })));
+});
+
+// POST /api/runners/skill-result — runner reports sync result (ack only, for logging)
+router.post('/skill-result', authenticateRunner, (req: Request, res: Response) => {
+  const { commandId, error } = req.body as { commandId?: string; error?: string };
+  if (!commandId) { res.status(400).json({ error: 'commandId is required' }); return; }
+  if (error) {
+    console.warn(`Runner ${req.runner!.id} failed skill command ${commandId}: ${error}`);
+  }
+  res.json({ ok: true });
+});
+
+// GET /api/runners/skill-inventory-requests — runner drains pending skill inventory requests
+router.get('/skill-inventory-requests', authenticateRunner, (req: Request, res: Response) => {
+  const runner = req.runner!;
+  res.json(drainSkillInventoryRequestsFor(runner.id));
+});
+
+// POST /api/runners/skill-inventory-result — runner submits current local skills
+router.post('/skill-inventory-result', authenticateRunner, (req: Request, res: Response) => {
+  const { requestId, skills, error } = req.body as {
+    requestId?: string;
+    skills?: RunnerSkillEntry[];
+    error?: string;
+  };
+  if (!requestId) { res.status(400).json({ error: 'requestId is required' }); return; }
+
+  const resolved = resolveSkillInventoryRequest(requestId, skills ?? [], error);
+  if (!resolved) { res.status(404).json({ error: 'Skill inventory request not found or already resolved' }); return; }
 
   res.json({ ok: true });
 });
