@@ -97,6 +97,21 @@ function migrate(): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS skills (
+      id          TEXT PRIMARY KEY,
+      runner_id   TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
+      cli         TEXT NOT NULL CHECK (cli IN ('claude-code','codex','cursor-agent')),
+      name        TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      content     TEXT NOT NULL DEFAULT '',
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (runner_id, cli, name)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_skills_runner ON skills(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_skills_cli ON skills(cli);
   `);
 
   seedDefaultLabels();

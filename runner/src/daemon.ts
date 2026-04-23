@@ -5,6 +5,7 @@ import { RegisterResponse, RunnerConfig } from './types';
 import { RunnerApi } from './api';
 import { deleteToken, detectAvailableProviders, saveToken } from './config';
 import { executeTask } from './executor';
+import { applySkillCommand } from './skills';
 import { getRunnerTokenPath } from './configDir';
 import {
   MAX_RECONNECT_DURATION_MS,
@@ -25,6 +26,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let pollTimer: ReturnType<typeof setInterval> | undefined;
   let browsePollTimer: ReturnType<typeof setInterval> | undefined;
+  let skillPollTimer: ReturnType<typeof setInterval> | undefined;
 
   const errorMessage = (error: unknown): string => (
     error instanceof Error ? error.message : String(error)
@@ -50,9 +52,11 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     if (pollTimer) clearInterval(pollTimer);
     if (browsePollTimer) clearInterval(browsePollTimer);
+    if (skillPollTimer) clearInterval(skillPollTimer);
     heartbeatTimer = undefined;
     pollTimer = undefined;
     browsePollTimer = undefined;
+    skillPollTimer = undefined;
   };
 
   const handleInvalidToken = (): never => {
@@ -243,6 +247,32 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     }
   };
 
+  // ── Skill-command polling ─────────────────────────────────────────────
+
+  const skillPoll = async () => {
+    if (reconnecting || shuttingDown) return;
+
+    try {
+      const commands = await api.fetchSkillCommands();
+      for (const command of commands) {
+        try {
+          applySkillCommand(command);
+          console.log(`Applied skill ${command.action}: ${command.cli}/${command.name}`);
+          await api.submitSkillResult(command.commandId);
+        } catch (error) {
+          const message = errorMessage(error);
+          console.warn(`Skill ${command.action} failed for ${command.cli}/${command.name}: ${message}`);
+          try { await api.submitSkillResult(command.commandId, message); } catch { /* noop */ }
+        }
+      }
+    } catch (error) {
+      console.warn('Skill poll failed:', errorMessage(error));
+      void reconnectAfterFailure(error).catch((reconnectError) => {
+        console.error('Skill poll reconnect failed:', errorMessage(reconnectError));
+      });
+    }
+  };
+
   // ── Intervals ─────────────────────────────────────────────────────────
 
   const startIntervals = () => {
@@ -250,6 +280,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     heartbeatTimer = setInterval(heartbeat, 30_000);
     pollTimer = setInterval(poll, config.pollInterval * 1000);
     browsePollTimer = setInterval(browsePoll, 2_000);
+    skillPollTimer = setInterval(skillPoll, 3_000);
   };
 
   // ── Registration ────────────────────────────────────────────────────────

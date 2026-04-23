@@ -5,6 +5,7 @@ import { getDb } from '../db';
 import { Runner, Task, TaskLog } from '../types';
 import { authenticateRunner } from '../middleware/runnerAuth';
 import { loadSettings } from '../storage';
+import { drainSkillCommandsFor } from '../skillQueue';
 
 const router = Router();
 
@@ -206,6 +207,25 @@ router.post('/browse-result', authenticateRunner, (req: Request, res: Response) 
     pending.resolve(entries ?? []);
   }
 
+  res.json({ ok: true });
+});
+
+// GET /api/runners/skill-commands — runner fetches pending skill sync commands
+router.get('/skill-commands', authenticateRunner, (req: Request, res: Response) => {
+  const runner = req.runner!;
+  const commands = drainSkillCommandsFor(runner.id);
+  res.json(commands.map(({ commandId, action, cli, name, description, content }) => ({
+    commandId, action, cli, name, description, content,
+  })));
+});
+
+// POST /api/runners/skill-result — runner reports sync result (ack only, for logging)
+router.post('/skill-result', authenticateRunner, (req: Request, res: Response) => {
+  const { commandId, error } = req.body as { commandId?: string; error?: string };
+  if (!commandId) { res.status(400).json({ error: 'commandId is required' }); return; }
+  if (error) {
+    console.warn(`Runner ${req.runner!.id} failed skill command ${commandId}: ${error}`);
+  }
   res.json({ ok: true });
 });
 

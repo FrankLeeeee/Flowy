@@ -12,11 +12,13 @@ import Inbox from "./pages/Inbox";
 import ProjectDetail from "./pages/ProjectDetail";
 import Runners from "./pages/Runners";
 import Labels from "./pages/Labels";
+import Skills from "./pages/Skills";
 import MobileInbox from "./pages/mobile/MobileInbox";
 import MobileProjects from "./pages/mobile/MobileProjects";
 import MobileProjectDetail from "./pages/mobile/MobileProjectDetail";
 import MobileRunners from "./pages/mobile/MobileRunners";
 import MobileLabels from "./pages/mobile/MobileLabels";
+import MobileSkills from "./pages/mobile/MobileSkills";
 
 function DesktopShell() {
   const location = useLocation();
@@ -32,6 +34,7 @@ function DesktopShell() {
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="/runners" element={<Runners />} />
             <Route path="/labels" element={<Labels />} />
+            <Route path="/skills" element={<Skills />} />
             <Route
               path="/projects"
               element={<Navigate to="/inbox" replace />}
@@ -61,6 +64,7 @@ function MobileApp() {
           <Route path="/project/:id" element={<MobileProjectDetail />} />
           <Route path="/runners" element={<MobileRunners />} />
           <Route path="/labels" element={<MobileLabels />} />
+          <Route path="/skills" element={<MobileSkills />} />
           <Route path="/usage" element={<Navigate to="/runners" replace />} />
           <Route
             path="/settings"

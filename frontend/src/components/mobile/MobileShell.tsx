@@ -1,11 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Inbox, FolderKanban, Bot, Tags } from "lucide-react";
+import { Inbox, FolderKanban, Bot, Tags, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { to: "/inbox", icon: Inbox, label: "Inbox" },
   { to: "/projects", icon: FolderKanban, label: "Projects" },
   { to: "/runners", icon: Bot, label: "Runners" },
+  { to: "/skills", icon: Wand2, label: "Skills" },
   { to: "/labels", icon: Tags, label: "Labels" },
 ] as const;
 

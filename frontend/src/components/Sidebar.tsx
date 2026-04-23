@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import {
   Inbox, FolderKanban, Bot, Tags,
-  Plus, ChevronRight, Trash2,
+  Plus, ChevronRight, Trash2, Wand2,
   Sun, Moon, Monitor,
   ArrowRight, Sparkles,
 } from 'lucide-react';
@@ -184,6 +184,10 @@ export default function Sidebar() {
               <NavLink to="/runners" className={navLinkClass}>
                 <Bot className="h-4 w-4 shrink-0 opacity-60" />
                 Runners
+              </NavLink>
+              <NavLink to="/skills" className={navLinkClass}>
+                <Wand2 className="h-4 w-4 shrink-0 opacity-60" />
+                Skills
               </NavLink>
             </div>
 

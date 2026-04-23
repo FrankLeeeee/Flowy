@@ -66,3 +66,15 @@ export interface HeartbeatResponse {
   status: string;
   refreshCli?: boolean;
 }
+
+export type SkillCli = 'claude-code' | 'codex' | 'cursor-agent';
+export type SkillAction = 'write' | 'delete';
+
+export interface SkillCommand {
+  commandId: string;
+  action: SkillAction;
+  cli: SkillCli;
+  name: string;
+  description?: string;
+  content?: string;
+}
