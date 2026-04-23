@@ -8,6 +8,7 @@ import { AI_LABELS, STATUS_CONFIG } from '@/lib/taskConstants';
 import {
   AI_PROVIDER_TONES,
   LABEL_COLORS,
+  RUNNER_STATUS_TONES,
   TASK_PRIORITY_TONES,
   TASK_STATUS_TONES,
   getRunnerStatusStyles,
@@ -82,6 +83,48 @@ function HorizontalBar({
   );
 }
 
+function WorkloadRow({
+  label,
+  count,
+  max,
+  minutes,
+  tone,
+  dotClassName,
+}: {
+  label: string;
+  count: number;
+  max: number;
+  minutes: number | null | undefined;
+  tone?: StatTone;
+  dotClassName?: string;
+}) {
+  const styles = getToneStyles(tone ?? 'neutral');
+  const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {dotClassName && <span className={cn('h-2 w-2 shrink-0 rounded-full', dotClassName)} />}
+          <span className="truncate text-[12px] text-muted-foreground/85">{label}</span>
+        </div>
+        <div className="shrink-0 text-right text-[11px] text-muted-foreground/70">
+          <span className="font-semibold tabular-nums text-foreground/80">{count}</span>
+          <span className="ml-1">tasks</span>
+          <span className="mx-1.5 text-foreground/25">/</span>
+          <span className="font-medium tabular-nums text-foreground/75">{formatDuration(minutes)}</span>
+        </div>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-foreground/[0.05]">
+        <div
+          className={cn('h-full rounded-full transition-all duration-500', styles.bar)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({ title, icon: Icon }: { title: string; icon: React.ComponentType<{ className?: string }> }) {
   return (
     <div className="mb-4 flex items-center gap-2">
@@ -118,31 +161,51 @@ function StatPanel({
 function StatsSection({
   title,
   icon: Icon,
+  description,
   children,
   delay,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
+  description?: string;
   children: React.ReactNode;
   delay?: number;
 }) {
   return (
     <section
-      className="motion-section space-y-4"
+      className="motion-section space-y-4 border-t border-border/70 pt-5"
       style={{ '--motion-delay': `${delay ?? 0}ms` } as React.CSSProperties}
     >
-      <div className="flex items-center gap-2">
-        <span
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-border/70 bg-foreground/[0.03] text-primary shadow-soft"
-          aria-hidden="true"
-        >
-          <Icon className="h-3.5 w-3.5" />
-        </span>
-        <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Icon className="h-3.5 w-3.5 text-muted-foreground/65" />
+            <h2 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/85">{title}</h2>
+          </div>
+          {description && (
+            <p className="mt-1 text-[12px] text-muted-foreground/70">{description}</p>
+          )}
+        </div>
       </div>
       {children}
     </section>
   );
+}
+
+function formatDuration(minutes: number | null | undefined) {
+  const safeMinutes = Math.max(0, Math.round(minutes ?? 0));
+  if (safeMinutes === 0) return '0m';
+  if (safeMinutes < 60) return `${safeMinutes}m`;
+
+  const hours = Math.floor(safeMinutes / 60);
+  const remainingMinutes = safeMinutes % 60;
+  if (hours < 24) {
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+  }
+
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
 }
 
 function ActivityChart({ days }: { days: Array<{ date: string; count: number }> }) {
@@ -270,7 +333,12 @@ export default function StatsPage() {
         </div>
       </div>
 
-      <StatsSection title="Projects" icon={FolderOpen} delay={120}>
+      <StatsSection
+        title="Projects"
+        icon={FolderOpen}
+        description="Task volume, completion health, priority mix, and project distribution"
+        delay={120}
+      >
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <SummaryCard
             label="Total Tasks"
@@ -415,7 +483,12 @@ export default function StatsPage() {
         </div>
       </StatsSection>
 
-      <StatsSection title="Runners" icon={Bot} delay={420}>
+      <StatsSection
+        title="Runners"
+        icon={Bot}
+        description="Runner availability, handled tasks, and elapsed task time"
+        delay={420}
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <SummaryCard
             label="Total Runners"
@@ -444,24 +517,20 @@ export default function StatsPage() {
         </div>
 
         {tasksByRunner.length > 0 && (
-          <StatPanel title="Tasks per Runner" icon={Bot} delay={540}>
+          <StatPanel title="Runner Workload" icon={Bot} delay={540}>
             <div className="space-y-3">
-              {tasksByRunner.map(({ runner_name, count, runner_status }) => {
+              {tasksByRunner.map(({ runner_name, count, runner_status, total_minutes }) => {
                 const statusStyles = getRunnerStatusStyles(runner_status as RunnerStatus);
                 return (
-                  <div key={runner_name} className="flex items-center gap-3">
-                    <div className="w-[110px] shrink-0 flex items-center gap-1.5 min-w-0">
-                      <span className={cn('h-2 w-2 shrink-0 rounded-full', statusStyles.dot)} />
-                      <span className="truncate text-[12px] text-muted-foreground/85">{runner_name}</span>
-                    </div>
-                    <div className="flex-1 h-2 rounded-full bg-foreground/[0.05] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-500"
-                        style={{ width: `${maxRunnerCount > 0 ? (count / maxRunnerCount) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="w-8 shrink-0 text-right text-[12px] font-semibold tabular-nums text-foreground/80">{count}</span>
-                  </div>
+                  <WorkloadRow
+                    key={runner_name}
+                    label={runner_name}
+                    count={count}
+                    max={maxRunnerCount}
+                    minutes={total_minutes}
+                    tone={RUNNER_STATUS_TONES[runner_status as RunnerStatus] ?? 'neutral'}
+                    dotClassName={statusStyles.dot}
+                  />
                 );
               })}
             </div>
@@ -469,20 +538,26 @@ export default function StatsPage() {
         )}
       </StatsSection>
 
-      <StatsSection title="CLI" icon={Terminal} delay={570}>
-        <StatPanel title="AI Provider Preference" icon={Zap} delay={600}>
+      <StatsSection
+        title="CLI"
+        icon={Terminal}
+        description="Provider usage and elapsed task time by CLI"
+        delay={570}
+      >
+        <StatPanel title="CLI Provider Workload" icon={Zap} delay={600}>
           {tasksByProvider.length === 0 ? (
             <p className="text-[12px] text-muted-foreground/60">No tasks assigned to an AI provider yet.</p>
           ) : (
             <div className="space-y-3">
-              {tasksByProvider.map(({ ai_provider, count }) => {
+              {tasksByProvider.map(({ ai_provider, count, total_minutes }) => {
                 const label = AI_LABELS[ai_provider as AiProvider] ?? ai_provider;
                 return (
-                  <HorizontalBar
+                  <WorkloadRow
                     key={ai_provider}
                     label={label}
                     count={count}
                     max={maxProviderCount}
+                    minutes={total_minutes}
                     tone={AI_PROVIDER_TONES[ai_provider as AiProvider] ?? 'neutral'}
                   />
                 );
