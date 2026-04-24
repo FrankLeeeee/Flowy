@@ -118,6 +118,10 @@ export async function refreshRunnerProviders(id: string): Promise<void> {
   await api.post(`/runners/${id}/refresh-providers`);
 }
 
+export async function updateRunnerProviders(id: string): Promise<void> {
+  await api.post(`/runners/${id}/update-providers`);
+}
+
 export interface BrowseEntry {
   name: string;
   isDirectory: boolean;

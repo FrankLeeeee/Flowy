@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Runner, Task, AiProvider } from '../../types';
 import {
-  fetchRunners, fetchTasks, deleteRunner, refreshRunnerProviders,
+  fetchRunners, fetchTasks, deleteRunner, refreshRunnerProviders, updateRunnerProviders,
   fetchRunnerSecret, updateSettings,
 } from '../../api/client';
 import { AI_LABELS } from '@/lib/taskConstants';
@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn, timeAgo } from '@/lib/utils';
 import { getToneStyles, getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
 import {
-  Bot, Plus, Shield, Copy, CheckCircle2, Sparkles, Terminal,
+  ArrowUpCircle, Bot, Plus, Shield, Copy, CheckCircle2, Sparkles, Terminal,
   Trash2, RefreshCw, Loader2, ArrowLeft,
 } from 'lucide-react';
 
@@ -32,6 +32,7 @@ export default function MobileRunners() {
   const [error, setError] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [refreshingRunnerId, setRefreshingRunnerId] = useState<string | null>(null);
+  const [updatingRunnerId, setUpdatingRunnerId] = useState<string | null>(null);
   const [registrationSecret, setRegistrationSecret] = useState('');
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [savedSecurity, setSavedSecurity] = useState(false);
@@ -73,6 +74,16 @@ export default function MobileRunners() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to refresh');
     } finally { setRefreshingRunnerId(null); }
+  };
+
+  const handleUpdate = async (id: string) => {
+    try {
+      setUpdatingRunnerId(id);
+      await updateRunnerProviders(id);
+      await loadData();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to request CLI update');
+    } finally { setUpdatingRunnerId(null); }
   };
 
   const handleSaveSecurity = async () => {
@@ -228,11 +239,16 @@ export default function MobileRunners() {
           ) : (
             runners.map((runner) => {
               const providers: AiProvider[] = JSON.parse(runner.ai_providers || '[]');
+              const versions: Record<string, string> = JSON.parse(runner.cli_versions || '{}');
               const currentTask = busyTasks.get(runner.id);
               const busyStyles = getRunnerStatusStyles('busy');
               const cliRefreshPending = Boolean(
                 runner.cli_refresh_requested_at &&
                 (!runner.last_cli_scan_at || new Date(runner.cli_refresh_requested_at).getTime() > new Date(runner.last_cli_scan_at).getTime()),
+              );
+              const cliUpdatePending = Boolean(
+                runner.cli_update_requested_at &&
+                (!runner.last_cli_scan_at || new Date(runner.cli_update_requested_at).getTime() > new Date(runner.last_cli_scan_at).getTime()),
               );
 
               return (
@@ -248,8 +264,9 @@ export default function MobileRunners() {
                   {providers.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {providers.map((p) => (
-                        <span key={p} className={cn('inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', getAiProviderStyles(p).pill)}>
+                        <span key={p} className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ring-1', getAiProviderStyles(p).pill)}>
                           {AI_LABELS[p] ?? p}
+                          {versions[p] && <span className="font-normal opacity-60">v{versions[p]}</span>}
                         </span>
                       ))}
                     </div>
@@ -266,8 +283,21 @@ export default function MobileRunners() {
                     <div className="min-w-0">
                       <span className="block text-[11px] text-muted-foreground/75">Heartbeat {timeAgo(runner.last_heartbeat)}</span>
                       {cliRefreshPending && <span className={cn('block text-[10px]', busyStyles.emphasis)}>Refresh requested</span>}
+                      {cliUpdatePending && <span className={cn('block text-[10px]', busyStyles.emphasis)}>Update requested</span>}
                     </div>
                     <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdate(runner.id)}
+                        disabled={updatingRunnerId === runner.id || cliUpdatePending || runner.status === 'offline'}
+                        className={cn(
+                          'flex h-8 w-8 items-center justify-center rounded-lg active:bg-muted/50 disabled:opacity-40 transition-colors duration-150',
+                          updatingRunnerId === runner.id || cliUpdatePending ? 'text-primary' : 'text-muted-foreground/70',
+                        )}
+                        title="Update installed CLIs to latest versions"
+                      >
+                        <ArrowUpCircle className={cn('h-3.5 w-3.5', (updatingRunnerId === runner.id || cliUpdatePending) && 'animate-bounce')} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleRefresh(runner.id)}

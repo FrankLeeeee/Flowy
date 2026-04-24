@@ -12,6 +12,13 @@ const SUPPORTED_PROVIDERS = [
   { id: 'gemini-cli', command: 'gemini' },
 ] as const;
 
+const CLI_UPDATE_COMMANDS: Record<string, { cmd: string; args: string[] }> = {
+  'claude-code':  { cmd: 'claude', args: ['update'] },
+  'codex':        { cmd: 'npm',   args: ['i', '-g', '@openai/codex@latest'] },
+  'cursor-agent': { cmd: 'agent', args: ['update'] },
+  'gemini-cli':   { cmd: 'npm',   args: ['install', '-g', '@google/gemini-cli'] },
+};
+
 export function parseArgs(argv: string[]): RunnerConfig {
   const args = argv.slice(2);
   let name = '';
@@ -58,7 +65,7 @@ export function parseArgs(argv: string[]): RunnerConfig {
     process.exit(1);
   }
 
-  const providers = detectAvailableProviders();
+  const { providers, versions } = detectAvailableProvidersWithVersions();
   if (providers.length === 0) {
     console.error('No supported AI CLIs were detected on this machine.');
     console.error('Install one of: claude, codex, agent, gemini');
@@ -69,6 +76,7 @@ export function parseArgs(argv: string[]): RunnerConfig {
     name,
     url: url.replace(/\/$/, ''),
     providers,
+    cliVersions: versions,
     lastCliScanAt: new Date().toISOString(),
     pollInterval,
     token,
@@ -77,10 +85,50 @@ export function parseArgs(argv: string[]): RunnerConfig {
   };
 }
 
+export function updateInstalledClis(providers: string[]): void {
+  for (const provider of providers) {
+    const entry = CLI_UPDATE_COMMANDS[provider];
+    if (!entry) continue;
+    const label = `${entry.cmd} ${entry.args.join(' ')}`;
+    console.log(`  Running: ${label}`);
+    const result = childProcess.spawnSync(entry.cmd, entry.args, {
+      encoding: 'utf-8',
+      timeout: 120_000,
+      env: { ...process.env, CI: '1' },
+    });
+    if (result.status !== 0) {
+      const output = [result.stderr, result.stdout].filter(Boolean).join('\n').trim();
+      console.warn(`  Failed to update ${provider}: ${output || `exit ${result.status}`}`);
+    } else {
+      console.log(`  Updated ${provider}`);
+    }
+  }
+}
+
+export function detectAvailableProvidersWithVersions(): { providers: string[]; versions: Record<string, string> } {
+  const providers: string[] = [];
+  const versions: Record<string, string> = {};
+  for (const p of SUPPORTED_PROVIDERS) {
+    if (!isCommandAvailable(p.command)) continue;
+    providers.push(p.id);
+    const v = detectCliVersion(p.command);
+    if (v) versions[p.id] = v;
+  }
+  return { providers, versions };
+}
+
 export function detectAvailableProviders(): string[] {
-  return SUPPORTED_PROVIDERS
-    .filter((provider) => isCommandAvailable(provider.command))
-    .map((provider) => provider.id);
+  return detectAvailableProvidersWithVersions().providers;
+}
+
+function detectCliVersion(command: string): string {
+  const result = childProcess.spawnSync(command, ['--version'], {
+    encoding: 'utf-8',
+    timeout: 5_000,
+  });
+  const output = [result.stdout, result.stderr].filter(Boolean).join('');
+  const match = output.match(/\d+\.\d+\.\d+/);
+  return match?.[0] ?? '';
 }
 
 function isCommandAvailable(command: string): boolean {
