@@ -5,6 +5,7 @@ import {
   fetchTasks,
   deleteRunner,
   refreshRunnerProviders,
+  updateRunnerProviders,
   fetchRunnerSecret,
   updateSettings,
 } from "../api/client";
@@ -47,9 +48,8 @@ export default function Runners() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showSetup, setShowSetup] = useState(false);
-  const [refreshingRunnerId, setRefreshingRunnerId] = useState<string | null>(
-    null,
-  );
+  const [refreshingRunnerId, setRefreshingRunnerId] = useState<string | null>(null);
+  const [updatingRunnerId, setUpdatingRunnerId] = useState<string | null>(null);
   const [registrationSecret, setRegistrationSecret] = useState("");
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [savedSecurity, setSavedSecurity] = useState(false);
@@ -110,6 +110,21 @@ export default function Runners() {
       );
     } finally {
       setRefreshingRunnerId(null);
+    }
+  };
+
+  const handleUpdate = async (id: string) => {
+    try {
+      setUpdatingRunnerId(id);
+      await updateRunnerProviders(id);
+      await loadData();
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to request CLI update",
+      );
+    } finally {
+      setUpdatingRunnerId(null);
     }
   };
 
@@ -409,7 +424,9 @@ export default function Runners() {
                       currentTask={busyTasks.get(runner.id)}
                       onDelete={handleDelete}
                       onRefresh={handleRefresh}
+                      onUpdate={handleUpdate}
                       refreshing={refreshingRunnerId === runner.id}
+                      updating={updatingRunnerId === runner.id}
                     />
                   </div>
                 ))}

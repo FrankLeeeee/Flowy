@@ -4,22 +4,29 @@ import { Button } from '@/components/ui/button';
 import RunnerStatusBadge from './RunnerStatusBadge';
 import { cn, timeAgo } from '@/lib/utils';
 import { getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
-import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowUpCircle, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 export default function RunnerCard({
-  runner, currentTask, onDelete, onRefresh, refreshing,
+  runner, currentTask, onDelete, onRefresh, onUpdate, refreshing, updating,
 }: {
   runner: Runner;
   currentTask?: Task;
   onDelete: (id: string) => void;
   onRefresh: (id: string) => void;
+  onUpdate: (id: string) => void;
   refreshing: boolean;
+  updating: boolean;
 }) {
   const providers: AiProvider[] = JSON.parse(runner.ai_providers || '[]');
+  const versions: Record<string, string> = JSON.parse(runner.cli_versions || '{}');
   const busyStyles = getRunnerStatusStyles('busy');
   const cliRefreshPending = Boolean(
     runner.cli_refresh_requested_at &&
     (!runner.last_cli_scan_at || new Date(runner.cli_refresh_requested_at).getTime() > new Date(runner.last_cli_scan_at).getTime())
+  );
+  const cliUpdatePending = Boolean(
+    runner.cli_update_requested_at &&
+    (!runner.last_cli_scan_at || new Date(runner.cli_update_requested_at).getTime() > new Date(runner.last_cli_scan_at).getTime())
   );
 
   return (
@@ -39,8 +46,9 @@ export default function RunnerCard({
       {providers.length > 0 && (
         <div className="relative flex flex-wrap gap-1.5">
           {providers.map((p) => (
-            <span key={p} className={cn('inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ring-1', getAiProviderStyles(p).pill)}>
+            <span key={p} className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ring-1', getAiProviderStyles(p).pill)}>
               {AI_LABELS[p] ?? p}
+              {versions[p] && <span className="font-normal opacity-60">v{versions[p]}</span>}
             </span>
           ))}
         </div>
@@ -72,8 +80,26 @@ export default function RunnerCard({
               Refresh requested
             </span>
           )}
+          {cliUpdatePending && (
+            <span className={cn('block text-[10px]', busyStyles.emphasis)}>
+              Update requested
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'h-7 w-7 transition-colors duration-150',
+              updating || cliUpdatePending ? 'text-primary' : 'text-muted-foreground/70',
+            )}
+            onClick={() => onUpdate(runner.id)}
+            disabled={updating || cliUpdatePending || runner.status === 'offline'}
+            title={runner.status === 'offline' ? 'Runner must be online to update CLIs' : 'Update installed CLIs to latest versions'}
+          >
+            <ArrowUpCircle className={cn('h-3.5 w-3.5', (updating || cliUpdatePending) && 'animate-bounce')} />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

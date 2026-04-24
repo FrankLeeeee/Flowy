@@ -132,6 +132,8 @@ function migrate(): void {
   migrateAddGeminiProviderToSessions();
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
+  ensureColumn('runners', 'cli_update_requested_at', 'TEXT');
+  ensureColumn('runners', 'cli_versions', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
   ensureColumn('tasks', 'scheduled_at', 'TEXT');
   seedDefaultProject();

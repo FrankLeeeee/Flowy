@@ -132,6 +132,25 @@ router.get('/:id/browse', (req: Request, res: Response) => {
   enqueueBrowse(id, requestId);
 });
 
+// POST /api/runners/:id/update-providers — ask a live runner to update all installed CLIs to latest
+router.post('/:id/update-providers', (req: Request, res: Response) => {
+  const db = getDb();
+  const runner = db.prepare('SELECT id, status FROM runners WHERE id = ?').get(req.params.id) as { id: string; status: string } | undefined;
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+  if (runner.status === 'offline') {
+    res.status(409).json({ error: 'Runner is offline and cannot update CLIs right now' });
+    return;
+  }
+
+  db.prepare(`
+    UPDATE runners
+    SET cli_update_requested_at = datetime('now'), updated_at = datetime('now')
+    WHERE id = ?
+  `).run(runner.id);
+
+  res.json({ ok: true });
+});
+
 // POST /api/runners/:id/refresh-providers — ask a live runner to rescan installed CLIs
 router.post('/:id/refresh-providers', (req: Request, res: Response) => {
   const db = getDb();
@@ -156,13 +175,13 @@ router.post('/:id/refresh-providers', (req: Request, res: Response) => {
 // POST /api/runners/heartbeat
 router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   const db = getDb();
-  const { aiProviders, lastCliScanAt } = req.body as { aiProviders?: string[]; lastCliScanAt?: string };
+  const { aiProviders, lastCliScanAt, cliVersions } = req.body as { aiProviders?: string[]; lastCliScanAt?: string; cliVersions?: Record<string, string> };
   const runner = req.runner!;
   const current = db.prepare(`
-    SELECT status, cli_refresh_requested_at, last_cli_scan_at
+    SELECT status, cli_refresh_requested_at, cli_update_requested_at, last_cli_scan_at
     FROM runners
     WHERE id = ?
-  `).get(runner.id) as { status: string; cli_refresh_requested_at: string | null; last_cli_scan_at: string | null } | undefined;
+  `).get(runner.id) as { status: string; cli_refresh_requested_at: string | null; cli_update_requested_at: string | null; last_cli_scan_at: string | null } | undefined;
   const currentStatus = current?.status;
   const newStatus = currentStatus === 'busy' ? 'busy' : 'online';
 
@@ -175,13 +194,16 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   const params: unknown[] = [newStatus];
   if (aiProviders) { sets.push('ai_providers = ?'); params.push(JSON.stringify(aiProviders)); }
   if (lastCliScanAt) { sets.push('last_cli_scan_at = ?'); params.push(lastCliScanAt); }
+  if (cliVersions) { sets.push('cli_versions = ?'); params.push(JSON.stringify(cliVersions)); }
   params.push(runner.id);
   db.prepare(`UPDATE runners SET ${sets.join(', ')} WHERE id = ?`).run(...params);
 
-  const refreshCli = Boolean(
-    current?.cli_refresh_requested_at &&
-    (!lastCliScanAt || new Date(current.cli_refresh_requested_at).getTime() > new Date(lastCliScanAt).getTime())
+  const isNewerThanScan = (ts: string | null | undefined): boolean => Boolean(
+    ts && (!lastCliScanAt || new Date(ts).getTime() > new Date(lastCliScanAt).getTime())
   );
+
+  const refreshCli = isNewerThanScan(current?.cli_refresh_requested_at);
+  const updateCli = isNewerThanScan(current?.cli_update_requested_at);
 
   if (!refreshCli && current?.cli_refresh_requested_at) {
     db.prepare(`
@@ -191,7 +213,15 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
     `).run(runner.id);
   }
 
-  res.json({ ok: true, status: newStatus, refreshCli });
+  if (!updateCli && current?.cli_update_requested_at) {
+    db.prepare(`
+      UPDATE runners
+      SET cli_update_requested_at = NULL, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(runner.id);
+  }
+
+  res.json({ ok: true, status: newStatus, refreshCli, updateCli });
 });
 
 // GET /api/runners/browse-requests — runner fetches pending browse requests assigned to it

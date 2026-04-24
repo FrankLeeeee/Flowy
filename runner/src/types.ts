@@ -2,6 +2,7 @@ export interface RunnerConfig {
   name: string;
   url: string;
   providers: string[];
+  cliVersions: Record<string, string>;
   lastCliScanAt: string;
   pollInterval: number;  // seconds
   token?: string;
@@ -38,6 +39,7 @@ export interface HeartbeatResponse {
   ok: boolean;
   status: string;
   refreshCli?: boolean;
+  updateCli?: boolean;
 }
 
 export type SkillCli = 'claude-code' | 'codex' | 'cursor-agent' | 'gemini-cli';

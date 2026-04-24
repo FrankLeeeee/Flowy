@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { RegisterResponse, RunnerConfig } from './types';
 import { RunnerApi, SessionCommand } from './api';
-import { deleteToken, detectAvailableProviders, saveToken } from './config';
+import { deleteToken, detectAvailableProvidersWithVersions, saveToken, updateInstalledClis } from './config';
 import { executeTask } from './executor';
 import { applySkillCommand, listSkills } from './skills';
 import { executeSessionTurn } from './sessionExecutor';
@@ -17,6 +17,7 @@ import {
 export async function startDaemon(config: RunnerConfig): Promise<void> {
   const api = new RunnerApi(config.url);
   let availableProviders = [...config.providers];
+  let cliVersions = { ...config.cliVersions };
   let lastCliScanAt = config.lastCliScanAt;
 
   let executing = false;
@@ -125,12 +126,19 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
   };
 
   const sendHeartbeat = async () => {
-    const response = await api.heartbeat(availableProviders, lastCliScanAt);
-    if (response.refreshCli) {
-      availableProviders = detectAvailableProviders();
+    const response = await api.heartbeat(availableProviders, lastCliScanAt, cliVersions);
+    if (response.updateCli) {
+      console.log('Updating installed CLIs to latest versions...');
+      updateInstalledClis(availableProviders);
+      ({ providers: availableProviders, versions: cliVersions } = detectAvailableProvidersWithVersions());
+      lastCliScanAt = new Date().toISOString();
+      console.log(`CLIs updated. Available: ${availableProviders.join(', ') || '(none)'}`);
+      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions);
+    } else if (response.refreshCli) {
+      ({ providers: availableProviders, versions: cliVersions } = detectAvailableProvidersWithVersions());
       lastCliScanAt = new Date().toISOString();
       console.log(`Refreshing available CLIs: ${availableProviders.join(', ') || '(none)'}`);
-      await api.heartbeat(availableProviders, lastCliScanAt);
+      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions);
     }
   };
 
