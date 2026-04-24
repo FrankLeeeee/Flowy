@@ -73,7 +73,6 @@ export default function CreateTaskModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!projectId || !title.trim()) return;
-    // Convert local datetime string to ISO 8601 (keep as local time string for storage)
     onSubmit({ projectId, title: title.trim(), description, priority, labels, scheduledAt: scheduledAt || null });
   };
 

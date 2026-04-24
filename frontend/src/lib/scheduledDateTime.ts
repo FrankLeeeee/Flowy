@@ -1,7 +1,21 @@
 const DEFAULT_TIME = '00:00';
 
+function isUTCString(value: string): boolean {
+  return value.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(value);
+}
+
 export function splitScheduledDateTime(value: string | null | undefined): { date: string; time: string } {
   if (!value) return { date: '', time: '' };
+
+  if (isUTCString(value)) {
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+      return {
+        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+      };
+    }
+  }
 
   const [date = '', timePart = ''] = value.split('T');
   const time = timePart.slice(0, 5);
@@ -11,7 +25,9 @@ export function splitScheduledDateTime(value: string | null | undefined): { date
 
 export function combineScheduledDateTime(date: string, time: string): string {
   if (!date) return '';
-  return `${date}T${time || DEFAULT_TIME}`;
+  const [year, month, day] = date.split('-').map(Number);
+  const [hours = 0, minutes = 0] = (time || DEFAULT_TIME).split(':').map(Number);
+  return new Date(year, month - 1, day, hours, minutes).toISOString();
 }
 
 export function updateScheduledDate(currentValue: string, nextDate: string): string {
@@ -51,13 +67,18 @@ export function normalizeTimeInput(value: string): string {
 }
 
 export function formatScheduledDateTime(value: string | null | undefined): string {
-  const { date, time } = splitScheduledDateTime(value);
-  if (!date) return '-';
+  if (!value) return '-';
 
+  if (isUTCString(value)) {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? value : d.toLocaleString();
+  }
+
+  // Legacy naive local datetime
+  const { date, time } = splitScheduledDateTime(value);
+  if (!date) return value;
   const [year, month, day] = date.split('-').map(Number);
   const [hours = 0, minutes = 0] = time.split(':').map(Number);
-
-  if (!year || !month || !day) return value ?? '-';
-
+  if (!year || !month || !day) return value;
   return new Date(year, month - 1, day, hours, minutes).toLocaleString();
 }

@@ -1,5 +1,13 @@
 import { Task } from '../types';
 
+function getLocalDateString(scheduledAt: string): string {
+  if (scheduledAt.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(scheduledAt)) {
+    const d = new Date(scheduledAt);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  return scheduledAt.slice(0, 10);
+}
+
 export type DateFilterMode = 'today' | 'week' | 'custom';
 
 export interface DateFilterState {
@@ -60,7 +68,7 @@ export function filterTasksByDate(tasks: Task[], filter: DateFilterState): Task[
 
   return tasks.filter((task) => {
     if (!task.scheduled_at) return true; // backlog or unscheduled — always show
-    const taskDate = task.scheduled_at.slice(0, 10); // YYYY-MM-DD
+    const taskDate = getLocalDateString(task.scheduled_at);
     return taskDate >= start && taskDate <= end;
   });
 }
