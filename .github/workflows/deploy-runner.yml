@@ -60,7 +60,7 @@ jobs:
       - name: Verify runner started
         run: |
           sleep 3
-          if tmux has-session -t flowy 2>/dev/null; then
+          if tmux has-session -t flowy-runner 2>/dev/null; then
             echo "Runner session is active"
           else
             echo "ERROR: Runner session not found — process may have crashed"
