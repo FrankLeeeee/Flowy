@@ -1,0 +1,68 @@
+name: Deploy Flowy Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner_name:
+        description: "Runner name to register/reconnect"
+        required: true
+        type: string
+      flowy_url:
+        description: "Flowy URL"
+        required: true
+        type: string
+      flowy_runner_secret:
+        description: "Flowy runner secret"
+        required: true
+        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - "runner/**"
+
+concurrency:
+  group: flowy-runner-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: [ self-hosted, macOS, ARM64 ]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          clean: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build runner
+        run: npm run build:runner
+
+      - name: Stop existing runner tmux session
+        run: tmux kill-session -t flowy 2>/dev/null || true
+
+      - name: Start runner in tmux session
+        env:
+          RUNNER_NAME: ${{ inputs.runner_name || secrets.FLOWY_RUNNER_NAME }}
+          FLOWY_URL: ${{ inputs.flowy_url || secrets.FLOWY_URL }}
+          FLOWY_RUNNER_SECRET: ${{ inputs.flowy_runner_secret || secrets.FLOWY_RUNNER_SECRET }}
+        run: |
+          # ensure the three envs are set
+          if [ -z "$RUNNER_NAME" ] || [ -z "$FLOWY_URL" ] || [ -z "$FLOWY_RUNNER_SECRET" ]; then
+            echo "ERROR: RUNNER_NAME, FLOWY_URL, and FLOWY_RUNNER_SECRET must be set"
+            exit 1
+          fi
+          RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$RUNNER_NAME' --url '$FLOWY_URL'" --secret '$FLOWY_RUNNER_SECRET'"
+          tmux new-session -d -s flowy "$RUNNER_CMD"
+
+      - name: Verify runner started
+        run: |
+          sleep 3
+          if tmux has-session -t flowy 2>/dev/null; then
+            echo "Runner session is active"
+          else
+            echo "ERROR: Runner session not found — process may have crashed"
+            exit 1
+          fi
