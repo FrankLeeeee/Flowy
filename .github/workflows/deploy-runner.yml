@@ -54,7 +54,7 @@ jobs:
             echo "ERROR: RUNNER_NAME, FLOWY_URL, and FLOWY_RUNNER_SECRET must be set"
             exit 1
           fi
-          RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$RUNNER_NAME' --url '$FLOWY_URL'" --secret '$FLOWY_RUNNER_SECRET'"
+          RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$RUNNER_NAME' --url '$FLOWY_URL' --secret '$FLOWY_RUNNER_SECRET'"
           tmux new-session -d -s flowy "$RUNNER_CMD"
 
       - name: Verify runner started
