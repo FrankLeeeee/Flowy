@@ -41,7 +41,7 @@ jobs:
         run: npm run build:runner
 
       - name: Stop existing runner tmux session
-        run: tmux kill-session -t flowy 2>/dev/null || true
+        run: tmux kill-session -t flowy-runner 2>/dev/null || true
 
       - name: Start runner in tmux session
         env:
@@ -55,7 +55,7 @@ jobs:
             exit 1
           fi
           RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$RUNNER_NAME' --url '$FLOWY_URL' --secret '$FLOWY_RUNNER_SECRET'"
-          tmux new-session -d -s flowy "$RUNNER_CMD"
+          tmux new-session -d -s flowy-runner "$RUNNER_CMD"
 
       - name: Verify runner started
         run: |
