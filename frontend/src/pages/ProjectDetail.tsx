@@ -4,13 +4,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Task, Project, Runner, Label as LabelType, TaskStatus, DEFAULT_PROJECT_ID } from '../types';
 import {
   fetchTasks, fetchRunners, fetchLabels, createTask, assignTask, deleteTask, getTask, updateTask,
-  fetchProjects, updateProject, deleteProject,
+  fetchProjects, updateProject, deleteProject, moveTask,
 } from '../api/client';
 import TaskListView from '../components/tasks/TaskListView';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
+import MoveTaskModal from '../components/tasks/MoveTaskModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ export default function ProjectDetail() {
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
+  const [movingTask, setMovingTask] = useState<Task | null>(null);
   const [showEditProject, setShowEditProject] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -85,6 +87,13 @@ export default function ProjectDetail() {
   const handleAssign = async (data: Parameters<typeof assignTask>[1]) => { if (!assigningTask) return; await assignTask(assigningTask.id, data); setAssigningTask(null); setDetailTask(null); loadData(); };
   const handleDelete = async (taskId: string) => { if (!confirm('Delete this task?')) return; await deleteTask(taskId); setDetailTask(null); loadData(); };
   const handleTaskUpdate = (updated: Task) => { setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated); };
+  const handleMove = async (projectId: string) => {
+    if (!movingTask) return;
+    await moveTask(movingTask.id, projectId);
+    setMovingTask(null);
+    setDetailTask(null);
+    loadData();
+  };
   const handleTaskClick = async (task: Task) => { try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); } };
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
@@ -247,8 +256,9 @@ export default function ProjectDetail() {
       </div>
 
       <CreateTaskModal open={showCreate} projects={allProjects} defaultProjectId={project.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
-      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
+      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} projects={allProjects} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onMove={() => setMovingTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
       {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
+      {movingTask && <MoveTaskModal open={!!movingTask} task={movingTask} projects={allProjects} onSubmit={handleMove} onClose={() => setMovingTask(null)} />}
 
       <Dialog open={showEditProject} onOpenChange={(open) => { if (!open) setShowEditProject(false); }}>
           <AppDialogContent className="sm:max-w-[460px]">

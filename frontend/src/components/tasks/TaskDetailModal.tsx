@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label } from '../../types';
+import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, Project } from '../../types';
 import { fetchTaskLogs, updateTask, fetchLabels } from '../../api/client';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessCon
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand, CalendarClock, Archive } from 'lucide-react';
+import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand, CalendarClock, Archive, FolderInput } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -55,13 +55,15 @@ function fmtTime(iso: string | null): string {
 }
 
 export default function TaskDetailModal({
-  open, task, runner, onUpdate, onAssign, onDelete, onClose,
+  open, task, runner, projects, onUpdate, onAssign, onMove, onDelete, onClose,
 }: {
   open: boolean;
   task: Task;
   runner?: Runner;
+  projects?: Project[];
   onUpdate: (t: Task) => void;
   onAssign: () => void;
+  onMove?: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -456,6 +458,12 @@ export default function TaskDetailModal({
               <UserPlus className="mr-1.5 h-3 w-3" />
               {runner ? 'Reassign' : 'Assign'}
             </Button>
+            {onMove && projects && projects.filter((p) => p.id !== task.project_id).length > 0 && (
+              <Button size="sm" variant="ghost" onClick={onMove} className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
+                <FolderInput className="mr-1.5 h-3 w-3" />
+                Move
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"
