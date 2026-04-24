@@ -35,13 +35,13 @@ jobs:
           clean: true
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build runner
         run: npm run build:runner
 
       - name: Stop existing runner tmux session
-        run: tmux kill-session -t flowy 2>/dev/null || true
+        run: tmux kill-session -t flowy-runner 2>/dev/null || true
 
       - name: Start runner in tmux session
         env:
@@ -54,13 +54,13 @@ jobs:
             echo "ERROR: RUNNER_NAME, FLOWY_URL, and FLOWY_RUNNER_SECRET must be set"
             exit 1
           fi
-          RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$RUNNER_NAME' --url '$FLOWY_URL'" --secret '$FLOWY_RUNNER_SECRET'"
-          tmux new-session -d -s flowy "$RUNNER_CMD"
+          RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$RUNNER_NAME' --url '$FLOWY_URL' --secret '$FLOWY_RUNNER_SECRET'"
+          tmux new-session -d -s flowy-runner "$RUNNER_CMD"
 
       - name: Verify runner started
         run: |
-          sleep 3
-          if tmux has-session -t flowy 2>/dev/null; then
+          sleep 10
+          if tmux has-session -t flowy-runner 2>/dev/null; then
             echo "Runner session is active"
           else
             echo "ERROR: Runner session not found — process may have crashed"
