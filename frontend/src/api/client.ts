@@ -72,6 +72,11 @@ export async function deleteTask(id: string): Promise<void> {
   await api.delete(`/tasks/${id}`);
 }
 
+export async function moveTask(id: string, projectId: string): Promise<Task> {
+  const { data } = await api.post<Task>(`/tasks/${id}/move`, { projectId });
+  return data;
+}
+
 export async function assignTask(id: string, body: { runnerId: string; aiProvider: string; harnessConfig?: HarnessConfig }): Promise<Task> {
   const { data } = await api.post<Task>(`/tasks/${id}/assign`, body);
   return data;

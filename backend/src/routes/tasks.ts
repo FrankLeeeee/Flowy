@@ -135,6 +135,36 @@ router.post('/:id/assign', (req: Request, res: Response) => {
   res.json(updated);
 });
 
+// POST /api/tasks/:id/move
+router.post('/:id/move', (req: Request, res: Response) => {
+  const { projectId } = req.body as { projectId?: string };
+  if (!projectId) { res.status(400).json({ error: 'projectId is required' }); return; }
+
+  const db = getDb();
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task | undefined;
+  if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
+  if (task.project_id === projectId) { res.json(task); return; }
+
+  const destProject = db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId) as Project | undefined;
+  if (!destProject) { res.status(404).json({ error: 'Destination project not found' }); return; }
+
+  const newTaskNumber = destProject.next_task_num;
+  const newTaskKey = formatTaskKey(destProject.name, newTaskNumber);
+
+  const moveTask = db.transaction(() => {
+    db.prepare(`
+      UPDATE tasks SET project_id = ?, task_number = ?, task_key = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(projectId, newTaskNumber, newTaskKey, req.params.id);
+
+    db.prepare('UPDATE projects SET next_task_num = next_task_num + 1, updated_at = datetime(\'now\') WHERE id = ?').run(projectId);
+  });
+
+  moveTask();
+  const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
+  res.json(updated);
+});
+
 // GET /api/tasks/:id/logs
 router.get('/:id/logs', (req: Request, res: Response) => {
   const logs = getDb().prepare('SELECT * FROM task_logs WHERE task_id = ? ORDER BY created_at ASC').all(req.params.id) as TaskLog[];

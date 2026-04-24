@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Task, Project, Runner, Label } from '../types';
 import {
   fetchTasks, fetchProjects, fetchRunners, fetchLabels,
-  createTask, assignTask, deleteTask, getTask, updateTask,
+  createTask, assignTask, deleteTask, getTask, updateTask, moveTask,
 } from '../api/client';
 import { TaskStatus } from '../types';
 import TaskListView from '../components/tasks/TaskListView';
@@ -10,6 +10,7 @@ import KanbanBoard from '../components/tasks/KanbanBoard';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
+import MoveTaskModal from '../components/tasks/MoveTaskModal';
 import DateFilter from '@/components/DateFilter';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ export default function Inbox() {
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
+  const [movingTask, setMovingTask] = useState<Task | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -80,6 +82,13 @@ export default function Inbox() {
   };
   const handleTaskUpdate = (updated: Task) => {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated);
+  };
+  const handleMove = async (projectId: string) => {
+    if (!movingTask) return;
+    await moveTask(movingTask.id, projectId);
+    setMovingTask(null);
+    setDetailTask(null);
+    loadData();
   };
   const handleTaskClick = async (task: Task) => {
     try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); }
@@ -187,8 +196,9 @@ export default function Inbox() {
       </div>
 
       <CreateTaskModal open={showCreate} projects={projects} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
-      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
+      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} projects={projects} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onMove={() => setMovingTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
       {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
+      {movingTask && <MoveTaskModal open={!!movingTask} task={movingTask} projects={projects} onSubmit={handleMove} onClose={() => setMovingTask(null)} />}
     </div>
   );
 }
