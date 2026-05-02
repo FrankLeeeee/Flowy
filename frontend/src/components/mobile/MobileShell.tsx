@@ -1,11 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Inbox, FolderKanban, ListTodo, MessagesSquare, Settings } from "lucide-react";
+import { Inbox, FolderKanban, CalendarDays, MessagesSquare, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
+  { to: "/today", icon: CalendarDays, label: "Today" },
   { to: "/inbox", icon: Inbox, label: "Inbox" },
   { to: "/lists", icon: FolderKanban, label: "Lists" },
-  { to: "/todos", icon: ListTodo, label: "Todo" },
   { to: "/sessions", icon: MessagesSquare, label: "Sessions" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ] as const;
