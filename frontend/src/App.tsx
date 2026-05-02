@@ -25,6 +25,7 @@ import Stats from "./pages/Stats";
 import MobileStats from "./pages/mobile/MobileStats";
 import MobileSettings from "./pages/mobile/MobileSettings";
 import TodoView from "./pages/TodoView";
+import ScheduledTasksView from "./pages/ScheduledTasksView";
 
 function DesktopShell() {
   const location = useLocation();
@@ -35,7 +36,10 @@ function DesktopShell() {
       <main className="min-w-0 flex-1 overflow-auto">
         <div key={location.pathname} className="motion-page min-h-screen">
           <Routes>
-            <Route path="/" element={<Navigate to="/inbox" replace />} />
+            <Route path="/" element={<Navigate to="/today" replace />} />
+            <Route path="/today" element={<ScheduledTasksView mode="today" />} />
+            <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
+            <Route path="/all" element={<ScheduledTasksView mode="all" />} />
             <Route path="/inbox" element={<Inbox />} />
             <Route path="/list/:id" element={<ListDetail />} />
             <Route path="/runners" element={<Runners />} />
@@ -67,7 +71,10 @@ function MobileApp() {
     <MobileShell>
       <div key={location.pathname} className="motion-page min-h-screen">
         <Routes>
-          <Route path="/" element={<Navigate to="/inbox" replace />} />
+          <Route path="/" element={<Navigate to="/today" replace />} />
+          <Route path="/today" element={<ScheduledTasksView mode="today" />} />
+          <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
+          <Route path="/all" element={<ScheduledTasksView mode="all" />} />
           <Route path="/inbox" element={<MobileInbox />} />
           <Route path="/lists" element={<MobileLists />} />
           <Route path="/list/:id" element={<MobileListDetail />} />

@@ -18,6 +18,7 @@ import {
   Plus, ChevronRight, Trash2,
   Sun, Moon, Monitor,
   ArrowRight, Sparkles,
+  CalendarDays, CalendarRange, Layers,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -112,6 +113,19 @@ export default function Sidebar() {
 
         <ScrollArea className="flex-1 px-2">
           <nav className="flex flex-col gap-0.5 pb-3">
+            {/* Schedule views */}
+            <NavLink to="/today" className={navLinkClass}>
+              <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+              Today
+            </NavLink>
+            <NavLink to="/this-week" className={navLinkClass}>
+              <CalendarRange className="h-4 w-4 shrink-0 opacity-60" />
+              This Week
+            </NavLink>
+            <NavLink to="/all" className={navLinkClass}>
+              <Layers className="h-4 w-4 shrink-0 opacity-60" />
+              All
+            </NavLink>
             {/* Inbox */}
             <NavLink to="/inbox" className={navLinkClass}>
               <Inbox className="h-4 w-4 shrink-0 opacity-60" />
