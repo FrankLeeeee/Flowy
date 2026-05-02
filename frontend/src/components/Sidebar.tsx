@@ -116,7 +116,6 @@ export default function Sidebar() {
               <Inbox className="h-4 w-4 shrink-0 opacity-60" />
               Inbox
             </NavLink>
-
             {/* Projects section */}
             <div className="mt-5">
               <div className="mb-1 flex items-center gap-1 px-2.5">

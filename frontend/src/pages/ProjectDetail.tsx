@@ -8,6 +8,7 @@ import {
 } from '../api/client';
 import TaskListView from '../components/tasks/TaskListView';
 import KanbanBoard from '../components/tasks/KanbanBoard';
+import TaskTodoView from '../components/tasks/TaskTodoView';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
@@ -22,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, Search } from 'lucide-react';
+import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, ListTodo, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import DateFilter from '@/components/DateFilter';
@@ -40,7 +41,7 @@ export default function ProjectDetail() {
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [allLabels, setAllLabels] = useState<LabelType[]>([]);
-  const [viewMode, setViewMode] = useState('kanban');
+  const [viewMode, setViewMode] = useState('todo');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -135,7 +136,7 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className={cn('flex flex-col p-6', viewMode === 'kanban' ? 'h-screen min-h-0 overflow-hidden' : 'min-h-screen')}>
+    <div className={cn('flex flex-col p-6', viewMode === 'kanban' ? 'h-screen min-h-0 overflow-hidden' : 'min-h-screen pb-10')}>
       {/* Header */}
       <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
@@ -216,13 +217,17 @@ export default function ProjectDetail() {
         </div>
 
         <div className="flex items-center border border-border/60 bg-card rounded-md overflow-hidden ml-auto shrink-0 shadow-soft">
-          <button type="button" onClick={() => setViewMode('kanban')} aria-label="Kanban view"
-            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'kanban' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <LayoutGrid className="h-3.5 w-3.5" />
+          <button type="button" onClick={() => setViewMode('todo')} aria-label="Todo view"
+            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'todo' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
+            <ListTodo className="h-3.5 w-3.5" />
           </button>
           <button type="button" onClick={() => setViewMode('list')} aria-label="List view"
             className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'list' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
             <List className="h-3.5 w-3.5" />
+          </button>
+          <button type="button" onClick={() => setViewMode('kanban')} aria-label="Kanban view"
+            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'kanban' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
+            <LayoutGrid className="h-3.5 w-3.5" />
           </button>
         </div>
 
@@ -241,8 +246,10 @@ export default function ProjectDetail() {
       >
         {viewMode === 'kanban' ? (
           <KanbanBoard tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
-        ) : (
+        ) : viewMode === 'list' ? (
           <TaskListView tasks={visibleTasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+        ) : (
+          <TaskTodoView tasks={visibleTasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}
       </div>
 
