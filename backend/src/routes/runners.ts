@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { getDb } from '../db';
 import { Runner, Task, TaskLog } from '../types';
 import { authenticateRunner } from '../middleware/runnerAuth';
+import { requireUserAuth } from '../middleware/userAuth';
 import { loadSettings } from '../storage';
 import { drainSkillCommandsFor } from '../skillQueue';
 import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSkillEntry } from '../skillInventory';
@@ -56,7 +57,7 @@ const BROWSE_TIMEOUT_MS = 10_000;
 // ── Public endpoints ──────────────────────────────────────────────────────
 
 // GET /api/runners — list all runners (token omitted)
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', requireUserAuth, (_req: Request, res: Response) => {
   const rows = getDb().prepare('SELECT * FROM runners ORDER BY created_at DESC').all() as Runner[];
   const safe = rows.map(({ token: _t, ...rest }) => rest);
   res.json(safe);
@@ -89,14 +90,14 @@ router.post('/register', (req: Request, res: Response) => {
 });
 
 // DELETE /api/runners/:id — remove a runner
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', requireUserAuth, (req: Request, res: Response) => {
   const result = getDb().prepare('DELETE FROM runners WHERE id = ?').run(req.params.id);
   if (result.changes === 0) { res.status(404).json({ error: 'Runner not found' }); return; }
   res.json({ ok: true });
 });
 
 // GET /api/runners/:id/browse?path=... — long-poll: ask a runner to list a directory
-router.get('/:id/browse', (req: Request, res: Response) => {
+router.get('/:id/browse', requireUserAuth, (req: Request, res: Response) => {
   const { id } = req.params;
   const browsePath = (req.query.path as string) || '/';
 
@@ -133,7 +134,7 @@ router.get('/:id/browse', (req: Request, res: Response) => {
 });
 
 // POST /api/runners/:id/update-providers — ask a live runner to update all installed CLIs to latest
-router.post('/:id/update-providers', (req: Request, res: Response) => {
+router.post('/:id/update-providers', requireUserAuth, (req: Request, res: Response) => {
   const db = getDb();
   const runner = db.prepare('SELECT id, status FROM runners WHERE id = ?').get(req.params.id) as { id: string; status: string } | undefined;
   if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
@@ -152,7 +153,7 @@ router.post('/:id/update-providers', (req: Request, res: Response) => {
 });
 
 // POST /api/runners/:id/refresh-providers — ask a live runner to rescan installed CLIs
-router.post('/:id/refresh-providers', (req: Request, res: Response) => {
+router.post('/:id/refresh-providers', requireUserAuth, (req: Request, res: Response) => {
   const db = getDb();
   const runner = db.prepare('SELECT id, status FROM runners WHERE id = ?').get(req.params.id) as { id: string; status: string } | undefined;
   if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
