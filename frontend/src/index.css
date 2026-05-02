@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Light theme — quiet cool neutrals with a restrained violet accent */
+    /* Light theme: quiet cool neutrals + restrained blue accent */
     --background: 240 20% 98.6%;
     --foreground: 240 16% 12%;
 
@@ -16,7 +16,7 @@
     --popover: 240 18% 99.4%;
     --popover-foreground: 240 16% 12%;
 
-    --primary: 238 58% 58%;
+    --primary: 220 78% 56%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 16% 95.8%;
@@ -33,26 +33,44 @@
 
     --border: 240 12% 90.5%;
     --input: 240 11% 88.4%;
-    --ring: 238 58% 58%;
-    --radius: 0.5rem;
+    --ring: 220 78% 56%;
 
     --sidebar: 240 18% 97.4%;
     --terminal: 240 16% 13%;
     --terminal-foreground: 240 15% 89%;
     --terminal-border: 240 10% 24%;
 
-    /* Shared easing curves */
+    /* Radius scale */
+    --radius: 0.5rem;
+    --radius-pill: 9999px;
+    --radius-card: 18px;
+    --radius-column: 20px;
+
+    /* Shared easing */
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
     --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-    /* Theme-aware surface overlay color (white in light, lighter dark in dark) */
-    --surface-overlay: 0 0% 100%;
-    --surface-tint-alpha: 0.7;
+    /* Shadows */
+    --shadow-soft: 0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-elevated: 0 0 0 1px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-float: 0 0 0 1px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.08);
+
+    /* Type stacks */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* Type scale */
+    --text-2xs: 0.6875rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.8125rem;
+    --text-base: 0.875rem;
+    --text-lg: 1rem;
+    --text-xl: 1.125rem;
+    --text-2xl: 1.25rem;
   }
 
   .dark {
-    /* Dark theme — deep violet-tinted neutrals with calm contrast */
     --background: 240 14% 10.2%;
     --foreground: 240 14% 92%;
 
@@ -62,7 +80,7 @@
     --popover: 240 12% 15%;
     --popover-foreground: 240 14% 92%;
 
-    --primary: 238 72% 72%;
+    --primary: 220 84% 70%;
     --primary-foreground: 240 18% 12%;
 
     --secondary: 240 10% 16%;
@@ -79,27 +97,33 @@
 
     --border: 240 9% 22%;
     --input: 240 9% 24%;
-    --ring: 238 72% 72%;
+    --ring: 220 84% 70%;
 
     --sidebar: 240 12% 11.5%;
     --terminal: 240 12% 15%;
     --terminal-foreground: 240 16% 88%;
     --terminal-border: 240 8% 28%;
 
-    --surface-overlay: 0 0% 16%;
-    --surface-tint-alpha: 0.5;
+    --shadow-soft: 0 0 0 1px rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.25);
+    --shadow-elevated: 0 0 0 1px rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.32);
+    --shadow-float: 0 0 0 1px rgba(255,255,255,0.10), 0 4px 16px rgba(0,0,0,0.40);
   }
 
   * {
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground antialiased;
+  html, body {
+    font-family: var(--font-sans);
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: hsl(var(--background));
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
   }
 
   html,
@@ -108,8 +132,25 @@
     min-height: 100%;
   }
 
+  h1, .h1 { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; }
+  h2, .h2 { font-size: var(--text-xl);  font-weight: 600; letter-spacing: -0.02em;  line-height: 1.2; }
+  h3, .h3 { font-size: var(--text-base); font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
+  h4, .h4 { font-size: var(--text-sm);  font-weight: 600; line-height: 1.35; }
+
+  p, .body { font-size: var(--text-sm); line-height: 1.4; color: hsl(var(--foreground)); }
+  .body-muted { font-size: var(--text-xs); line-height: 1.45; color: hsl(var(--muted-foreground) / 0.85); }
+  .eyebrow {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground) / 0.85);
+  }
+  .caption { font-size: var(--text-2xs); color: hsl(var(--muted-foreground) / 0.75); }
+  code, pre, .mono { font-family: var(--font-mono); font-size: var(--text-xs); }
+
   ::selection {
-    background: hsla(238, 58%, 58%, 0.2);
+    background: hsla(220, 78%, 56%, 0.2);
     color: hsl(var(--foreground));
   }
 }
@@ -147,23 +188,16 @@
 
   .surface-tint {
     background: hsl(var(--card));
-    box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.06),
-      0 1px 2px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-card);
   }
 
-  .dark .surface-tint {
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.06),
-      0 1px 3px rgba(0, 0, 0, 0.25);
+  .brand-sheen {
+    background: hsla(220, 78%, 56%, 0.10);
   }
 
-  .violet-sheen {
-    background: hsla(238, 58%, 58%, 0.1);
-  }
-
-  .dark .violet-sheen {
-    background: hsla(238, 72%, 72%, 0.12);
+  .dark .brand-sheen {
+    background: hsla(220, 84%, 70%, 0.12);
   }
 
   .status-glow {
@@ -175,6 +209,7 @@
     background: hsl(var(--terminal));
     color: hsl(var(--terminal-foreground));
     box-shadow: inset 0 0 0 1px hsl(var(--terminal-border) / 0.55);
+    font-family: var(--font-mono);
   }
 }
 
