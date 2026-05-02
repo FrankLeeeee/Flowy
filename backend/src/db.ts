@@ -158,6 +158,8 @@ function migrate(): void {
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
   ensureColumn('tasks', 'scheduled_at', 'TEXT');
   ensureColumn('lists', 'icon', 'TEXT');
+  ensureColumn('lists', 'position', 'INTEGER NOT NULL DEFAULT 0');
+  backfillListPositions();
 
   normalizeListNames();
   ensureUniqueListNamesIndex();
@@ -499,6 +501,20 @@ function migrateAddGeminiProviderToSessions(): void {
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
   `);
   db.pragma('foreign_keys = ON');
+}
+
+function backfillListPositions(): void {
+  const unpositioned = db.prepare(
+    'SELECT COUNT(*) AS cnt FROM lists WHERE position = 0',
+  ).get() as { cnt: number };
+  if (unpositioned.cnt === 0) return;
+
+  const lists = db.prepare('SELECT id FROM lists ORDER BY created_at DESC').all() as Array<{ id: string }>;
+  const update = db.prepare('UPDATE lists SET position = ? WHERE id = ?');
+  const tx = db.transaction(() => {
+    lists.forEach((list, i) => update.run(i + 1, list.id));
+  });
+  tx();
 }
 
 function ensureColumn(table: string, column: string, definition: string): void {

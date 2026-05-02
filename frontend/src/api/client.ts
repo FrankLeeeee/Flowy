@@ -39,6 +39,11 @@ export async function deleteList(id: string): Promise<void> {
   await api.delete(`/lists/${id}`);
 }
 
+export async function reorderLists(ids: string[]): Promise<List[]> {
+  const { data } = await api.put<List[]>('/lists/reorder', { ids });
+  return data;
+}
+
 // ── Tasks ─────────────────────────────────────────────────────────────────
 
 export async function fetchTasks(filters?: {

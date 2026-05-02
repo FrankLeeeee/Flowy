@@ -52,6 +52,7 @@ export interface List {
   name: string;
   icon: string | null;
   description: string;
+  position: number;
   next_task_num: number;
   created_at: string;
   updated_at: string;

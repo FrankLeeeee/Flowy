@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { fetchLists, createList, deleteList } from '../api/client';
+import { fetchLists, createList, deleteList, reorderLists } from '../api/client';
 import { List } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import {
   Inbox, FolderKanban, LayoutList, Bot, Tags, BarChart2, MessagesSquare,
-  Plus, ChevronRight, Trash2,
+  Plus, ChevronRight, Trash2, GripVertical,
   Sun, Moon, Monitor,
   ArrowRight, Sparkles,
   CalendarDays, CalendarRange, Layers,
@@ -30,6 +30,8 @@ export default function Sidebar() {
   const [newListIcon, setNewListIcon] = useState<string | null>(null);
   const [newListError, setNewListError] = useState('');
   const [deletingList, setDeletingList] = useState<List | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropIdx, setDropIdx] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const loadLists = async () => {
@@ -70,6 +72,42 @@ export default function Sidebar() {
     setNewListName('');
     setNewListIcon(null);
     setNewListError('');
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDragIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/list-index', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropIdx(index);
+  };
+
+  const handleDrop = async (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = dragIdx;
+    setDragIdx(null);
+    setDropIdx(null);
+    if (fromIndex === null || fromIndex === toIndex) return;
+
+    const reordered = [...lists];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setLists(reordered);
+
+    try {
+      await reorderLists(reordered.map((l) => l.id));
+    } catch {
+      loadLists();
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDragIdx(null);
+    setDropIdx(null);
   };
 
   const handleDeleteClick = (list: List, e: React.MouseEvent) => {
@@ -161,12 +199,25 @@ export default function Sidebar() {
               >
                 <div className="min-h-0 overflow-hidden">
                   <div className="flex flex-col gap-0.5">
-                    {lists.map((list) => (
-                      <div key={list.id} className="group relative">
+                    {lists.map((list, index) => (
+                      <div
+                        key={list.id}
+                        className={cn(
+                          'group relative',
+                          dragIdx === index && 'opacity-40',
+                          dropIdx === index && dragIdx !== index && 'border-t-2 border-primary/50',
+                        )}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDrop={(e) => handleDrop(e, index)}
+                        onDragEnd={handleDragEnd}
+                      >
                         <NavLink
                           to={`/list/${list.id}`}
-                          className={(props) => cn(navLinkClass(props), 'pl-5 pr-8')}
+                          className={(props) => cn(navLinkClass(props), 'pl-2 pr-8')}
                         >
+                          <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-40 cursor-grab active:cursor-grabbing" />
                           {list.icon ? (
                             <span className="text-[14px] leading-none">{list.icon}</span>
                           ) : (

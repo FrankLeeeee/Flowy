@@ -14,7 +14,7 @@ function normalizeIcon(icon: unknown): string | null {
 
 // GET /api/lists
 router.get('/', (_req: Request, res: Response) => {
-  const rows = getDb().prepare('SELECT * FROM lists ORDER BY created_at DESC').all() as List[];
+  const rows = getDb().prepare('SELECT * FROM lists ORDER BY position ASC').all() as List[];
   res.json(rows);
 });
 
@@ -30,12 +30,32 @@ router.post('/', (req: Request, res: Response) => {
   if (nameCollision) { res.status(409).json({ error: `List name "${normalizedName}" already exists` }); return; }
 
   const id = uuid();
+  const maxPos = (getDb().prepare('SELECT COALESCE(MAX(position), 0) AS m FROM lists').get() as { m: number }).m;
   getDb().prepare(`
-    INSERT INTO lists (id, name, icon, description) VALUES (?, ?, ?, ?)
-  `).run(id, normalizedName, normalizeIcon(icon), description ?? '');
+    INSERT INTO lists (id, name, icon, description, position) VALUES (?, ?, ?, ?, ?)
+  `).run(id, normalizedName, normalizeIcon(icon), description ?? '', maxPos + 1);
 
   const list = getDb().prepare('SELECT * FROM lists WHERE id = ?').get(id) as List;
   res.status(201).json(list);
+});
+
+// PUT /api/lists/reorder — must be before /:id
+router.put('/reorder', (req: Request, res: Response) => {
+  const { ids } = req.body as { ids?: string[] };
+  if (!Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ error: 'ids array is required' });
+    return;
+  }
+
+  const db = getDb();
+  const update = db.prepare('UPDATE lists SET position = ?, updated_at = datetime(\'now\') WHERE id = ?');
+  const reorder = db.transaction(() => {
+    ids.forEach((id, i) => update.run(i + 1, id));
+  });
+  reorder();
+
+  const rows = db.prepare('SELECT * FROM lists ORDER BY position ASC').all() as List[];
+  res.json(rows);
 });
 
 // GET /api/lists/:id
