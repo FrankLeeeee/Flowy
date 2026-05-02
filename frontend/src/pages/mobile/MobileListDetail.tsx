@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Task, Project, Runner, Label as LabelType, DEFAULT_PROJECT_ID } from '../../types';
+import { Task, List, Runner, Label as LabelType } from '../../types';
 import {
   fetchTasks, fetchRunners, fetchLabels, createTask, assignTask, deleteTask, getTask,
-  fetchProjects, updateProject, deleteProject,
+  fetchLists, updateList, deleteList,
 } from '../../api/client';
 import MobileTaskList from '@/components/mobile/MobileTaskList';
 import MobileFilterSheet from '@/components/mobile/MobileFilterSheet';
@@ -12,6 +12,7 @@ import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import AssignTaskModal from '@/components/tasks/AssignTaskModal';
 import TaskDetailModal from '@/components/tasks/TaskDetailModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EmojiPicker from '@/components/EmojiPicker';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { Button } from '@/components/ui/button';
@@ -25,14 +26,14 @@ import { ArrowLeft, Plus, SlidersHorizontal, MoreHorizontal, Pencil, Trash2 } fr
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 
-export default function MobileProjectDetail() {
+export default function MobileListDetail() {
   const neutralTone = getToneStyles('neutral');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [project, setProject] = useState<Project | null>(null);
+  const [list, setList] = useState<List | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [allLists, setAllLists] = useState<List[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [allLabels, setAllLabels] = useState<LabelType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,8 +49,9 @@ export default function MobileProjectDetail() {
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
-  const [showEditProject, setShowEditProject] = useState(false);
+  const [showEditList, setShowEditList] = useState(false);
   const [editName, setEditName] = useState('');
+  const [editIcon, setEditIcon] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -58,16 +60,16 @@ export default function MobileProjectDetail() {
   const loadData = useCallback(async () => {
     if (!id) return;
     try {
-      const filters: Record<string, string> = { project: id };
+      const filters: Record<string, string> = { list: id };
       if (statusFilter !== '_all') filters.status = statusFilter;
       if (priorityFilter !== '_all') filters.priority = priorityFilter;
       if (runnerFilter !== '_all') filters.runner = runnerFilter;
       if (search) filters.search = search;
 
-      const [t, ps, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
-      const proj = ps.find((p) => p.id === id);
-      if (!proj) { setError('Project not found'); setLoading(false); return; }
-      setProject(proj); setAllProjects(ps); setTasks(t); setRunners(r); setAllLabels(l); setError('');
+      const [t, ls, r, l] = await Promise.all([fetchTasks(filters), fetchLists(), fetchRunners(), fetchLabels()]);
+      const found = ls.find((p) => p.id === id);
+      if (!found) { setError('List not found'); setLoading(false); return; }
+      setList(found); setAllLists(ls); setTasks(t); setRunners(r); setAllLabels(l); setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -84,24 +86,30 @@ export default function MobileProjectDetail() {
   const handleTaskUpdate = (updated: Task) => { setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated); };
   const handleTaskClick = async (task: Task) => { try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); } };
 
-  const openEditProject = () => { if (!project) return; setEditName(project.name); setEditDescription(project.description ?? ''); setShowEditProject(true); };
-  const handleEditProject = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!project || !editName.trim()) return;
+  const openEditList = () => {
+    if (!list) return;
+    setEditName(list.name);
+    setEditIcon(list.icon ?? null);
+    setEditDescription(list.description ?? '');
+    setShowEditList(true);
+  };
+  const handleEditList = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!list || !editName.trim()) return;
     try {
-      const updated = await updateProject(project.id, { name: editName.trim(), description: editDescription.trim() });
-      setProject(updated); setShowEditProject(false);
+      const updated = await updateList(list.id, { name: editName.trim(), description: editDescription.trim(), icon: editIcon });
+      setList(updated); setShowEditList(false);
     } catch (e) {
       setError(
         axios.isAxiosError<{ error?: string }>(e)
           ? e.response?.data?.error ?? e.message
-          : e instanceof Error ? e.message : 'Failed to update project',
+          : e instanceof Error ? e.message : 'Failed to update list',
       );
     }
   };
-  const handleDeleteProject = async () => {
-    if (!project) return;
-    try { await deleteProject(project.id); setShowDeleteConfirm(false); navigate('/projects'); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete project'); setShowDeleteConfirm(false); }
+  const handleDeleteList = async () => {
+    if (!list) return;
+    try { await deleteList(list.id); setShowDeleteConfirm(false); navigate('/lists'); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete list'); setShowDeleteConfirm(false); }
   };
 
   // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
@@ -117,11 +125,11 @@ export default function MobileProjectDetail() {
     );
   }
 
-  if (!project) {
+  if (!list) {
     return (
       <div className="p-4 text-center py-20">
-        <p className="text-[14px] text-muted-foreground/80">Project not found</p>
-        <Button variant="link" onClick={() => navigate('/projects')} className="mt-2 text-[13px] text-primary">Back to Projects</Button>
+        <p className="text-[14px] text-muted-foreground/80">List not found</p>
+        <Button variant="link" onClick={() => navigate('/lists')} className="mt-2 text-[13px] text-primary">Back to Lists</Button>
       </div>
     );
   }
@@ -134,13 +142,16 @@ export default function MobileProjectDetail() {
           <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
-              onClick={() => navigate('/projects')}
+              onClick={() => navigate('/lists')}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 active:bg-muted/50"
             >
               <ArrowLeft className="h-4 w-4 text-muted-foreground" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-[16px] font-bold tracking-tight text-foreground truncate">{project.name}</h1>
+              <h1 className="text-[16px] font-bold tracking-tight text-foreground truncate flex items-center gap-1.5">
+                {list.icon && <span className="text-[18px] leading-none">{list.icon}</span>}
+                {list.name}
+              </h1>
               <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1', neutralTone.pill)}>
                 {visibleTasks.length} tasks
               </span>
@@ -172,17 +183,13 @@ export default function MobileProjectDetail() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={openEditProject} className="text-[13px]">
-                  <Pencil className="h-3.5 w-3.5 mr-2 opacity-60" />Edit Project
+                <DropdownMenuItem onClick={openEditList} className="text-[13px]">
+                  <Pencil className="h-3.5 w-3.5 mr-2 opacity-60" />Edit List
                 </DropdownMenuItem>
-                {project.id !== DEFAULT_PROJECT_ID && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive text-[13px]">
-                      <Trash2 className="h-3.5 w-3.5 mr-2 opacity-60" />Delete Project
-                    </DropdownMenuItem>
-                  </>
-                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive text-[13px]">
+                  <Trash2 className="h-3.5 w-3.5 mr-2 opacity-60" />Delete List
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -213,24 +220,27 @@ export default function MobileProjectDetail() {
       />
 
       {/* Modals */}
-      <CreateTaskModal open={showCreate} projects={allProjects} defaultProjectId={project.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal open={showCreate} lists={allLists} defaultListId={list.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
       {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
 
-      {/* Edit Project Dialog */}
-      <Dialog open={showEditProject} onOpenChange={(open) => { if (!open) setShowEditProject(false); }}>
+      {/* Edit List Dialog */}
+      <Dialog open={showEditList} onOpenChange={(open) => { if (!open) setShowEditList(false); }}>
         <AppDialogContent className="sm:max-w-[460px]">
           <AppDialogHeader>
-            <DialogTitle className="sr-only">Edit project</DialogTitle>
-            <DialogDescription className="sr-only">Update the project name and description.</DialogDescription>
-            <AppDialogEyebrow><Pencil className="h-3 w-3" /> Project settings</AppDialogEyebrow>
-            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Edit {project.name}</h2>
+            <DialogTitle className="sr-only">Edit list</DialogTitle>
+            <DialogDescription className="sr-only">Update the list name, icon and description.</DialogDescription>
+            <AppDialogEyebrow><Pencil className="h-3 w-3" /> List settings</AppDialogEyebrow>
+            <h2 className="hidden text-[18px] font-semibold tracking-[-0.025em] text-foreground sm:block">Edit {list.name}</h2>
           </AppDialogHeader>
-          <form onSubmit={handleEditProject} className="flex flex-col gap-4">
+          <form onSubmit={handleEditList} className="flex flex-col gap-4">
             <AppDialogBody>
               <AppDialogSection tone="primary">
-                <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Project Name</Label>
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Project name" autoFocus required className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>List Name</Label>
+                <div className="flex items-center gap-2">
+                  <EmojiPicker value={editIcon} onChange={setEditIcon} />
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="List name" autoFocus required className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </div>
               </AppDialogSection>
               <AppDialogSection>
                 <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</Label>
@@ -239,7 +249,7 @@ export default function MobileProjectDetail() {
             </AppDialogBody>
             <AppDialogFooter>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" onClick={() => setShowEditProject(false)} className="rounded-full px-3.5 text-[11px]">Cancel</Button>
+                <Button type="button" variant="ghost" onClick={() => setShowEditList(false)} className="rounded-full px-3.5 text-[11px]">Cancel</Button>
                 <Button type="submit" disabled={!editName.trim()} className="rounded-full px-4 text-[11px]">Save changes</Button>
               </div>
             </AppDialogFooter>
@@ -249,10 +259,10 @@ export default function MobileProjectDetail() {
 
       <ConfirmDialog
         open={showDeleteConfirm}
-        title="Delete project"
-        description={`Are you sure you want to delete "${project.name}"? All tasks will be permanently removed.`}
-        confirmLabel="Delete project"
-        onConfirm={handleDeleteProject}
+        title="Delete list"
+        description={`Are you sure you want to delete "${list.name}"? All tasks will be permanently removed.`}
+        confirmLabel="Delete list"
+        onConfirm={handleDeleteList}
         onCancel={() => setShowDeleteConfirm(false)}
       />
     </div>

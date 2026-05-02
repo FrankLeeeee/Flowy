@@ -146,7 +146,7 @@ export default function TodoView() {
       >
         <div>
           <PageTitle icon={ListTodo} title="Todo" />
-          <p className="mt-1.5 text-[12px] text-muted-foreground/85">Tasks across all projects</p>
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85">Tasks across all lists</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>
               {uncompleted.length} active

@@ -109,7 +109,7 @@ export default function MobileStats() {
 
   if (!stats) return null;
 
-  const { totals, runnerCounts, tasksByStatus, tasksByProject, tasksByProvider, tasksByPriority, tasksByRunner, avgCompletionMinutes, dailyCompleted, topLabels } = stats;
+  const { totals, runnerCounts, tasksByStatus, tasksByList, tasksByProvider, tasksByPriority, tasksByRunner, avgCompletionMinutes, dailyCompleted, topLabels } = stats;
 
   const successRate = (totals.done + totals.failed) > 0
     ? Math.round((totals.done / (totals.done + totals.failed)) * 100)
@@ -122,7 +122,7 @@ export default function MobileStats() {
       : `${Math.round(avgCompletionMinutes / 60 * 10) / 10}h`;
 
   const maxStatusCount = Math.max(...tasksByStatus.map((s) => s.count), 1);
-  const maxProjectCount = Math.max(...tasksByProject.map((p) => p.total), 1);
+  const maxListCount = Math.max(...tasksByList.map((p) => p.total), 1);
   const maxProviderCount = Math.max(...tasksByProvider.map((p) => p.count), 1);
   const maxPriorityCount = Math.max(...tasksByPriority.map((p) => p.count), 1);
   const maxRunnerCount = Math.max(...tasksByRunner.map((r) => r.count), 1);
@@ -209,31 +209,31 @@ return (
           </div>
         </div>
 
-        {/* Tasks by project */}
+        {/* Tasks by list */}
         <div className="rounded-2xl border border-border/60 bg-card p-4">
           <div className="flex items-center gap-1.5 mb-3">
             <BarChart2 className="h-3.5 w-3.5 text-muted-foreground/60" />
-            <span className="text-[13px] font-semibold text-foreground">Tasks by Project</span>
+            <span className="text-[13px] font-semibold text-foreground">Tasks by List</span>
           </div>
           <div className="space-y-3">
-            {tasksByProject.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground/60">No projects yet.</p>
-            ) : tasksByProject.map(({ project_name, total, done }) => (
-              <div key={project_name} className="space-y-1">
+            {tasksByList.length === 0 ? (
+              <p className="text-[12px] text-muted-foreground/60">No lists yet.</p>
+            ) : tasksByList.map(({ list_name, total, done }) => (
+              <div key={list_name} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-muted-foreground/85 truncate max-w-[160px]">{project_name}</span>
+                  <span className="text-[12px] text-muted-foreground/85 truncate max-w-[160px]">{list_name}</span>
                   <span className="text-[10px] text-muted-foreground/60">{done}/{total}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
                   <div className="flex h-full rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500" style={{ width: `${maxProjectCount > 0 ? (done / maxProjectCount) * 100 : 0}%` }} />
-                    <div className="h-full bg-primary/30" style={{ width: `${maxProjectCount > 0 ? ((total - done) / maxProjectCount) * 100 : 0}%` }} />
+                    <div className="h-full bg-emerald-500" style={{ width: `${maxListCount > 0 ? (done / maxListCount) * 100 : 0}%` }} />
+                    <div className="h-full bg-primary/30" style={{ width: `${maxListCount > 0 ? ((total - done) / maxListCount) * 100 : 0}%` }} />
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          {tasksByProject.length > 0 && (
+          {tasksByList.length > 0 && (
             <div className="mt-3 flex items-center gap-3 text-[10px] text-muted-foreground/60">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Done</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary/30 inline-block" /> Remaining</span>

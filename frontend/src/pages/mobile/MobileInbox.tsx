@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, Project, Runner, Label } from '../../types';
+import { Task, List, Runner, Label } from '../../types';
 import {
-  fetchTasks, fetchProjects, fetchRunners, fetchLabels,
+  fetchTasks, fetchLists, fetchRunners, fetchLabels,
   createTask, assignTask, deleteTask, getTask,
 } from '../../api/client';
 import MobileTaskList from '@/components/mobile/MobileTaskList';
@@ -20,7 +20,7 @@ export default function MobileInbox() {
   const neutralTone = getToneStyles('neutral');
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [lists, setLists] = useState<List[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,15 +39,14 @@ export default function MobileInbox() {
 
   const loadData = useCallback(async () => {
     try {
-      const filters: Record<string, string> = {};
+      const filters: { inbox: '1'; priority?: string; runner?: string; search?: string } = { inbox: '1' };
       if (priorityFilter !== '_all') filters.priority = priorityFilter;
       if (runnerFilter !== '_all') filters.runner = runnerFilter;
       if (search) filters.search = search;
 
-      const [t, p, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
+      const [t, ls, r, l] = await Promise.all([fetchTasks(filters), fetchLists(), fetchRunners(), fetchLabels()]);
       setTasks(t.filter((task) => task.status !== 'done' && task.status !== 'cancelled'));
-      // Date filtering applied at render time (visibleTasks below)
-      setProjects(p);
+      setLists(ls);
       setRunners(r);
       setAllLabels(l);
     } catch { /* ignore */ } finally {
@@ -121,9 +120,8 @@ export default function MobileInbox() {
             </button>
             <button
               type="button"
-              onClick={() => { if (projects.length > 0) setShowCreate(true); }}
-              disabled={projects.length === 0}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft active:opacity-90 disabled:opacity-40"
+              onClick={() => setShowCreate(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft active:opacity-90"
             >
               <Plus className="h-4.5 w-4.5" />
             </button>
@@ -149,8 +147,8 @@ export default function MobileInbox() {
         onDateFilterChange={setDateFilter}
       />
 
-      {/* Modals (reuse desktop modals — they already scale to full width on small screens) */}
-      <CreateTaskModal open={showCreate} projects={projects} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      {/* Modals */}
+      <CreateTaskModal open={showCreate} lists={lists} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && (
         <TaskDetailModal
           open={!!detailTask}

@@ -4,12 +4,13 @@ import { cn } from '@/lib/utils';
 type PageTitleProps = {
   icon: LucideIcon;
   title: string;
+  emoji?: string;
   className?: string;
   iconClassName?: string;
   iconWrapClassName?: string;
 };
 
-export default function PageTitle({ icon: Icon, title, className, iconClassName, iconWrapClassName }: PageTitleProps) {
+export default function PageTitle({ icon: Icon, title, emoji, className, iconClassName, iconWrapClassName }: PageTitleProps) {
   return (
     <h1
       className={cn(
@@ -24,7 +25,11 @@ export default function PageTitle({ icon: Icon, title, className, iconClassName,
         )}
         aria-hidden="true"
       >
-        <Icon className={cn('h-3.5 w-3.5', iconClassName)} />
+        {emoji ? (
+          <span className="text-[15px] leading-none">{emoji}</span>
+        ) : (
+          <Icon className={cn('h-3.5 w-3.5', iconClassName)} />
+        )}
       </span>
       <span>{title}</span>
     </h1>

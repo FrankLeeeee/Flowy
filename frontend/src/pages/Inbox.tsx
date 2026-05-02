@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, Project, Runner, Label } from '../types';
+import { Task, List, Runner, Label } from '../types';
 import {
-  fetchTasks, fetchProjects, fetchRunners, fetchLabels,
+  fetchTasks, fetchLists, fetchRunners, fetchLabels,
   createTask, assignTask, deleteTask, getTask, updateTask,
 } from '../api/client';
 import { TaskStatus } from '../types';
@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Inbox as InboxIcon, Plus, LayoutGrid, List, Search } from 'lucide-react';
+import { Inbox as InboxIcon, Plus, LayoutGrid, List as ListIcon, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
@@ -27,7 +27,7 @@ export default function Inbox() {
   const dangerTone = getToneStyles('danger');
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [lists, setLists] = useState<List[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [viewMode, setViewMode] = useState('kanban');
@@ -45,15 +45,14 @@ export default function Inbox() {
 
   const loadData = useCallback(async () => {
     try {
-      const filters: Record<string, string> = {};
+      const filters: { inbox: '1'; priority?: string; runner?: string; search?: string } = { inbox: '1' };
       if (priorityFilter !== '_all') filters.priority = priorityFilter;
       if (runnerFilter !== '_all') filters.runner = runnerFilter;
       if (search) filters.search = search;
 
-      const [t, p, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
+      const [t, ls, r, l] = await Promise.all([fetchTasks(filters), fetchLists(), fetchRunners(), fetchLabels()]);
       setTasks(t.filter((task) => task.status !== 'done' && task.status !== 'cancelled'));
-      // Date filtering is applied at render time (see visibleTasks below)
-      setProjects(p);
+      setLists(ls);
       setRunners(r);
       setAllLabels(l);
       setError('');
@@ -85,13 +84,11 @@ export default function Inbox() {
     try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); }
   };
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    // Optimistic update
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };
 
-  // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
   const visibleTasks = filterTasksByDate(tasks, dateFilter);
 
   if (loading) {
@@ -110,14 +107,13 @@ export default function Inbox() {
       <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
           <PageTitle icon={InboxIcon} title="Inbox" />
-          <p className="mt-1.5 text-[12px] text-muted-foreground/85">Active issues across all projects</p>
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85">Tasks not yet sorted into a list</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{tasks.length} active tasks</span>
             <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', successTone.pill)}>{runners.length} runners available</span>
           </div>
         </div>
-        <Button size="sm" onClick={() => { if (projects.length > 0) setShowCreate(true); }}
-          disabled={projects.length === 0} className="h-8 text-[13px] shadow-soft">
+        <Button size="sm" onClick={() => setShowCreate(true)} className="h-8 text-[13px] shadow-soft">
           <Plus className="h-3.5 w-3.5 mr-1.5" />
           New Task
         </Button>
@@ -161,7 +157,7 @@ export default function Inbox() {
           </button>
           <button type="button" onClick={() => setViewMode('list')} aria-label="List view"
             className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'list' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <List className="h-3.5 w-3.5" />
+            <ListIcon className="h-3.5 w-3.5" />
           </button>
         </div>
 
@@ -186,7 +182,7 @@ export default function Inbox() {
         )}
       </div>
 
-      <CreateTaskModal open={showCreate} projects={projects} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal open={showCreate} lists={lists} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
       {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
     </div>

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { to: "/inbox", icon: Inbox, label: "Inbox" },
-  { to: "/projects", icon: FolderKanban, label: "Projects" },
+  { to: "/lists", icon: FolderKanban, label: "Lists" },
   { to: "/todos", icon: ListTodo, label: "Todo" },
   { to: "/sessions", icon: MessagesSquare, label: "Sessions" },
   { to: "/settings", icon: Settings, label: "Settings" },
@@ -17,8 +17,8 @@ export default function MobileShell({
 }) {
   const location = useLocation();
 
-  // Highlight "Projects" tab when viewing a specific project
-  const isProjectRoute = location.pathname.startsWith("/project/");
+  // Highlight "Lists" tab when viewing a specific list
+  const isListRoute = location.pathname.startsWith("/list/");
 
   // Highlight "Settings" tab when on sub-routes
   const isSettingsRoute = ["/runners", "/skills", "/labels", "/stats"].some(
@@ -36,8 +36,8 @@ export default function MobileShell({
         <div className="flex h-12 items-stretch">
           {TABS.map(({ to, icon: Icon, label }) => {
             let isActive = undefined;
-            if (to === "/projects") {
-              isActive = location.pathname === "/projects" || isProjectRoute;
+            if (to === "/lists") {
+              isActive = location.pathname === "/lists" || isListRoute;
             } else if (to === "/settings") {
               isActive = location.pathname === "/settings" || isSettingsRoute;
             }

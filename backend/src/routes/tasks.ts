@@ -1,19 +1,24 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
-import { getDb } from '../db';
-import { Task, Project, TaskLog } from '../types';
+import { getDb, nextInboxTaskNumber } from '../db';
+import { Task, List, TaskLog } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
-import { formatTaskKey } from '../projectIdentity';
+import { formatTaskKey } from '../listIdentity';
 
 const router = Router();
 
-// GET /api/tasks?project=&status=&priority=&runner=&search=
+// GET /api/tasks?list=&inbox=1&status=&priority=&runner=&search=
 router.get('/', (req: Request, res: Response) => {
-  const { project, status, priority, runner, search } = req.query as Record<string, string | undefined>;
+  const { list, inbox, status, priority, runner, search } = req.query as Record<string, string | undefined>;
   const conditions: string[] = [];
   const params: unknown[] = [];
 
-  if (project) { conditions.push('t.project_id = ?'); params.push(project); }
+  if (inbox === '1' || inbox === 'true') {
+    conditions.push('t.list_id IS NULL');
+  } else if (list) {
+    conditions.push('t.list_id = ?');
+    params.push(list);
+  }
   if (status) { conditions.push('t.status = ?'); params.push(status); }
   if (priority) { conditions.push('t.priority = ?'); params.push(priority); }
   if (runner) { conditions.push('t.runner_id = ?'); params.push(runner); }
@@ -26,28 +31,41 @@ router.get('/', (req: Request, res: Response) => {
 
 // POST /api/tasks
 router.post('/', (req: Request, res: Response) => {
-  const { projectId, title, description, priority, labels, scheduledAt } = req.body as {
-    projectId?: string; title?: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
+  const { listId, title, description, priority, labels, scheduledAt } = req.body as {
+    listId?: string | null; title?: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
   };
-  if (!projectId || !title) { res.status(400).json({ error: 'projectId and title are required' }); return; }
+  if (!title) { res.status(400).json({ error: 'title is required' }); return; }
 
   const db = getDb();
-  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId) as Project | undefined;
-  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
 
-  const taskNumber = project.next_task_num;
-  const taskKey = formatTaskKey(project.name, taskNumber);
+  let resolvedListId: string | null = null;
+  let taskNumber: number;
+  let listName: string | null = null;
+
+  if (listId) {
+    const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(listId) as List | undefined;
+    if (!list) { res.status(404).json({ error: 'List not found' }); return; }
+    resolvedListId = list.id;
+    taskNumber = list.next_task_num;
+    listName = list.name;
+  } else {
+    taskNumber = nextInboxTaskNumber();
+  }
+
+  const taskKey = formatTaskKey(listName, taskNumber);
   const id = uuid();
   // Tasks with a scheduled date start as 'todo'; unscheduled tasks go to backlog.
   const initialStatus = scheduledAt ? 'todo' : 'backlog';
 
   const insertTask = db.transaction(() => {
     db.prepare(`
-      INSERT INTO tasks (id, project_id, task_number, task_key, title, description, priority, labels, scheduled_at, status)
+      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_at, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, projectId, taskNumber, taskKey, title, description ?? '', priority ?? 'none', JSON.stringify(labels ?? []), scheduledAt ?? null, initialStatus);
+    `).run(id, resolvedListId, taskNumber, taskKey, title, description ?? '', priority ?? 'none', JSON.stringify(labels ?? []), scheduledAt ?? null, initialStatus);
 
-    db.prepare('UPDATE projects SET next_task_num = next_task_num + 1, updated_at = datetime(\'now\') WHERE id = ?').run(projectId);
+    if (resolvedListId) {
+      db.prepare('UPDATE lists SET next_task_num = next_task_num + 1, updated_at = datetime(\'now\') WHERE id = ?').run(resolvedListId);
+    }
   });
 
   insertTask();

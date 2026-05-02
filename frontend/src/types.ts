@@ -1,6 +1,3 @@
-/** Well-known ID for the non-deletable default project. */
-export const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
-
 export interface Settings {
   runner:     { registrationSecret: string };
 }
@@ -45,9 +42,10 @@ export interface HarnessConfig {
   gemini?: GeminiHarnessConfig;
 }
 
-export interface Project {
+export interface List {
   id: string;
   name: string;
+  icon: string | null;
   description: string;
   next_task_num: number;
   created_at: string;
@@ -56,7 +54,7 @@ export interface Project {
 
 export interface Task {
   id: string;
-  project_id: string;
+  list_id: string | null;
   task_number: number;
   task_key: string;
   title: string;
@@ -176,7 +174,7 @@ export interface Stats {
     offline: number;
   };
   tasksByStatus: Array<{ status: string; count: number }>;
-  tasksByProject: Array<{ project_name: string; total: number; done: number }>;
+  tasksByList: Array<{ list_name: string; total: number; done: number }>;
   tasksByProvider: Array<{ ai_provider: string; count: number; total_minutes: number | null }>;
   tasksByPriority: Array<{ priority: string; count: number }>;
   tasksByRunner: Array<{ runner_name: string; count: number; runner_status: string; total_minutes: number | null }>;

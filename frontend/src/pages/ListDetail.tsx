@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Task, Project, Runner, Label as LabelType, TaskStatus, DEFAULT_PROJECT_ID } from '../types';
+import { Task, List, Runner, Label as LabelType, TaskStatus } from '../types';
 import {
   fetchTasks, fetchRunners, fetchLabels, createTask, assignTask, deleteTask, getTask, updateTask,
-  fetchProjects, updateProject, deleteProject,
+  fetchLists, updateList, deleteList,
 } from '../api/client';
 import TaskListView from '../components/tasks/TaskListView';
 import KanbanBoard from '../components/tasks/KanbanBoard';
@@ -13,6 +13,7 @@ import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import EmojiPicker from '../components/EmojiPicker';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,22 +24,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List, ListTodo, Search } from 'lucide-react';
+import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List as ListIcon, ListTodo, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import DateFilter from '@/components/DateFilter';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 
-export default function ProjectDetail() {
+export default function ListDetail() {
   const neutralTone = getToneStyles('neutral');
   const dangerTone = getToneStyles('danger');
 
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [project, setProject] = useState<Project | null>(null);
+  const [list, setList] = useState<List | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [allLists, setAllLists] = useState<List[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [allLabels, setAllLabels] = useState<LabelType[]>([]);
   const [viewMode, setViewMode] = useState('todo');
@@ -54,24 +55,25 @@ export default function ProjectDetail() {
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
-  const [showEditProject, setShowEditProject] = useState(false);
+  const [showEditList, setShowEditList] = useState(false);
   const [editName, setEditName] = useState('');
+  const [editIcon, setEditIcon] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!id) return;
     try {
-      const filters: Record<string, string> = { project: id };
+      const filters: Record<string, string> = { list: id };
       if (statusFilter !== '_all') filters.status = statusFilter;
       if (priorityFilter !== '_all') filters.priority = priorityFilter;
       if (runnerFilter !== '_all') filters.runner = runnerFilter;
       if (search) filters.search = search;
 
-      const [t, ps, r, l] = await Promise.all([fetchTasks(filters), fetchProjects(), fetchRunners(), fetchLabels()]);
-      const proj = ps.find((p) => p.id === id);
-      if (!proj) { setError('Project not found'); setLoading(false); return; }
-      setProject(proj); setAllProjects(ps); setTasks(t); setRunners(r); setAllLabels(l); setError('');
+      const [t, ls, r, l] = await Promise.all([fetchTasks(filters), fetchLists(), fetchRunners(), fetchLabels()]);
+      const found = ls.find((p) => p.id === id);
+      if (!found) { setError('List not found'); setLoading(false); return; }
+      setList(found); setAllLists(ls); setTasks(t); setRunners(r); setAllLabels(l); setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -93,24 +95,32 @@ export default function ProjectDetail() {
     catch { loadData(); }
   };
 
-  const openEditProject = () => { if (!project) return; setEditName(project.name); setEditDescription(project.description ?? ''); setShowEditProject(true); };
-  const handleEditProject = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!project || !editName.trim()) return;
-    try { const updated = await updateProject(project.id, { name: editName.trim(), description: editDescription.trim() }); setProject(updated); setShowEditProject(false); }
-    catch (e) {
+  const openEditList = () => {
+    if (!list) return;
+    setEditName(list.name);
+    setEditIcon(list.icon ?? null);
+    setEditDescription(list.description ?? '');
+    setShowEditList(true);
+  };
+  const handleEditList = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!list || !editName.trim()) return;
+    try {
+      const updated = await updateList(list.id, { name: editName.trim(), description: editDescription.trim(), icon: editIcon });
+      setList(updated); setShowEditList(false);
+    } catch (e) {
       setError(
         axios.isAxiosError<{ error?: string }>(e)
           ? e.response?.data?.error ?? e.message
           : e instanceof Error
             ? e.message
-            : 'Failed to update project',
+            : 'Failed to update list',
       );
     }
   };
-  const handleDeleteProject = async () => {
-    if (!project) return;
-    try { await deleteProject(project.id); setShowDeleteConfirm(false); navigate('/inbox'); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete project'); setShowDeleteConfirm(false); }
+  const handleDeleteList = async () => {
+    if (!list) return;
+    try { await deleteList(list.id); setShowDeleteConfirm(false); navigate('/inbox'); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete list'); setShowDeleteConfirm(false); }
   };
 
   // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
@@ -126,10 +136,10 @@ export default function ProjectDetail() {
     );
   }
 
-  if (!project) {
+  if (!list) {
     return (
       <div className="p-6 text-center text-muted-foreground py-20">
-        <p className="text-[14px]">Project not found</p>
+        <p className="text-[14px]">List not found</p>
         <Button variant="link" onClick={() => navigate('/inbox')} className="text-[13px] text-primary">Go to Inbox</Button>
       </div>
     );
@@ -140,9 +150,9 @@ export default function ProjectDetail() {
       {/* Header */}
       <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
-          <PageTitle icon={FolderOpen} title={project.name} />
-          {project.description && (
-            <p className="mt-1.5 text-[12px] text-muted-foreground/85">{project.description}</p>
+          <PageTitle icon={FolderOpen} title={list.name} emoji={list.icon ?? undefined} />
+          {list.description && (
+            <p className="mt-1.5 text-[12px] text-muted-foreground/85">{list.description}</p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>{tasks.length} scoped tasks</span>
@@ -161,17 +171,13 @@ export default function ProjectDetail() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={openEditProject} className="text-[13px]">
-                <Pencil className="h-3.5 w-3.5 mr-2 opacity-60" />Edit Project
+              <DropdownMenuItem onClick={openEditList} className="text-[13px]">
+                <Pencil className="h-3.5 w-3.5 mr-2 opacity-60" />Edit List
               </DropdownMenuItem>
-              {project.id !== DEFAULT_PROJECT_ID && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive text-[13px]">
-                    <Trash2 className="h-3.5 w-3.5 mr-2 opacity-60" />Delete Project
-                  </DropdownMenuItem>
-                </>
-              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive text-[13px]">
+                <Trash2 className="h-3.5 w-3.5 mr-2 opacity-60" />Delete List
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -223,7 +229,7 @@ export default function ProjectDetail() {
           </button>
           <button type="button" onClick={() => setViewMode('list')} aria-label="List view"
             className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'list' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <List className="h-3.5 w-3.5" />
+            <ListIcon className="h-3.5 w-3.5" />
           </button>
           <button type="button" onClick={() => setViewMode('kanban')} aria-label="Kanban view"
             className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'kanban' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
@@ -253,31 +259,34 @@ export default function ProjectDetail() {
         )}
       </div>
 
-      <CreateTaskModal open={showCreate} projects={allProjects} defaultProjectId={project.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal open={showCreate} lists={allLists} defaultListId={list.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
       {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
 
-      <Dialog open={showEditProject} onOpenChange={(open) => { if (!open) setShowEditProject(false); }}>
+      <Dialog open={showEditList} onOpenChange={(open) => { if (!open) setShowEditList(false); }}>
           <AppDialogContent className="sm:max-w-[460px]">
             <AppDialogHeader>
-              <DialogTitle className="sr-only">Edit project</DialogTitle>
-              <DialogDescription className="sr-only">Update the project name and description.</DialogDescription>
+              <DialogTitle className="sr-only">Edit list</DialogTitle>
+              <DialogDescription className="sr-only">Update the list name, icon and description.</DialogDescription>
               <AppDialogEyebrow>
                 <Pencil className="h-3 w-3" />
-                Project settings
+                List settings
               </AppDialogEyebrow>
               <div className="hidden flex-wrap items-end justify-between gap-3 sm:flex">
                 <div className="min-w-0">
-                  <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit {project.name}</h2>
-                  <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">Project names must stay unique. Renaming a project updates its task references too.</p>
+                  <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Edit {list.name}</h2>
+                  <p className="mt-1 text-[12px] leading-5 text-muted-foreground/85">List names must stay unique. Renaming a list updates its task references too.</p>
                 </div>
               </div>
             </AppDialogHeader>
-            <form onSubmit={handleEditProject} className="flex flex-col gap-4">
+            <form onSubmit={handleEditList} className="flex flex-col gap-4">
               <AppDialogBody>
                 <AppDialogSection tone="primary">
-                  <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Project Name</Label>
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Project name" autoFocus required className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>List Name</Label>
+                  <div className="flex items-center gap-2">
+                    <EmojiPicker value={editIcon} onChange={setEditIcon} />
+                    <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="List name" autoFocus required className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  </div>
                 </AppDialogSection>
                 <AppDialogSection>
                   <div className="mb-2 flex items-center justify-between gap-3">
@@ -289,7 +298,7 @@ export default function ProjectDetail() {
               </AppDialogBody>
               <AppDialogFooter>
                 <div className="flex items-center gap-2">
-                  <Button type="button" variant="ghost" onClick={() => setShowEditProject(false)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
+                  <Button type="button" variant="ghost" onClick={() => setShowEditList(false)} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">Cancel</Button>
                   <Button type="submit" disabled={!editName.trim()} className="rounded-full px-4 text-[11px]">Save changes</Button>
                 </div>
               </AppDialogFooter>
@@ -299,10 +308,10 @@ export default function ProjectDetail() {
 
       <ConfirmDialog
         open={showDeleteConfirm}
-        title="Delete project"
-        description={`Are you sure you want to delete "${project.name}"? All tasks in this project will be permanently removed.`}
-        confirmLabel="Delete project"
-        onConfirm={handleDeleteProject}
+        title="Delete list"
+        description={`Are you sure you want to delete "${list.name}"? All tasks in this list will be permanently removed.`}
+        confirmLabel="Delete list"
+        onConfirm={handleDeleteList}
         onCancel={() => setShowDeleteConfirm(false)}
       />
     </div>

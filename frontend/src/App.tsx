@@ -9,15 +9,15 @@ import { useIsMobile } from "./hooks/useIsMobile";
 import Sidebar from "./components/Sidebar";
 import MobileShell from "./components/mobile/MobileShell";
 import Inbox from "./pages/Inbox";
-import ProjectDetail from "./pages/ProjectDetail";
+import ListDetail from "./pages/ListDetail";
 import Runners from "./pages/Runners";
 import Labels from "./pages/Labels";
 import Skills from "./pages/Skills";
 import Sessions from "./pages/Sessions";
 import MobileSessions from "./pages/mobile/MobileSessions";
 import MobileInbox from "./pages/mobile/MobileInbox";
-import MobileProjects from "./pages/mobile/MobileProjects";
-import MobileProjectDetail from "./pages/mobile/MobileProjectDetail";
+import MobileLists from "./pages/mobile/MobileLists";
+import MobileListDetail from "./pages/mobile/MobileListDetail";
 import MobileRunners from "./pages/mobile/MobileRunners";
 import MobileLabels from "./pages/mobile/MobileLabels";
 import MobileSkills from "./pages/mobile/MobileSkills";
@@ -37,7 +37,7 @@ function DesktopShell() {
           <Routes>
             <Route path="/" element={<Navigate to="/inbox" replace />} />
             <Route path="/inbox" element={<Inbox />} />
-            <Route path="/project/:id" element={<ProjectDetail />} />
+            <Route path="/list/:id" element={<ListDetail />} />
             <Route path="/runners" element={<Runners />} />
             <Route path="/labels" element={<Labels />} />
             <Route path="/skills" element={<Skills />} />
@@ -45,7 +45,7 @@ function DesktopShell() {
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/todos" element={<TodoView />} />
             <Route
-              path="/projects"
+              path="/lists"
               element={<Navigate to="/inbox" replace />}
             />
             <Route path="/usage" element={<Navigate to="/runners" replace />} />
@@ -69,8 +69,8 @@ function MobileApp() {
         <Routes>
           <Route path="/" element={<Navigate to="/inbox" replace />} />
           <Route path="/inbox" element={<MobileInbox />} />
-          <Route path="/projects" element={<MobileProjects />} />
-          <Route path="/project/:id" element={<MobileProjectDetail />} />
+          <Route path="/lists" element={<MobileLists />} />
+          <Route path="/list/:id" element={<MobileListDetail />} />
           <Route path="/runners" element={<MobileRunners />} />
           <Route path="/labels" element={<MobileLabels />} />
           <Route path="/skills" element={<MobileSkills />} />

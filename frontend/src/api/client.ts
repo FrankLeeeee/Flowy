@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, Project, Task, Runner, TaskLog, HarnessConfig, Label, Skill, AiProvider, Stats, Session, SessionMessage } from '../types';
+import { Settings, List, Task, Runner, TaskLog, HarnessConfig, Label, Skill, AiProvider, Stats, Session, SessionMessage } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -18,38 +18,38 @@ export async function updateSettings(partial: Partial<Settings>): Promise<Settin
   return data;
 }
 
-// ── Projects ──────────────────────────────────────────────────────────────
+// ── Lists ─────────────────────────────────────────────────────────────────
 
-export async function fetchProjects(): Promise<Project[]> {
-  const { data } = await api.get<Project[]>('/projects');
+export async function fetchLists(): Promise<List[]> {
+  const { data } = await api.get<List[]>('/lists');
   return data;
 }
 
-export async function createProject(body: { name: string; description?: string }): Promise<Project> {
-  const { data } = await api.post<Project>('/projects', body);
+export async function createList(body: { name: string; description?: string; icon?: string | null }): Promise<List> {
+  const { data } = await api.post<List>('/lists', body);
   return data;
 }
 
-export async function updateProject(id: string, body: { name?: string; description?: string }): Promise<Project> {
-  const { data } = await api.put<Project>(`/projects/${id}`, body);
+export async function updateList(id: string, body: { name?: string; description?: string; icon?: string | null }): Promise<List> {
+  const { data } = await api.put<List>(`/lists/${id}`, body);
   return data;
 }
 
-export async function deleteProject(id: string): Promise<void> {
-  await api.delete(`/projects/${id}`);
+export async function deleteList(id: string): Promise<void> {
+  await api.delete(`/lists/${id}`);
 }
 
 // ── Tasks ─────────────────────────────────────────────────────────────────
 
 export async function fetchTasks(filters?: {
-  project?: string; status?: string; priority?: string; runner?: string; search?: string;
+  list?: string; inbox?: '1'; status?: string; priority?: string; runner?: string; search?: string;
 }): Promise<Task[]> {
   const { data } = await api.get<Task[]>('/tasks', { params: filters });
   return data;
 }
 
 export async function createTask(body: {
-  projectId: string; title: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
+  listId?: string | null; title: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
 }): Promise<Task> {
   const { data } = await api.post<Task>('/tasks', body);
   return data;
