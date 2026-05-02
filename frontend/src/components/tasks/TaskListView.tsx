@@ -140,7 +140,7 @@ export default function TaskListView({
   };
 
   return (
-    <div className="surface-tint rounded-[20px] border border-border/40 dark:border-border/60 overflow-hidden">
+    <div className="surface-tint rounded-2xl border border-border/40 dark:border-border/60 overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-[20px_1fr_80px_100px_80px] gap-2 border-b border-border/60 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground/80">
         <span />
