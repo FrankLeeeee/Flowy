@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import settingsRouter  from './routes/settings';
-import projectsRouter  from './routes/projects';
+import listsRouter     from './routes/lists';
 import tasksRouter     from './routes/tasks';
 import runnersRouter   from './routes/runners';
 import labelsRouter    from './routes/labels';
@@ -21,7 +21,7 @@ app.use(express.json({ limit: '10mb' }));
 initDb();
 
 app.use('/api/settings', settingsRouter);
-app.use('/api/projects', projectsRouter);
+app.use('/api/lists',    listsRouter);
 app.use('/api/tasks',    tasksRouter);
 app.use('/api/runners',  runnersRouter);
 app.use('/api/labels',   labelsRouter);

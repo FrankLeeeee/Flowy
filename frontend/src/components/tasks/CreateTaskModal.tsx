@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Project, TaskPriority, Label } from '../../types';
+import { List, TaskPriority, Label } from '../../types';
 import { fetchLabels } from '../../api/client';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,9 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { normalizeTimeInput, splitScheduledDateTime, updateScheduledDate, updateScheduledTime } from '@/lib/scheduledDateTime';
 import { cn } from '@/lib/utils';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { Circle, FolderKanban, ArrowRight, X, Sparkles, CalendarClock, Archive } from 'lucide-react';
+import { Circle, FolderKanban, Inbox, ArrowRight, X, Sparkles, CalendarClock, Archive } from 'lucide-react';
+
+const INBOX_VALUE = '_inbox';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'none',   label: 'No Priority' },
@@ -25,15 +27,15 @@ const PRIORITIES: { value: TaskPriority; label: string }[] = [
 ];
 
 export default function CreateTaskModal({
-  open, projects, defaultProjectId, onSubmit, onClose,
+  open, lists, defaultListId, onSubmit, onClose,
 }: {
   open: boolean;
-  projects: Project[];
-  defaultProjectId?: string;
-  onSubmit: (data: { projectId: string; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledAt?: string | null }) => void;
+  lists: List[];
+  defaultListId?: string;
+  onSubmit: (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledAt?: string | null }) => void;
   onClose: () => void;
 }) {
-  const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.id ?? '');
+  const [listSelection, setListSelection] = useState(defaultListId ?? INBOX_VALUE);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('none');
@@ -42,7 +44,7 @@ export default function CreateTaskModal({
   const [scheduledAt, setScheduledAt] = useState('');
   const isMobile = useIsMobile();
 
-  const selectedProject = projects.find((project) => project.id === projectId);
+  const selectedList = lists.find((list) => list.id === listSelection);
   const priorityStyles = getTaskPriorityStyles(priority);
   const scheduledParts = splitScheduledDateTime(scheduledAt);
 
@@ -72,8 +74,9 @@ export default function CreateTaskModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectId || !title.trim()) return;
-    onSubmit({ projectId, title: title.trim(), description, priority, labels, scheduledAt: scheduledAt || null });
+    if (!title.trim()) return;
+    const listId = listSelection === INBOX_VALUE ? null : listSelection;
+    onSubmit({ listId, title: title.trim(), description, priority, labels, scheduledAt: scheduledAt || null });
   };
 
   return (
@@ -81,7 +84,7 @@ export default function CreateTaskModal({
       <AppDialogContent className="flex flex-col gap-0 overflow-visible sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
-          <DialogDescription className="sr-only">Create a new task with title, description, project, priority, and labels.</DialogDescription>
+          <DialogDescription className="sr-only">Create a new task with title, description, list, priority, and labels.</DialogDescription>
           <AppDialogEyebrow>
             <Sparkles className="h-3 w-3" />
             New Task
@@ -95,7 +98,7 @@ export default function CreateTaskModal({
             </div>
             <div className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground/85 ring-1 ring-primary/10 shadow-soft">
               <Circle className="h-3 w-3 text-primary" />
-              <span>{selectedProject?.name ?? 'Select project'}</span>
+              <span>{selectedList ? (selectedList.icon ? `${selectedList.icon} ${selectedList.name}` : selectedList.name) : 'Inbox'}</span>
             </div>
           </div>
         </AppDialogHeader>
@@ -153,15 +156,27 @@ export default function CreateTaskModal({
 
               <div className="flex flex-col gap-2 border-t border-border/40 bg-foreground/[0.015] px-4 py-3 sm:px-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Select value={projectId} onValueChange={setProjectId}>
+                  <Select value={listSelection} onValueChange={setListSelection}>
                     <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-                      <SelectValue placeholder="Project" />
+                      {selectedList?.icon ? (
+                        <span className="text-[12px] leading-none">{selectedList.icon}</span>
+                      ) : selectedList ? (
+                        <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : (
+                        <Inbox className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <SelectValue placeholder="List" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id} className="rounded-lg py-2 text-[11px]">
-                          {project.name}
+                      <SelectItem value={INBOX_VALUE} className="rounded-lg py-2 text-[11px]">
+                        <span className="inline-flex items-center gap-1.5"><Inbox className="h-3 w-3 opacity-60" /> Inbox</span>
+                      </SelectItem>
+                      {lists.map((list) => (
+                        <SelectItem key={list.id} value={list.id} className="rounded-lg py-2 text-[11px]">
+                          <span className="inline-flex items-center gap-1.5">
+                            {list.icon ? <span className="leading-none">{list.icon}</span> : <FolderKanban className="h-3 w-3 opacity-60" />}
+                            {list.name}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -252,7 +267,7 @@ export default function CreateTaskModal({
               <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                 Cancel
               </Button>
-              <Button type="submit" disabled={!projectId || !title.trim()} className="rounded-full px-4 text-[11px]">
+              <Button type="submit" disabled={!title.trim()} className="rounded-full px-4 text-[11px]">
                 Create task
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>

@@ -12,7 +12,7 @@ export interface RunnerConfig {
 
 export interface Task {
   id: string;
-  project_id: string;
+  list_id: string | null;
   task_number: number;
   task_key: string;
   title: string;

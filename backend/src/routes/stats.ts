@@ -38,18 +38,18 @@ router.get('/', (_req: Request, res: Response) => {
     SELECT status, COUNT(*) as count FROM tasks GROUP BY status ORDER BY count DESC
   `).all() as Array<{ status: string; count: number }>;
 
-  // Tasks per project (total and done)
-  const tasksByProject = db.prepare(`
+  // Tasks per list (total and done) — inbox tasks (no list) bucket as "Inbox"
+  const tasksByList = db.prepare(`
     SELECT
-      p.name as project_name,
+      COALESCE(l.name, 'Inbox') as list_name,
       COUNT(t.id) as total,
       SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done
     FROM tasks t
-    JOIN projects p ON p.id = t.project_id
-    GROUP BY t.project_id, p.name
+    LEFT JOIN lists l ON l.id = t.list_id
+    GROUP BY t.list_id, l.name
     ORDER BY total DESC
     LIMIT 10
-  `).all() as Array<{ project_name: string; total: number; done: number }>;
+  `).all() as Array<{ list_name: string; total: number; done: number }>;
 
   // AI provider preference and elapsed task time by provider
   const tasksByProvider = db.prepare(`
@@ -142,7 +142,7 @@ router.get('/', (_req: Request, res: Response) => {
     totals,
     runnerCounts,
     tasksByStatus,
-    tasksByProject,
+    tasksByList,
     tasksByProvider,
     tasksByPriority,
     tasksByRunner,

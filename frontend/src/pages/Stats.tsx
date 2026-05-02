@@ -298,7 +298,7 @@ export default function StatsPage() {
 
   if (!stats) return null;
 
-  const { totals, runnerCounts, tasksByStatus, tasksByProject, tasksByProvider, tasksByPriority, tasksByRunner, avgCompletionMinutes, dailyCompleted, topLabels } = stats;
+  const { totals, runnerCounts, tasksByStatus, tasksByList, tasksByProvider, tasksByPriority, tasksByRunner, avgCompletionMinutes, dailyCompleted, topLabels } = stats;
 
   const successRate = (totals.done + totals.failed) > 0
     ? Math.round((totals.done / (totals.done + totals.failed)) * 100)
@@ -311,7 +311,7 @@ export default function StatsPage() {
       : `${Math.round(avgCompletionMinutes / 60 * 10) / 10}h`;
 
   const maxStatusCount = Math.max(...tasksByStatus.map((s) => s.count), 1);
-  const maxProjectCount = Math.max(...tasksByProject.map((p) => p.total), 1);
+  const maxListCount = Math.max(...tasksByList.map((p) => p.total), 1);
   const maxPriorityCount = Math.max(...tasksByPriority.map((p) => p.count), 1);
   const maxRunnerCount = Math.max(...tasksByRunner.map((r) => r.count), 1);
   const maxProviderCount = Math.max(...tasksByProvider.map((p) => p.count), 1);
@@ -334,9 +334,9 @@ export default function StatsPage() {
       </div>
 
       <StatsSection
-        title="Projects"
+        title="Lists"
         icon={FolderOpen}
-        description="Task volume, completion health, priority mix, and project distribution"
+        description="Task volume, completion health, priority mix, and list distribution"
         delay={120}
       >
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -405,32 +405,32 @@ export default function StatsPage() {
             </div>
           </StatPanel>
 
-          <StatPanel title="Tasks by Project" icon={BarChart2} delay={330}>
+          <StatPanel title="Tasks by List" icon={BarChart2} delay={330}>
             <div className="space-y-3">
-              {tasksByProject.length === 0 ? (
-                <p className="text-[12px] text-muted-foreground/60">No projects yet.</p>
-              ) : tasksByProject.map(({ project_name, total, done }) => (
-                <div key={project_name} className="space-y-1">
+              {tasksByList.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground/60">No lists yet.</p>
+              ) : tasksByList.map(({ list_name, total, done }) => (
+                <div key={list_name} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-muted-foreground/85 truncate max-w-[140px]">{project_name}</span>
+                    <span className="text-[12px] text-muted-foreground/85 truncate max-w-[140px]">{list_name}</span>
                     <span className="text-[11px] text-muted-foreground/60">{done}/{total} done</span>
                   </div>
                   <div className="h-2 rounded-full bg-foreground/[0.05] overflow-hidden">
                     <div className="flex h-full rounded-full overflow-hidden">
                       <div
                         className="h-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${maxProjectCount > 0 ? (done / maxProjectCount) * 100 : 0}%` }}
+                        style={{ width: `${maxListCount > 0 ? (done / maxListCount) * 100 : 0}%` }}
                       />
                       <div
                         className="h-full bg-primary/30 transition-all duration-500"
-                        style={{ width: `${maxProjectCount > 0 ? ((total - done) / maxProjectCount) * 100 : 0}%` }}
+                        style={{ width: `${maxListCount > 0 ? ((total - done) / maxListCount) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            {tasksByProject.length > 0 && (
+            {tasksByList.length > 0 && (
               <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground/60">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Done</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary/30 inline-block" /> Remaining</span>

@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { fetchProjects, createProject, deleteProject } from '../api/client';
-import { Project, DEFAULT_PROJECT_ID } from '../types';
+import { fetchLists, createList, deleteList } from '../api/client';
+import { List } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,10 +10,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import ConfirmDialog from './ConfirmDialog';
+import EmojiPicker from './EmojiPicker';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import {
-  Inbox, FolderKanban, Bot, Tags, BarChart2, MessagesSquare,
+  Inbox, FolderKanban, LayoutList, Bot, Tags, BarChart2, MessagesSquare,
   Plus, ChevronRight, Trash2,
   Sun, Moon, Monitor,
   ArrowRight, Sparkles,
@@ -21,66 +22,66 @@ import {
 
 export default function Sidebar() {
   const { theme, setTheme } = useTheme();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectsOpen, setProjectsOpen] = useState(true);
-  const [showNewProject, setShowNewProject] = useState(false);
-  const [newProjName, setNewProjName] = useState('');
-  const [newProjectError, setNewProjectError] = useState('');
-  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [lists, setLists] = useState<List[]>([]);
+  const [listsOpen, setListsOpen] = useState(true);
+  const [showNewList, setShowNewList] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [newListIcon, setNewListIcon] = useState<string | null>(null);
+  const [newListError, setNewListError] = useState('');
+  const [deletingList, setDeletingList] = useState<List | null>(null);
   const navigate = useNavigate();
 
-  const loadProjects = async () => {
+  const loadLists = async () => {
     try {
-      setProjects(await fetchProjects());
+      setLists(await fetchLists());
     } catch { /* ignore */ }
   };
 
-  useEffect(() => { loadProjects(); }, []);
+  useEffect(() => { loadLists(); }, []);
 
   useEffect(() => {
-    const iv = setInterval(loadProjects, 10_000);
+    const iv = setInterval(loadLists, 10_000);
     return () => clearInterval(iv);
   }, []);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
+  const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
-    const normalizedName = newProjName.trim();
+    const normalizedName = newListName.trim();
     if (!normalizedName) return;
     try {
-      const proj = await createProject({ name: normalizedName });
-      setShowNewProject(false);
-      setNewProjName('');
-      setNewProjectError('');
-      loadProjects();
-      navigate(`/project/${proj.id}`);
+      const list = await createList({ name: normalizedName, icon: newListIcon });
+      closeNewListDialog();
+      loadLists();
+      navigate(`/list/${list.id}`);
     } catch (error) {
-      setNewProjectError(
+      setNewListError(
         axios.isAxiosError<{ error?: string }>(error)
           ? error.response?.data?.error ?? error.message
           : error instanceof Error
             ? error.message
-            : 'Failed to create project',
+            : 'Failed to create list',
       );
     }
   };
 
-  const closeNewProjectDialog = () => {
-    setShowNewProject(false);
-    setNewProjName('');
-    setNewProjectError('');
+  const closeNewListDialog = () => {
+    setShowNewList(false);
+    setNewListName('');
+    setNewListIcon(null);
+    setNewListError('');
   };
 
-  const handleDeleteClick = (project: Project, e: React.MouseEvent) => {
+  const handleDeleteClick = (list: List, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDeletingProject(project);
+    setDeletingList(list);
   };
 
   const handleConfirmDelete = async () => {
-    if (!deletingProject) return;
-    await deleteProject(deletingProject.id);
-    setDeletingProject(null);
-    loadProjects();
+    if (!deletingList) return;
+    await deleteList(deletingList.id);
+    setDeletingList(null);
+    loadLists();
     navigate('/inbox');
   };
 
@@ -116,22 +117,23 @@ export default function Sidebar() {
               <Inbox className="h-4 w-4 shrink-0 opacity-60" />
               Inbox
             </NavLink>
-            {/* Projects section */}
+            {/* Lists section */}
             <div className="mt-5">
-              <div className="mb-1 flex items-center gap-1 px-2.5">
+              <div className="mb-1 flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setProjectsOpen((v) => !v)}
-                  className="interactive-lift flex min-w-0 flex-1 items-center gap-1 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85 hover:text-foreground motion-safe:hover:translate-x-0.5"
+                  onClick={() => setListsOpen((v) => !v)}
+                  className="interactive-lift flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium text-muted-foreground/90 hover:text-foreground hover:bg-primary/[0.04] motion-safe:hover:translate-x-0.5"
                 >
-                  <ChevronRight className={cn('h-3 w-3 transition-transform duration-200 ease-[var(--ease-out-quart)]', projectsOpen && 'rotate-90')} />
-                  Projects
+                  <LayoutList className="h-4 w-4 shrink-0 opacity-60" />
+                  <span className="flex-1 text-left">Lists</span>
+                  <ChevronRight className={cn('h-3 w-3 shrink-0 transition-transform duration-200 ease-[var(--ease-out-quart)]', listsOpen && 'rotate-90')} />
                 </button>
                 <button
                   type="button"
                   className="interactive-lift rounded-md border-2 border-primary/35 bg-background p-1 text-primary/85 hover:border-primary/55 hover:bg-primary/8 hover:text-primary motion-safe:hover:-translate-y-0.5"
-                  onClick={() => setShowNewProject(true)}
-                  aria-label="Create project"
+                  onClick={() => setShowNewList(true)}
+                  aria-label="Create list"
                 >
                   <Plus className="h-3 w-3" />
                 </button>
@@ -140,34 +142,36 @@ export default function Sidebar() {
               <div
                 className={cn(
                   'grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out-quart)]',
-                  projectsOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-70',
+                  listsOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-70',
                 )}
               >
                 <div className="min-h-0 overflow-hidden">
                   <div className="flex flex-col gap-0.5">
-                    {projects.map((p) => (
-                      <div key={p.id} className="group relative">
+                    {lists.map((list) => (
+                      <div key={list.id} className="group relative">
                         <NavLink
-                          to={`/project/${p.id}`}
+                          to={`/list/${list.id}`}
                           className={(props) => cn(navLinkClass(props), 'pl-5 pr-8')}
                         >
-                          <FolderKanban className="h-3.5 w-3.5 shrink-0 opacity-50" />
-                          <span className="truncate flex-1">{p.name}</span>
+                          {list.icon ? (
+                            <span className="text-[14px] leading-none">{list.icon}</span>
+                          ) : (
+                            <FolderKanban className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                          )}
+                          <span className="truncate flex-1">{list.name}</span>
                         </NavLink>
-                        {p.id !== DEFAULT_PROJECT_ID && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteClick(p, e)}
-                            className="interactive-lift absolute right-2 top-1/2 -mr-0.5 -translate-y-1/2 opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-destructive motion-safe:hover:scale-110"
-                            aria-label={`Delete ${p.name}`}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteClick(list, e)}
+                          className="interactive-lift absolute right-2 top-1/2 -mr-0.5 -translate-y-1/2 opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-destructive motion-safe:hover:scale-110"
+                          aria-label={`Delete ${list.name}`}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       </div>
                     ))}
-                    {projects.length === 0 && (
-                      <p className="px-5 py-2 text-[11px] text-muted-foreground/75">No projects yet</p>
+                    {lists.length === 0 && (
+                      <p className="px-5 py-2 text-[11px] text-muted-foreground/75">No lists yet</p>
                     )}
                   </div>
                 </div>
@@ -228,50 +232,53 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* New Project Dialog */}
-      <Dialog open={showNewProject} onOpenChange={(open) => { if (!open) closeNewProjectDialog(); }}>
+      {/* New List Dialog */}
+      <Dialog open={showNewList} onOpenChange={(open) => { if (!open) closeNewListDialog(); }}>
         <AppDialogContent className="sm:max-w-[440px]">
           <AppDialogHeader>
-            <DialogTitle className="sr-only">Create a new project</DialogTitle>
-            <DialogDescription className="sr-only">Create a project with a unique name.</DialogDescription>
+            <DialogTitle className="sr-only">Create a new list</DialogTitle>
+            <DialogDescription className="sr-only">Create a list with a unique name.</DialogDescription>
             <AppDialogEyebrow>
               <Sparkles className="h-3 w-3" />
-              New Project
+              New List
             </AppDialogEyebrow>
             <div className="hidden flex-wrap items-end justify-between gap-3 sm:flex">
               <div className="min-w-0">
-                <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Create a new project</h2>
+                <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Create a new list</h2>
               </div>
             </div>
           </AppDialogHeader>
-          <form onSubmit={handleCreateProject} className="flex flex-col">
+          <form onSubmit={handleCreateList} className="flex flex-col">
             <AppDialogBody>
               <AppDialogSection tone="primary">
-                <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>Project Name</Label>
-                <Input
-                  value={newProjName}
-                  onChange={(e) => {
-                    setNewProjName(e.target.value);
-                    if (newProjectError) setNewProjectError('');
-                  }}
-                  placeholder="My Project"
-                  autoFocus
-                  required
-                  className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-                {newProjectError && (
-                  <p className="mt-2 text-[11px] text-destructive/85">{newProjectError}</p>
+                <Label className={cn('mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em]', APP_DIALOG_TONE_STYLES.primary.label)}>List Name</Label>
+                <div className="flex items-center gap-2">
+                  <EmojiPicker value={newListIcon} onChange={setNewListIcon} />
+                  <Input
+                    value={newListName}
+                    onChange={(e) => {
+                      setNewListName(e.target.value);
+                      if (newListError) setNewListError('');
+                    }}
+                    placeholder="My List"
+                    autoFocus
+                    required
+                    className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+                {newListError && (
+                  <p className="mt-2 text-[11px] text-destructive/85">{newListError}</p>
                 )}
               </AppDialogSection>
             </AppDialogBody>
 
             <AppDialogFooter>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" onClick={closeNewProjectDialog} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
+                <Button type="button" variant="ghost" onClick={closeNewListDialog} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={!newProjName.trim()} className="rounded-full px-4 text-[11px]">
-                  Create project
+                <Button type="submit" disabled={!newListName.trim()} className="rounded-full px-4 text-[11px]">
+                  Create list
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -281,12 +288,12 @@ export default function Sidebar() {
       </Dialog>
 
       <ConfirmDialog
-        open={!!deletingProject}
-        title="Delete project"
-        description={`Are you sure you want to delete "${deletingProject?.name}"? All tasks in this project will be permanently removed.`}
-        confirmLabel="Delete project"
+        open={!!deletingList}
+        title="Delete list"
+        description={`Are you sure you want to delete "${deletingList?.name}"? All tasks in this list will be permanently removed.`}
+        confirmLabel="Delete list"
         onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletingProject(null)}
+        onCancel={() => setDeletingList(null)}
       />
     </>
   );

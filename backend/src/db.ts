@@ -2,11 +2,13 @@ import Database from 'better-sqlite3';
 import { v4 as uuid } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import { formatTaskKey, normalizeProjectName } from './projectIdentity';
+import { formatTaskKey, normalizeListName } from './listIdentity';
 import { DATA_DIR, ensureDataDir } from './dataDir';
 
 const DB_DIR = DATA_DIR;
 const DB_FILE = path.join(DB_DIR, 'hub.db');
+
+const LEGACY_DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
 
 let db: Database.Database;
 
@@ -28,11 +30,30 @@ export function initDb(): void {
 }
 
 function migrate(): void {
+  // The settings table needs to exist before any migration that records state
+  // (e.g. the inbox task counter populated by migrateProjectsToLists).
   db.exec(`
-    CREATE TABLE IF NOT EXISTS projects (
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+
+  // Phase 1: legacy migrations that may still be needed on databases that
+  // pre-date the lists rename (they operate on the old `tasks` schema).
+  migrateTaskStatuses();
+  migrateAddGeminiProvider();
+  migrateAddGeminiProviderToSessions();
+
+  // Phase 2: rename `projects` → `lists` if upgrading from the old schema.
+  migrateProjectsToLists();
+
+  // Phase 3: ensure modern schema exists.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS lists (
       id            TEXT PRIMARY KEY,
       name          TEXT NOT NULL,
-      key           TEXT NOT NULL UNIQUE,
+      icon          TEXT,
       description   TEXT NOT NULL DEFAULT '',
       next_task_num INTEGER NOT NULL DEFAULT 1,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
@@ -54,7 +75,7 @@ function migrate(): void {
 
     CREATE TABLE IF NOT EXISTS tasks (
       id            TEXT PRIMARY KEY,
-      project_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      list_id       TEXT REFERENCES lists(id) ON DELETE CASCADE,
       task_number   INTEGER NOT NULL,
       task_key      TEXT NOT NULL UNIQUE,
       title         TEXT NOT NULL,
@@ -73,6 +94,10 @@ function migrate(): void {
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_list_id ON tasks(list_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_runner_id ON tasks(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 
     CREATE TABLE IF NOT EXISTS task_logs (
       id         TEXT PRIMARY KEY,
@@ -122,63 +147,149 @@ function migrate(): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
-
   `);
 
   seedDefaultLabels();
 
-  migrateTaskStatuses();
-  migrateAddGeminiProvider();
-  migrateAddGeminiProviderToSessions();
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('runners', 'cli_update_requested_at', 'TEXT');
   ensureColumn('runners', 'cli_versions', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
   ensureColumn('tasks', 'scheduled_at', 'TEXT');
-  seedDefaultProject();
-  normalizeProjectNames();
-  ensureUniqueProjectNamesIndex();
-  migrateTaskKeysToProjectNames();
+  ensureColumn('lists', 'icon', 'TEXT');
+
+  normalizeListNames();
+  ensureUniqueListNamesIndex();
+  migrateTaskKeysToListNames();
 }
 
-/** Well-known ID for the non-deletable default project. */
-export const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
+function tableExists(name: string): boolean {
+  const row = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+  ).get(name);
+  return !!row;
+}
 
-function seedDefaultProject(): void {
-  const exists = db.prepare('SELECT id FROM projects WHERE id = ?').get(DEFAULT_PROJECT_ID);
-  if (!exists) {
-    db.prepare(`
-      INSERT INTO projects (id, name, key, description) VALUES (?, ?, ?, ?)
-    `).run(DEFAULT_PROJECT_ID, 'default', 'DEFAULT', '');
+function migrateProjectsToLists(): void {
+  if (tableExists('lists')) {
+    // Drop any orphan `projects` table left behind by an earlier partial migration.
+    if (tableExists('projects')) {
+      db.pragma('foreign_keys = OFF');
+      db.exec('DROP TABLE projects');
+      db.pragma('foreign_keys = ON');
+    }
+    return;
   }
+  if (!tableExists('projects')) return;
+
+  db.pragma('foreign_keys = OFF');
+  db.exec(`
+    CREATE TABLE lists (
+      id            TEXT PRIMARY KEY,
+      name          TEXT NOT NULL,
+      icon          TEXT,
+      description   TEXT NOT NULL DEFAULT '',
+      next_task_num INTEGER NOT NULL DEFAULT 1,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO lists (id, name, description, next_task_num, created_at, updated_at)
+    SELECT id, name, description, next_task_num, created_at, updated_at
+    FROM projects
+    WHERE id != '${LEGACY_DEFAULT_PROJECT_ID}';
+
+    CREATE TABLE tasks_new (
+      id            TEXT PRIMARY KEY,
+      list_id       TEXT REFERENCES lists(id) ON DELETE CASCADE,
+      task_number   INTEGER NOT NULL,
+      task_key      TEXT NOT NULL UNIQUE,
+      title         TEXT NOT NULL,
+      description   TEXT NOT NULL DEFAULT '',
+      status        TEXT NOT NULL DEFAULT 'backlog'
+                    CHECK (status IN ('backlog','todo','in_progress','failed','done','cancelled')),
+      priority      TEXT NOT NULL DEFAULT 'none'
+                    CHECK (priority IN ('urgent','high','medium','low','none')),
+      runner_id     TEXT REFERENCES runners(id) ON DELETE SET NULL,
+      ai_provider   TEXT CHECK (ai_provider IN ('claude-code','codex','cursor-agent','gemini-cli') OR ai_provider IS NULL),
+      harness_config TEXT NOT NULL DEFAULT '{}',
+      labels        TEXT NOT NULL DEFAULT '[]',
+      output        TEXT,
+      scheduled_at  TEXT,
+      started_at    TEXT,
+      completed_at  TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO tasks_new (
+      id, list_id, task_number, task_key, title, description, status, priority,
+      runner_id, ai_provider, harness_config, labels, output, scheduled_at, started_at, completed_at, created_at, updated_at
+    )
+    SELECT
+      id,
+      CASE WHEN project_id = '${LEGACY_DEFAULT_PROJECT_ID}' THEN NULL ELSE project_id END,
+      task_number, task_key, title, description, status, priority,
+      runner_id, ai_provider, harness_config, labels, output, scheduled_at, started_at, completed_at, created_at, updated_at
+    FROM tasks;
+
+    DROP TABLE tasks;
+    ALTER TABLE tasks_new RENAME TO tasks;
+    DROP TABLE projects;
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_list_id ON tasks(list_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_runner_id ON tasks(runner_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+  `);
+
+  // Renumber the migrated inbox tasks (formerly the default project) so they
+  // get a fresh 1..N sequence under the INBOX prefix.
+  const inboxTasks = db.prepare(
+    'SELECT id FROM tasks WHERE list_id IS NULL ORDER BY created_at ASC, id ASC',
+  ).all() as Array<{ id: string }>;
+
+  const updateInbox = db.prepare(
+    'UPDATE tasks SET task_number = ?, task_key = ? WHERE id = ?',
+  );
+  let nextNum = 1;
+  const renumber = db.transaction(() => {
+    for (const task of inboxTasks) {
+      updateInbox.run(nextNum, formatTaskKey(null, nextNum), task.id);
+      nextNum += 1;
+    }
+  });
+  renumber();
+  setDbSettingDirect('inbox_next_task_num', String(nextNum));
+
+  db.pragma('foreign_keys = ON');
 }
 
-function normalizeProjectNames(): void {
-  const projects = db.prepare('SELECT id, name FROM projects').all() as Array<{ id: string; name: string }>;
-  const updateProjectName = db.prepare('UPDATE projects SET name = ? WHERE id = ?');
-  const normalize = db.transaction(() => {
-    for (const project of projects) {
-      const normalizedName = normalizeProjectName(project.name);
-      if (normalizedName && normalizedName !== project.name) {
-        updateProjectName.run(normalizedName, project.id);
+function normalizeListNames(): void {
+  if (!tableExists('lists')) return;
+  const lists = db.prepare('SELECT id, name FROM lists').all() as Array<{ id: string; name: string }>;
+  const updateName = db.prepare('UPDATE lists SET name = ? WHERE id = ?');
+  const tx = db.transaction(() => {
+    for (const list of lists) {
+      const normalized = normalizeListName(list.name);
+      if (normalized && normalized !== list.name) {
+        updateName.run(normalized, list.id);
       }
     }
   });
-
-  normalize();
+  tx();
 }
 
-function ensureUniqueProjectNamesIndex(): void {
+function ensureUniqueListNamesIndex(): void {
   const duplicates = db.prepare(`
     SELECT lower(name) AS normalized_name, COUNT(*) AS count
-    FROM projects
+    FROM lists
     GROUP BY lower(name)
     HAVING COUNT(*) > 1
   `).all() as Array<{ normalized_name: string; count: number }>;
 
   if (duplicates.length > 0) return;
-  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name_unique ON projects(name COLLATE NOCASE)');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_name_unique ON lists(name COLLATE NOCASE)');
 }
 
 const DEFAULT_LABELS: Array<{ name: string; color: string }> = [
@@ -210,6 +321,7 @@ function seedDefaultLabels(): void {
 }
 
 function migrateTaskStatuses(): void {
+  if (!tableExists('tasks')) return;
   const table = db.prepare(`
     SELECT sql FROM sqlite_master
     WHERE type = 'table' AND name = 'tasks'
@@ -259,6 +371,7 @@ function migrateTaskStatuses(): void {
 }
 
 function migrateAddGeminiProvider(): void {
+  if (!tableExists('tasks')) return;
   const table = db.prepare(`
     SELECT sql FROM sqlite_master
     WHERE type = 'table' AND name = 'tasks'
@@ -308,6 +421,7 @@ function migrateAddGeminiProvider(): void {
 }
 
 function migrateAddGeminiProviderToSessions(): void {
+  if (!tableExists('sessions')) return;
   const table = db.prepare(`
     SELECT sql FROM sqlite_master
     WHERE type = 'table' AND name = 'sessions'
@@ -351,29 +465,42 @@ function ensureColumn(table: string, column: string, definition: string): void {
   }
 }
 
-function migrateTaskKeysToProjectNames(): void {
-  const tasks = db.prepare(`
-    SELECT t.id, t.task_number, p.name AS project_name
+function migrateTaskKeysToListNames(): void {
+  const listed = db.prepare(`
+    SELECT t.id, t.task_number, l.name AS list_name
     FROM tasks t
-    JOIN projects p ON p.id = t.project_id
+    JOIN lists l ON l.id = t.list_id
     ORDER BY t.created_at ASC, t.id ASC
-  `).all() as Array<{ id: string; task_number: number; project_name: string }>;
+  `).all() as Array<{ id: string; task_number: number; list_name: string }>;
+
+  const inbox = db.prepare(`
+    SELECT id, task_number FROM tasks
+    WHERE list_id IS NULL
+    ORDER BY created_at ASC, id ASC
+  `).all() as Array<{ id: string; task_number: number }>;
 
   const updateTaskKey = db.prepare('UPDATE tasks SET task_key = ? WHERE id = ?');
-  const migrateTaskKeys = db.transaction(() => {
-    for (const task of tasks) {
-      updateTaskKey.run(formatTaskKey(task.project_name, task.task_number), task.id);
+  const tx = db.transaction(() => {
+    for (const task of listed) {
+      updateTaskKey.run(formatTaskKey(task.list_name, task.task_number), task.id);
+    }
+    for (const task of inbox) {
+      updateTaskKey.run(formatTaskKey(null, task.task_number), task.id);
     }
   });
 
   try {
-    migrateTaskKeys();
+    tx();
   } catch {
-    // Preserve existing task keys if legacy data would make the generated names collide.
+    // Preserve existing task keys if generated names would collide.
   }
 }
 
 // ── Settings helpers ─────────────────────────────────────────────────────
+
+function setDbSettingDirect(key: string, value: string): void {
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+}
 
 export function getDbSetting(key: string): string | undefined {
   if (!db) return undefined;
@@ -383,7 +510,18 @@ export function getDbSetting(key: string): string | undefined {
 
 export function setDbSetting(key: string, value: string): void {
   if (!db) return;
-  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+  setDbSettingDirect(key, value);
+}
+
+// ── Inbox task numbering ─────────────────────────────────────────────────
+
+const INBOX_COUNTER_KEY = 'inbox_next_task_num';
+
+export function nextInboxTaskNumber(): number {
+  const current = parseInt(getDbSetting(INBOX_COUNTER_KEY) ?? '1', 10);
+  const safe = Number.isFinite(current) && current > 0 ? current : 1;
+  setDbSetting(INBOX_COUNTER_KEY, String(safe + 1));
+  return safe;
 }
 
 /** Mark runners as offline if heartbeat is stale (>90 seconds). */
