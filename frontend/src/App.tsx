@@ -24,6 +24,7 @@ import MobileSkills from "./pages/mobile/MobileSkills";
 import Stats from "./pages/Stats";
 import MobileStats from "./pages/mobile/MobileStats";
 import MobileSettings from "./pages/mobile/MobileSettings";
+import TodoView from "./pages/TodoView";
 
 function DesktopShell() {
   const location = useLocation();
@@ -42,6 +43,7 @@ function DesktopShell() {
             <Route path="/skills" element={<Skills />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/sessions" element={<Sessions />} />
+            <Route path="/todos" element={<TodoView />} />
             <Route
               path="/projects"
               element={<Navigate to="/inbox" replace />}
@@ -74,6 +76,7 @@ function MobileApp() {
           <Route path="/skills" element={<MobileSkills />} />
           <Route path="/stats" element={<MobileStats />} />
           <Route path="/sessions" element={<MobileSessions />} />
+          <Route path="/todos" element={<TodoView />} />
           <Route path="/usage" element={<Navigate to="/runners" replace />} />
           <Route path="/settings" element={<MobileSettings />} />
         </Routes>
