@@ -162,6 +162,7 @@ function migrate(): void {
   normalizeListNames();
   ensureUniqueListNamesIndex();
   migrateTaskKeysToListNames();
+  migrateDefaultLabelEmoji();
 }
 
 function tableExists(name: string): boolean {
@@ -290,6 +291,48 @@ function ensureUniqueListNamesIndex(): void {
 
   if (duplicates.length > 0) return;
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_name_unique ON lists(name COLLATE NOCASE)');
+}
+
+const EMOJI_LABEL_MAP: Record<string, string> = {
+  'Bug':           '🐛 Bug',
+  'Fix':           '🔧 Fix',
+  'Feature':       '✨ Feature',
+  'Improvement':   '📈 Improvement',
+  'Refactor':      '♻️ Refactor',
+  'Documentation': '📝 Documentation',
+  'Design':        '🎨 Design',
+  'Testing':       '🧪 Testing',
+  'Performance':   '⚡ Performance',
+  'Security':      '🔒 Security',
+  'DevOps':        '🚀 DevOps',
+  'Chore':         '🧹 Chore',
+};
+
+function migrateDefaultLabelEmoji(): void {
+  if (getDbSetting('migrated_label_emoji') === '1') return;
+
+  const updateLabel = db.prepare('UPDATE labels SET name = ?, updated_at = datetime(\'now\') WHERE name = ?');
+  const getAllTasks = db.prepare('SELECT id, labels FROM tasks WHERE labels != \'[]\'');
+  const updateTaskLabels = db.prepare('UPDATE tasks SET labels = ? WHERE id = ?');
+
+  const migration = db.transaction(() => {
+    for (const [oldName, newName] of Object.entries(EMOJI_LABEL_MAP)) {
+      updateLabel.run(newName, oldName);
+    }
+
+    const tasks = getAllTasks.all() as Array<{ id: string; labels: string }>;
+    for (const task of tasks) {
+      const labelList: string[] = JSON.parse(task.labels);
+      const updated = labelList.map((l) => EMOJI_LABEL_MAP[l] ?? l);
+      if (updated.some((l, i) => l !== labelList[i])) {
+        updateTaskLabels.run(JSON.stringify(updated), task.id);
+      }
+    }
+
+    setDbSettingDirect('migrated_label_emoji', '1');
+  });
+
+  migration();
 }
 
 const DEFAULT_LABELS: Array<{ name: string; color: string }> = [
