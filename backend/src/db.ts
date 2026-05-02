@@ -182,18 +182,18 @@ function ensureUniqueProjectNamesIndex(): void {
 }
 
 const DEFAULT_LABELS: Array<{ name: string; color: string }> = [
-  { name: 'Bug',           color: 'red' },
-  { name: 'Fix',           color: 'orange' },
-  { name: 'Feature',       color: 'blue' },
-  { name: 'Improvement',   color: 'emerald' },
-  { name: 'Refactor',      color: 'violet' },
-  { name: 'Documentation', color: 'gray' },
-  { name: 'Design',        color: 'pink' },
-  { name: 'Testing',       color: 'amber' },
-  { name: 'Performance',   color: 'teal' },
-  { name: 'Security',      color: 'red-dark' },
-  { name: 'DevOps',        color: 'cyan' },
-  { name: 'Chore',         color: 'slate' },
+  { name: '🐛 Bug',           color: 'red' },
+  { name: '🔧 Fix',           color: 'orange' },
+  { name: '✨ Feature',       color: 'blue' },
+  { name: '📈 Improvement',   color: 'emerald' },
+  { name: '♻️ Refactor',      color: 'violet' },
+  { name: '📝 Documentation', color: 'gray' },
+  { name: '🎨 Design',        color: 'pink' },
+  { name: '🧪 Testing',       color: 'amber' },
+  { name: '⚡ Performance',   color: 'teal' },
+  { name: '🔒 Security',      color: 'red-dark' },
+  { name: '🚀 DevOps',        color: 'cyan' },
+  { name: '🧹 Chore',         color: 'slate' },
 ];
 
 function seedDefaultLabels(): void {
