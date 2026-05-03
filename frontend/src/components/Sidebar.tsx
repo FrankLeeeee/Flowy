@@ -139,9 +139,9 @@ export default function Sidebar() {
         <div className="h-[60px] px-4 flex items-center shrink-0 border-b border-border/60">
           <div className="flex items-center gap-2.5">
             <img
-              src="/flowy-icon.svg"
+              src="/icon-192.png"
               alt="Flowy"
-              className="h-8 w-8 rounded-[11px] ring-1 ring-primary/12"
+              className="h-8 w-8"
             />
             <div className="flex min-w-0 items-center">
               <span className="block pt-[1px] font-semibold tracking-[-0.01em] text-[16px] leading-none text-foreground">Flowy</span>
