@@ -8,6 +8,7 @@ import {
   updateRunnerProviders,
   fetchSettings,
   fetchRunnerRegistrationSecret,
+  updateRunnerRegistrationSecret,
 } from "../api/client";
 import RunnerCard from "../components/runners/RunnerCard";
 import PageTitle from "@/components/PageTitle";
@@ -31,6 +32,7 @@ import {
   Terminal,
   Shield,
   Copy,
+  Pencil,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,6 +57,9 @@ export default function Runners() {
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [copiedInstallCommand, setCopiedInstallCommand] = useState(false);
   const [copiedRegisterCommand, setCopiedRegisterCommand] = useState(false);
+  const [isEditingSecret, setIsEditingSecret] = useState(false);
+  const [draftRegistrationSecret, setDraftRegistrationSecret] = useState("");
+  const [savingSecret, setSavingSecret] = useState(false);
   const [tab, setTab] = useState<"runners" | "security">("runners");
 
   const loadData = useCallback(async () => {
@@ -177,6 +182,41 @@ export default function Runners() {
       setError(
         e instanceof Error ? e.message : "Failed to copy runner command",
       );
+    }
+  };
+
+  const handleStartSecretEdit = () => {
+    setIsEditingSecret(true);
+    setCopiedSecret(false);
+    setError("");
+    // Start from empty to force an explicit rotate action.
+    setDraftRegistrationSecret("");
+  };
+
+  const handleCancelSecretEdit = () => {
+    setIsEditingSecret(false);
+    setDraftRegistrationSecret("");
+  };
+
+  const handleSaveSecret = async () => {
+    const nextSecret = draftRegistrationSecret.trim();
+    if (!nextSecret) {
+      setError("Enter a new registration secret before saving.");
+      return;
+    }
+    try {
+      setSavingSecret(true);
+      const updated = await updateRunnerRegistrationSecret(nextSecret);
+      setRegistrationSecret(updated.runner.registrationSecret);
+      setIsEditingSecret(false);
+      setDraftRegistrationSecret("");
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to update registration secret",
+      );
+    } finally {
+      setSavingSecret(false);
     }
   };
 
@@ -338,31 +378,69 @@ export default function Runners() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[13px] font-medium">
-                    Registration Secret
+                    Current Registration Secret
                   </Label>
                   <div className="flex flex-wrap items-center gap-2 max-w-xl">
                     <Input
                       type="password"
-                      value={registrationSecret}
-                      readOnly
-                      placeholder="Generated automatically"
+                      value={isEditingSecret ? draftRegistrationSecret : registrationSecret}
+                      onChange={(event) => setDraftRegistrationSecret(event.target.value)}
+                      readOnly={!isEditingSecret}
+                      placeholder={
+                        isEditingSecret
+                          ? "Enter 12 to 30 characters"
+                          : "Hidden registration secret"
+                      }
                       className="h-9 max-w-md flex-1 min-w-[220px] font-mono"
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void handleCopySecret()}
-                      disabled={!registrationSecret}
-                      className="h-9 text-[12px]"
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-1.5" />
-                      {copiedSecret ? "Copied" : "Copy"}
-                    </Button>
+                    {isEditingSecret ? (
+                      <>
+                        <Button
+                          type="button"
+                          onClick={() => void handleSaveSecret()}
+                          disabled={savingSecret || !draftRegistrationSecret.trim()}
+                          className="h-9 text-[12px]"
+                        >
+                          {savingSecret ? "Saving..." : "Save"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCancelSecretEdit}
+                          disabled={savingSecret}
+                          className="h-9 text-[12px]"
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleCopySecret()}
+                          disabled={!registrationSecret}
+                          className="h-9 text-[12px]"
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-1.5" />
+                          {copiedSecret ? "Copied" : "Copy"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleStartSecretEdit}
+                          className="h-9 text-[12px]"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                      </>
+                    )}
                   </div>
                   <p className="text-[11px] text-muted-foreground/75">
-                    Generated automatically on first start. Every new runner
-                    must provide this secret when it registers. The value stays
-                    hidden here; Copy places it on your clipboard.
+                    {isEditingSecret
+                      ? "Enter a new secret and save to rotate runner registration. Existing runners stay connected."
+                      : "Every new runner must provide this secret when it registers. Copy places the current secret on your clipboard."}
                   </p>
                 </div>
               </div>

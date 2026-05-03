@@ -50,6 +50,15 @@ export async function fetchRunnerRegistrationSecret(): Promise<{ registrationSec
   return data;
 }
 
+export async function updateRunnerRegistrationSecret(
+  registrationSecret: string,
+): Promise<Settings> {
+  const { data } = await api.put<Settings>('/settings', {
+    runner: { registrationSecret },
+  });
+  return data;
+}
+
 // ── Lists ─────────────────────────────────────────────────────────────────
 
 export async function fetchLists(): Promise<List[]> {

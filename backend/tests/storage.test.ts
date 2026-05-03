@@ -52,7 +52,7 @@ describe('storage helpers', () => {
 
       const settings = storage.loadSettings();
 
-      expect(settings.runner.registrationSecret).toMatch(/^[a-f0-9]{64}$/);
+      expect(settings.runner.registrationSecret).toMatch(/^[a-f0-9]{30}$/);
       expect(getDbSetting('runner.registrationSecret')).toBe(settings.runner.registrationSecret);
       // Confirm no plaintext settings.json is written.
       const legacyFile = path.join(homeDir, '.config', 'flowy', 'settings.json');
@@ -68,7 +68,7 @@ describe('storage helpers', () => {
       const settingsDir = path.join(homeDir, '.config', 'flowy');
       const legacyFile = path.join(settingsDir, 'settings.json');
       fs.mkdirSync(settingsDir, { recursive: true });
-      const legacySecret = 'a'.repeat(64);
+      const legacySecret = 'a'.repeat(30);
       fs.writeFileSync(legacyFile, JSON.stringify({ runner: { registrationSecret: legacySecret } }), 'utf-8');
 
       const storage = await importStorageForHome(homeDir);
@@ -85,7 +85,7 @@ describe('storage helpers', () => {
     }
   });
 
-  it('replaces legacy human-readable secrets with a generated secret', async () => {
+  it('keeps existing secrets that satisfy the configured length policy', async () => {
     const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowy-settings-'));
     try {
       const storage = await importStorageForHome(homeDir);
@@ -95,9 +95,41 @@ describe('storage helpers', () => {
 
       const settings = storage.loadSettings();
 
-      expect(settings.runner.registrationSecret).toMatch(/^[a-f0-9]{64}$/);
-      expect(settings.runner.registrationSecret).not.toBe('same-as-login-password');
+      expect(settings.runner.registrationSecret).toBe('same-as-login-password');
       expect(getDbSetting('runner.registrationSecret')).toBe(settings.runner.registrationSecret);
+    } finally {
+      fs.rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps custom secrets that meet security length requirements', async () => {
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowy-settings-'));
+    try {
+      const storage = await importStorageForHome(homeDir);
+      const { initDb, getDbSetting, setDbSetting } = await import('../src/db');
+      initDb();
+      const customSecret = 'my-rotated-secret-12345';
+      setDbSetting('runner.registrationSecret', customSecret);
+
+      const settings = storage.loadSettings();
+
+      expect(settings.runner.registrationSecret).toBe(customSecret);
+      expect(getDbSetting('runner.registrationSecret')).toBe(customSecret);
+    } finally {
+      fs.rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects saving registration secrets that are too short', async () => {
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowy-settings-'));
+    try {
+      const storage = await importStorageForHome(homeDir);
+      const { initDb } = await import('../src/db');
+      initDb();
+
+      expect(() => storage.saveSettings({
+        runner: { registrationSecret: 'too-short' },
+      })).toThrow(/between 12 and 30 characters/i);
     } finally {
       fs.rmSync(homeDir, { recursive: true, force: true });
     }

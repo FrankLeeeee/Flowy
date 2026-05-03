@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Runner, Task, AiProvider } from '../../types';
 import {
   fetchRunners, fetchTasks, deleteRunner, refreshRunnerProviders, updateRunnerProviders,
-  fetchSettings, fetchRunnerRegistrationSecret,
+  fetchSettings, fetchRunnerRegistrationSecret, updateRunnerRegistrationSecret,
 } from '../../api/client';
 import { AI_LABELS } from '@/lib/taskConstants';
 import RunnerStatusBadge from '@/components/runners/RunnerStatusBadge';
@@ -17,7 +17,7 @@ import { cn, timeAgo } from '@/lib/utils';
 import { getToneStyles, getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
 import {
   ArrowUpCircle, Bot, Plus, Shield, Copy, Sparkles, Terminal,
-  Trash2, RefreshCw, Loader2, ArrowLeft,
+  Trash2, RefreshCw, Loader2, ArrowLeft, Pencil,
 } from 'lucide-react';
 
 export default function MobileRunners() {
@@ -39,6 +39,9 @@ export default function MobileRunners() {
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [copiedInstallCommand, setCopiedInstallCommand] = useState(false);
   const [copiedRegisterCommand, setCopiedRegisterCommand] = useState(false);
+  const [isEditingSecret, setIsEditingSecret] = useState(false);
+  const [draftRegistrationSecret, setDraftRegistrationSecret] = useState('');
+  const [savingSecret, setSavingSecret] = useState(false);
   const [tab, setTab] = useState<'runners' | 'security'>('runners');
 
   const loadData = useCallback(async () => {
@@ -117,6 +120,39 @@ export default function MobileRunners() {
     catch (e) { setError(e instanceof Error ? e.message : 'Copy failed'); }
   };
 
+  const handleStartSecretEdit = () => {
+    setIsEditingSecret(true);
+    setCopiedSecret(false);
+    setError('');
+    // Start from empty to force an explicit rotate action.
+    setDraftRegistrationSecret('');
+  };
+
+  const handleCancelSecretEdit = () => {
+    setIsEditingSecret(false);
+    setDraftRegistrationSecret('');
+  };
+
+  const handleSaveSecret = async () => {
+    const nextSecret = draftRegistrationSecret.trim();
+    if (!nextSecret) {
+      setError('Enter a new registration secret before saving.');
+      return;
+    }
+    try {
+      setSavingSecret(true);
+      const updated = await updateRunnerRegistrationSecret(nextSecret);
+      setRegistrationSecret(updated.runner.registrationSecret);
+      setIsEditingSecret(false);
+      setDraftRegistrationSecret('');
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update registration secret');
+    } finally {
+      setSavingSecret(false);
+    }
+  };
+
   const onlineCount = runners.filter((r) => r.status === 'online' || r.status === 'busy').length;
   const offlineCount = runners.filter((r) => r.status === 'offline').length;
   const installCommand = 'npm install -g @frankleeeee/flowy-runner';
@@ -125,7 +161,7 @@ export default function MobileRunners() {
     : setupSecretLoading
       ? 'Loading registration command...'
       : 'Registration secret unavailable. Close and try Add Runner again.';
-
+  
   if (loading) {
     return (
       <div className="p-4 space-y-3">
@@ -201,30 +237,63 @@ export default function MobileRunners() {
           <div className="border-b border-border/40 bg-card px-4 py-4 space-y-4">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-muted-foreground/65" />
-              <h2 className="font-semibold text-[14px]">Registration Secret</h2>
+              <h2 className="font-semibold text-[14px]">Current Registration Secret</h2>
             </div>
             <div className="space-y-2">
               <Input
                 type="password"
-                value={registrationSecret}
-                readOnly
-                placeholder="Generated automatically"
+                value={isEditingSecret ? draftRegistrationSecret : registrationSecret}
+                onChange={(event) => setDraftRegistrationSecret(event.target.value)}
+                readOnly={!isEditingSecret}
+                placeholder={isEditingSecret ? 'Enter 12 to 30 characters' : 'Hidden registration secret'}
                 className="h-10 rounded-xl font-mono"
               />
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => void handleCopySecret()}
-                  disabled={!registrationSecret}
-                  className="h-9 flex-1 rounded-xl text-[12px]"
-                >
-                  <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  {copiedSecret ? 'Copied' : 'Copy'}
-                </Button>
+                {isEditingSecret ? (
+                  <>
+                    <Button
+                      onClick={() => void handleSaveSecret()}
+                      disabled={savingSecret || !draftRegistrationSecret.trim()}
+                      className="h-9 flex-1 rounded-xl text-[12px]"
+                    >
+                      {savingSecret ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelSecretEdit}
+                      disabled={savingSecret}
+                      className="h-9 flex-1 rounded-xl text-[12px]"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => void handleCopySecret()}
+                      disabled={!registrationSecret}
+                      className="h-9 flex-1 rounded-xl text-[12px]"
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1.5" />
+                      {copiedSecret ? 'Copied' : 'Copy'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleStartSecretEdit}
+                      className="h-9 flex-1 rounded-xl text-[12px]"
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                      Edit
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground/75">
-              Every new runner must provide this secret when it registers. The value stays hidden here; Copy places it on your clipboard.
+              {isEditingSecret
+                ? 'Enter a new secret and save to rotate runner registration. Existing runners stay connected.'
+                : 'Every new runner must provide this secret when it registers. Copy places the current secret on your clipboard.'}
             </p>
           </div>
         </div>

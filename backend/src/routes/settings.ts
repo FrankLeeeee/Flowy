@@ -1,5 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { loadSettings, maskKey } from '../storage';
+import {
+  loadSettings,
+  maskKey,
+  saveSettings,
+  isValidRunnerSecret,
+  generateRunnerSecret,
+} from '../storage';
 import { Settings } from '../types';
 
 const router = Router();
@@ -21,10 +27,33 @@ router.get('/runner-secret', (_req: Request, res: Response) => {
 });
 
 // PUT /api/settings
-router.put('/', (_req: Request, res: Response) => {
-  res.status(405).json({
-    error: 'Runner registration secret is generated automatically and cannot be changed.',
-  });
+router.put('/', (req: Request, res: Response) => {
+  const body = req.body as {
+    runner?: {
+      registrationSecret?: string;
+      regenerate?: boolean;
+    };
+  };
+  const shouldRegenerate = body.runner?.regenerate === true;
+  const providedSecret = body.runner?.registrationSecret?.trim();
+
+  if (!shouldRegenerate && !providedSecret) {
+    res.status(400).json({
+      error: 'runner.registrationSecret is required unless runner.regenerate is true.',
+    });
+    return;
+  }
+
+  const nextSecret = shouldRegenerate ? generateRunnerSecret() : providedSecret;
+  if (!isValidRunnerSecret(nextSecret)) {
+    res.status(400).json({
+      error: 'runner.registrationSecret must be between 12 and 30 characters.',
+    });
+    return;
+  }
+
+  saveSettings({ runner: { registrationSecret: nextSecret } });
+  res.json(maskedSettings(loadSettings()));
 });
 
 export default router;
