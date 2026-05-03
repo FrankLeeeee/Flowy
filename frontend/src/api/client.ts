@@ -45,16 +45,8 @@ export async function fetchSettings(): Promise<Settings> {
   return data;
 }
 
-export async function revealRunnerSecret(password: string): Promise<{ registrationSecret: string }> {
-  const { data } = await api.post<{ registrationSecret: string }>(
-    '/settings/runner-secret/reveal',
-    { password },
-  );
-  return data;
-}
-
-export async function updateSettings(partial: Partial<Settings>): Promise<Settings> {
-  const { data } = await api.put<Settings>('/settings', partial);
+export async function fetchRunnerRegistrationSecret(): Promise<{ registrationSecret: string }> {
+  const { data } = await api.get<{ registrationSecret: string }>('/settings/runner-secret');
   return data;
 }
 

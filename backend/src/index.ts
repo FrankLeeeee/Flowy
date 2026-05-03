@@ -13,6 +13,7 @@ import statsRouter     from './routes/stats';
 import sessionsRouter  from './routes/sessions';
 import { initDb }      from './db';
 import { DATA_DIR }    from './dataDir';
+import { loadSettings } from './storage';
 import { requireUserAuth } from './middleware/userAuth';
 
 const app  = express();
@@ -77,6 +78,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 initDb();
+loadSettings();
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth',     authRouter);

@@ -35,15 +35,15 @@ http://localhost:3001
 
 The hub serves the API and web app together, so one command is enough to get the dashboard running.
 
-## Step 3: Copy the registration secret
+## Step 3: Open the runner setup
 
 When Flowy starts for the first time, it creates a runner registration secret.
 
 1. Open the `Runners` page.
-2. Switch to the `Security` tab.
-3. Copy the `Registration Secret`.
+2. Click `Add Runner`.
+3. Copy the generated registration command.
 
-Every new runner uses this secret the first time it connects.
+The command includes the current registration secret automatically. You can also copy the hidden secret from the `Runners` > `Security` tab.
 
 ## Step 4: Register a runner
 

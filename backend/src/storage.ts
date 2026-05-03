@@ -9,6 +9,7 @@ import { getDbSetting, setDbSetting } from './db';
 const LEGACY_SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
 const DB_KEY_REGISTRATION_SECRET = 'runner.registrationSecret';
+const RUNNER_SECRET_PATTERN = /^[a-f0-9]{64}$/;
 
 /**
  * Load settings with the database as the primary source of truth.
@@ -19,17 +20,20 @@ const DB_KEY_REGISTRATION_SECRET = 'runner.registrationSecret';
 export function loadSettings(): Settings {
   // 1. Try the database first
   const dbSecret = getDbSetting(DB_KEY_REGISTRATION_SECRET);
-  if (dbSecret) {
+  if (isGeneratedRunnerSecret(dbSecret)) {
     return { runner: { registrationSecret: dbSecret } };
   }
 
   // 2. Fall back to the legacy JSON file (pre-migration installs).
   // Migrate the secret into the DB and remove the cleartext copy.
   const fileSecret = readSecretFromFile();
-  if (fileSecret) {
+  if (isGeneratedRunnerSecret(fileSecret)) {
     setDbSetting(DB_KEY_REGISTRATION_SECRET, fileSecret);
     try { fs.unlinkSync(LEGACY_SETTINGS_FILE); } catch { /* already gone */ }
     return { runner: { registrationSecret: fileSecret } };
+  }
+  if (fileSecret) {
+    try { fs.unlinkSync(LEGACY_SETTINGS_FILE); } catch { /* already gone */ }
   }
 
   // 3. First-time setup — generate and persist to the DB.
@@ -54,14 +58,12 @@ export function maskKey(key: string): string {
   return key.slice(0, 4) + '****' + key.slice(-4);
 }
 
+function isGeneratedRunnerSecret(secret: string | undefined): secret is string {
+  return Boolean(secret && RUNNER_SECRET_PATTERN.test(secret));
+}
+
 function generateRunnerSecret(): string {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const bytes = crypto.randomBytes(24);
-  let secret = '';
-  for (const byte of bytes) {
-    secret += alphabet[byte % alphabet.length];
-  }
-  return secret;
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /** Best-effort read of the registration secret from the legacy JSON file. */
