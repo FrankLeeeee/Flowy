@@ -1,7 +1,44 @@
 import axios from 'axios';
 import { Settings, List, Task, Runner, TaskLog, HarnessConfig, Label, Skill, AiProvider, Stats, Session, SessionMessage } from '../types';
 
-const api = axios.create({ baseURL: '/api' });
+const api = axios.create({ baseURL: '/api', withCredentials: true });
+
+// Redirect to /login on any 401 (except auth endpoints themselves)
+api.interceptors.response.use(
+  (r) => r,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      const url = error.config?.url ?? '';
+      if (!url.startsWith('/auth/')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+
+export async function checkAuthStatus(): Promise<{ authenticated: boolean; setupRequired: boolean }> {
+  const { data } = await api.get<{ authenticated: boolean; setupRequired: boolean }>('/auth/status');
+  return data;
+}
+
+export async function login(password: string): Promise<void> {
+  await api.post('/auth/login', { password });
+}
+
+export async function logout(): Promise<void> {
+  await api.post('/auth/logout');
+}
+
+export async function setupPassword(password: string): Promise<void> {
+  await api.post('/auth/setup', { password });
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await api.put('/auth/password', { currentPassword, newPassword });
+}
 
 export async function fetchSettings(): Promise<Settings> {
   const { data } = await api.get<Settings>('/settings');

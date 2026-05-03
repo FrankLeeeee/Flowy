@@ -11,18 +11,22 @@ import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import ConfirmDialog from './ConfirmDialog';
 import EmojiPicker from './EmojiPicker';
+import ChangePasswordDialog from './ChangePasswordDialog';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import {
   Inbox, FolderKanban, LayoutList, Bot, Tags, BarChart2, MessagesSquare,
   Plus, ChevronRight, Trash2, GripVertical,
   Sun, Moon, Monitor,
-  ArrowRight, Sparkles,
+  ArrowRight, Sparkles, LogOut, KeyRound,
   CalendarDays, CalendarRange, Layers,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Sidebar() {
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuth();
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [lists, setLists] = useState<List[]>([]);
   const [listsOpen, setListsOpen] = useState(true);
   const [showNewList, setShowNewList] = useState(false);
@@ -270,32 +274,54 @@ export default function Sidebar() {
           </nav>
         </ScrollArea>
 
-        {/* Theme toggle — pinned to bottom */}
+        {/* Bottom bar: theme toggle + logout */}
         <div className="shrink-0 border-t border-border/60 px-3 py-3">
-          <div className="flex items-center rounded-lg border border-border/60 bg-background/80 p-0.5">
-            {([
-              { value: 'light' as const, icon: Sun, label: 'Light' },
-              { value: 'system' as const, icon: Monitor, label: 'System' },
-              { value: 'dark' as const, icon: Moon, label: 'Dark' },
-            ]).map(({ value, icon: Icon, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setTheme(value)}
-                aria-label={label}
-                className={cn(
-                  'interactive-lift flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-150',
-                  theme === value
-                    ? 'bg-primary/10 text-primary shadow-soft'
-                    : 'text-muted-foreground/75 hover:text-foreground'
-                )}
-              >
-                <Icon className="h-3 w-3" />
-              </button>
-            ))}
+          <div className="mb-2 flex items-center gap-1">
+            <div className="flex flex-1 items-center rounded-lg border border-border/60 bg-background/80 p-0.5">
+              {([
+                { value: 'light' as const, icon: Sun, label: 'Light' },
+                { value: 'system' as const, icon: Monitor, label: 'System' },
+                { value: 'dark' as const, icon: Moon, label: 'Dark' },
+              ]).map(({ value, icon: Icon, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  aria-label={label}
+                  className={cn(
+                    'interactive-lift flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-150',
+                    theme === value
+                      ? 'bg-primary/10 text-primary shadow-soft'
+                      : 'text-muted-foreground/75 hover:text-foreground'
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowChangePassword(true)}
+              aria-label="Change password"
+              title="Change password"
+              className="interactive-lift flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-foreground/[0.06] hover:text-foreground transition-colors duration-150"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => logout()}
+              aria-label="Sign out"
+              title="Sign out"
+              className="interactive-lift flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive transition-colors duration-150"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </aside>
+
+      <ChangePasswordDialog open={showChangePassword} onClose={() => setShowChangePassword(false)} />
 
       {/* New List Dialog */}
       <Dialog open={showNewList} onOpenChange={(open) => { if (!open) closeNewListDialog(); }}>

@@ -7,6 +7,8 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useIsMobile } from "./hooks/useIsMobile";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import LoginPage from "./pages/LoginPage";
 import Sidebar from "./components/Sidebar";
 import CommandPalette from "./components/CommandPalette";
 import CreateTaskModal from "./components/tasks/CreateTaskModal";
@@ -123,10 +125,21 @@ function MobileApp() {
   );
 }
 
-export default function App() {
+function AuthGuard() {
+  const { status } = useAuth();
   const isMobile = useIsMobile();
 
+  if (status === 'loading') return null;
+  if (status === 'setup' || status === 'unauthenticated') return <LoginPage />;
+  return isMobile ? <MobileApp /> : <DesktopShell />;
+}
+
+export default function App() {
   return (
-    <BrowserRouter>{isMobile ? <MobileApp /> : <DesktopShell />}</BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <AuthGuard />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

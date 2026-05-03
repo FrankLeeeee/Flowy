@@ -147,8 +147,15 @@ function migrate(): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      token      TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      expires_at TEXT NOT NULL
+    );
   `);
 
+  purgeExpiredUserSessions();
   seedDefaultLabels();
 
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
@@ -581,6 +588,10 @@ export function nextInboxTaskNumber(): number {
   const safe = Number.isFinite(current) && current > 0 ? current : 1;
   setDbSetting(INBOX_COUNTER_KEY, String(safe + 1));
   return safe;
+}
+
+function purgeExpiredUserSessions(): void {
+  db.prepare(`DELETE FROM user_sessions WHERE expires_at <= datetime('now')`).run();
 }
 
 /** Mark runners as offline if heartbeat is stale (>90 seconds). */
