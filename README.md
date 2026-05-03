@@ -2,18 +2,18 @@
   <img src="./frontend/public/icon-512.png" alt="Flowy logo" width="250" />
 </p>
 
-# 🌊 Flowy
+# ✨ Flowy
 
 Flowy is a self-hosted task hub for AI-assisted work. It gives you one place to manage projects, route tasks to connected runner machines, and execute them with the AI CLI that fits the job, such as Claude Code, Codex, or Cursor Agent.
 
-## 📚 Table of Contents
+## 📍 Table of Contents
 
-- [✨ Overview](#-overview)
+- [📚 Overview](#-overview)
 - [🧩 Packages](#-packages)
 - [🔄 How It Works](#-how-it-works)
 - [📖 Documentation](#-documentation)
 
-## ✨ Overview
+## 📚 Overview
 
 Flowy is designed for a simple workflow: keep projects and tasks in one dashboard, point each task at a runner, pass harness settings like workspace, model, sandbox, or worktree through to the underlying CLI, and watch execution output stream back into the hub.
 
