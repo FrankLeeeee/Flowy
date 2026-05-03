@@ -4,7 +4,8 @@
   "workspaces": [
     "backend",
     "frontend",
-    "runner"
+    "runner",
+    "docs"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend -- --host\"",
@@ -13,14 +14,13 @@
     "build": "npm run build:flowy && npm run build:runner",
     "build:flowy": "npm run build --workspace=frontend && npm run build --workspace=backend && cp -r frontend/dist backend/dist/public",
     "build:runner": "npm run build --workspace=runner",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs",
+    "docs:dev": "npm run dev --workspace=docs",
+    "docs:build": "npm run build --workspace=docs",
+    "docs:preview": "npm run preview --workspace=docs",
     "test": "vitest run"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "vitepress": "^1.6.4",
     "vitest": "^3.2.4"
   }
 }

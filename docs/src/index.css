@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #f4f8ff;
+  font-family:
+    "Satoshi",
+    "General Sans",
+    "Plus Jakarta Sans",
+    "Avenir Next",
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.flow-lines {
+  background-image:
+    radial-gradient(circle at 16% 24%, rgba(10, 120, 255, 0.16), transparent 36%),
+    radial-gradient(circle at 78% 64%, rgba(29, 78, 216, 0.12), transparent 42%),
+    linear-gradient(rgba(59, 130, 246, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    72px 72px,
+    72px 72px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 78%);
+}
+
+.flow-link-task,
+.flow-link-runner {
+  fill: none;
+  stroke: rgba(59, 130, 246, 0.58);
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-dasharray: 8 10;
+}
+
+.flow-link-task {
+  animation: flowDash 1.35s linear infinite;
+}
+
+.flow-link-runner {
+  animation: flowDash 1.55s linear infinite;
+}
+
+.flow-port {
+  fill: #0b7bff;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+}
+
+.flow-node {
+  animation: floatCard 4.6s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.flow-stage-hub {
+  transform: translateY(-50%);
+  animation: breatheHub 2.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.flow-harness-node {
+  animation: floatCard 5.3s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+@keyframes flowDash {
+  to {
+    stroke-dashoffset: -38;
+  }
+}
+
+@keyframes breatheHub {
+  0%,
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.03);
+  }
+}
+
+@keyframes floatCard {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-node,
+  .flow-link-task,
+  .flow-link-runner,
+  .flow-stage-hub,
+  .flow-harness-node,
+  .flow-lines {
+    animation: none !important;
+  }
+  .flow-stage-hub {
+    transform: translateY(-50%) !important;
+  }
+}
