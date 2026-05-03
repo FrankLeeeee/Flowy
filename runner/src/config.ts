@@ -1,6 +1,5 @@
 import os from 'os';
 import fs from 'fs';
-import path from 'path';
 import { spawnSync } from 'child_process';
 import { RunnerConfig } from './types';
 import { ensureConfigDir, getRunnerTokenPath } from './configDir';
@@ -28,7 +27,6 @@ export function parseArgs(argv: string[]): RunnerConfig {
   let token: string | undefined;
   let secret: string | undefined;
   let device = os.hostname();
-  const workspaceRootArgs: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -38,15 +36,8 @@ export function parseArgs(argv: string[]): RunnerConfig {
       case '--token':   token = args[++i]; break;
       case '--secret':  secret = args[++i]; break;
       case '--device':  device = args[++i] ?? os.hostname(); break;
-      case '--workspace-root': workspaceRootArgs.push(args[++i] ?? ''); break;
     }
   }
-
-  const workspaceRoots = (workspaceRootArgs.length > 0
-    ? workspaceRootArgs
-    : [os.homedir()])
-    .filter(Boolean)
-    .map((p) => path.resolve(p));
 
   if (!name || !url) {
     console.error('Usage: flowy-runner --name <name> --url <hub-url> [options]');
@@ -60,7 +51,6 @@ export function parseArgs(argv: string[]): RunnerConfig {
     console.error('  --token         Existing runner token (skip registration)');
     console.error('  --secret        Registration secret (required for first-time registration)');
     console.error('  --device        Device info (default: hostname)');
-    console.error('  --workspace-root <path>  Restrict browse/exec to this root (repeatable, default: $HOME)');
     process.exit(1);
   }
 
@@ -92,7 +82,6 @@ export function parseArgs(argv: string[]): RunnerConfig {
     token,
     secret,
     device,
-    workspaceRoots,
   };
 }
 

@@ -1,5 +1,4 @@
-import { BuildCommandOptions, CLICommand, CLIProvider } from './index';
-import { resolveWithinRoots } from '../paths';
+import { CLICommand, CLIProvider } from './index';
 import { asRecord, getString, parseRootConfig } from './utils';
 
 export interface CodexConfig {
@@ -22,19 +21,11 @@ function parseConfig(raw: string | null | undefined): CodexConfig {
 export const codexProvider: CLIProvider = {
   id: 'codex',
 
-  buildCommand(
-    prompt: string,
-    rawHarnessConfig: string | null | undefined,
-    options: BuildCommandOptions,
-  ): CLICommand {
+  buildCommand(prompt: string, rawHarnessConfig: string | null | undefined): CLICommand {
     const config = parseConfig(rawHarnessConfig);
     const args = ['exec'];
 
-    const workspace = config.workspace
-      ? resolveWithinRoots(config.workspace, options.workspaceRoots)
-      : undefined;
-
-    if (workspace) args.push('--cd', workspace);
+    if (config.workspace) args.push('--cd', config.workspace);
     if (config.model) args.push('--model', config.model);
     args.push('--sandbox', config.sandbox ?? 'workspace-write');
     args.push('--color', 'never', prompt);
@@ -42,7 +33,7 @@ export const codexProvider: CLIProvider = {
     return {
       cmd: 'codex',
       args,
-      cwd: workspace,
+      cwd: config.workspace,
       streamOutput: true,
     };
   },

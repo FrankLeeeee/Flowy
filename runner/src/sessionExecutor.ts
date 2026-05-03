@@ -11,7 +11,6 @@ export interface SessionTurnParams {
   harnessConfig?: string;
   history: SessionMessageHistory[];
   prompt: string;
-  workspaceRoots: string[];
 }
 
 /**
@@ -51,12 +50,7 @@ export function executeSessionTurn(
   onOutput: (chunk: string) => void,
 ): SessionExecution {
   const fullPrompt = composeSessionPrompt(params.history, params.prompt);
-  const { cmd, args, cwd } = buildCommandWithConfig(
-    params.aiProvider,
-    fullPrompt,
-    params.harnessConfig,
-    params.workspaceRoots,
-  );
+  const { cmd, args, cwd } = buildCommandWithConfig(params.aiProvider, fullPrompt, params.harnessConfig);
 
   let child: ChildProcess;
   let buffer = '';

@@ -1,5 +1,4 @@
-import { BuildCommandOptions, CLICommand, CLIProvider } from './index';
-import { resolveWithinRoots } from '../paths';
+import { CLICommand, CLIProvider } from './index';
 import { asRecord, getString, parseRootConfig } from './utils';
 
 export interface ClaudeCodeConfig {
@@ -22,17 +21,9 @@ function parseConfig(raw: string | null | undefined): ClaudeCodeConfig {
 export const claudeCodeProvider: CLIProvider = {
   id: 'claude-code',
 
-  buildCommand(
-    prompt: string,
-    rawHarnessConfig: string | null | undefined,
-    options: BuildCommandOptions,
-  ): CLICommand {
+  buildCommand(prompt: string, rawHarnessConfig: string | null | undefined): CLICommand {
     const config = parseConfig(rawHarnessConfig);
     const args = ['-p'];
-
-    const workspace = config.workspace
-      ? resolveWithinRoots(config.workspace, options.workspaceRoots)
-      : undefined;
 
     if (config.model) args.push('--model', config.model);
     args.push('--permission-mode', 'bypassPermissions');
@@ -43,7 +34,7 @@ export const claudeCodeProvider: CLIProvider = {
     return {
       cmd: 'claude',
       args,
-      cwd: workspace,
+      cwd: config.workspace,
       streamOutput: true,
     };
   },

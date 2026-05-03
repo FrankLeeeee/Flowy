@@ -14,10 +14,9 @@ export interface ExecutionResult {
 export function buildCommandWithConfig(
   aiProvider: string,
   prompt: string,
-  rawHarnessConfig: string | undefined,
-  workspaceRoots: string[],
+  rawHarnessConfig?: string,
 ): CLICommand {
-  return getProvider(aiProvider).buildCommand(prompt, rawHarnessConfig, { workspaceRoots });
+  return getProvider(aiProvider).buildCommand(prompt, rawHarnessConfig);
 }
 
 /**
@@ -27,14 +26,12 @@ export function buildCommandWithConfig(
  */
 export function executeTask(
   task: Task,
-  workspaceRoots: string[],
   onOutput: (chunk: string) => void,
 ): { promise: Promise<ExecutionResult>; kill: () => void } {
   const { cmd, args, cwd, streamOutput } = buildCommandWithConfig(
     task.ai_provider!,
     task.description || task.title,
     task.harness_config,
-    workspaceRoots,
   );
 
   let child: ChildProcess;

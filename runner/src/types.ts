@@ -8,8 +8,6 @@ export interface RunnerConfig {
   token?: string;
   secret?: string;
   device: string;
-  /** Absolute paths that browse/exec must stay within. */
-  workspaceRoots: string[];
 }
 
 export interface Task {

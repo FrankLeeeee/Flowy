@@ -27,11 +27,6 @@ export interface CLICommand {
  * - Parsing its own section from the raw harness-config JSON string.
  * - Constructing the shell command that Flowy runner will spawn.
  */
-export interface BuildCommandOptions {
-  /** Absolute paths the provider must restrict workspace/worktree args to. */
-  workspaceRoots: string[];
-}
-
 export interface CLIProvider {
   /** Unique identifier — must match the `ai_provider` column values. */
   readonly id: string;
@@ -42,15 +37,9 @@ export interface CLIProvider {
    * @param prompt           The task prompt (description or title).
    * @param rawHarnessConfig Raw JSON string from `tasks.harness_config`; may be
    *                         null/undefined if no config was supplied.
-   * @param options          Runner-level constraints (e.g. allowed workspace roots).
    * @returns The command descriptor to spawn.
-   * @throws If a path in the harness config escapes the allowed roots.
    */
-  buildCommand(
-    prompt: string,
-    rawHarnessConfig: string | null | undefined,
-    options: BuildCommandOptions,
-  ): CLICommand;
+  buildCommand(prompt: string, rawHarnessConfig: string | null | undefined): CLICommand;
 }
 
 const providers: CLIProvider[] = [
