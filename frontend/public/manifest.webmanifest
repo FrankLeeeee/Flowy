@@ -2,11 +2,13 @@
   "name": "Flowy",
   "short_name": "Flowy",
   "description": "Calm, precise task and runner orchestration across distributed AI workstations.",
-  "start_url": "/",
+  "start_url": "/today",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f7f8fc",
   "theme_color": "#f7f8fc",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.ico",

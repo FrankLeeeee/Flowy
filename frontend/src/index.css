@@ -216,7 +216,6 @@
 }
 
 @media (max-width: 767px) {
-  /* Disable hover-specific effects on touch devices */
   .interactive-lift {
     transition-duration: 100ms;
   }
@@ -226,12 +225,10 @@
     box-shadow: inherit;
   }
 
-  /* Prevent 300ms tap delay */
   html {
     touch-action: manipulation;
   }
 
-  /* Lock the page so only the in-app shell scrolls. */
   html,
   body,
   #root {
@@ -239,6 +236,14 @@
     overflow: hidden;
     overscroll-behavior: none;
   }
+
+  .motion-page {
+    animation: none !important;
+  }
+}
+
+.motion-drilldown {
+  animation: drilldown-enter 200ms var(--ease-out-quart) both;
 }
 
 @keyframes page-enter {
@@ -282,6 +287,17 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes drilldown-enter {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 

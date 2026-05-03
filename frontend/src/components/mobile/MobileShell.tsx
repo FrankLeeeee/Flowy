@@ -27,12 +27,10 @@ export default function MobileShell({
 
   return (
     <div className="flex min-w-0 h-screen flex-col bg-background">
-      {/* Content area — flex-1 fills remaining height; pb clears the fixed tab bar */}
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(4rem+env(safe-area-inset-bottom)*0.6)] [-webkit-overflow-scrolling:touch]">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(3.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] [contain:content]">
         {children}
       </main>
-      {/* Bottom tab bar — fixed to bottom of viewport */}
-      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-lg">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-lg will-change-transform pb-[env(safe-area-inset-bottom)]">
         <div className="flex h-12 items-stretch">
           {TABS.map(({ to, icon: Icon, label }) => {
             let isActive = undefined;
