@@ -3,14 +3,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Task, List, Runner, Label as LabelType, TaskStatus } from '../types';
 import {
-  fetchTasks, fetchRunners, fetchLabels, createTask, assignTask, deleteTask, getTask, updateTask,
+  fetchTasks, fetchRunners, fetchLabels, createTask, deleteTask, getTask, updateTask,
   fetchLists, updateList, deleteList,
 } from '../api/client';
 import TaskListView from '../components/tasks/TaskListView';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTodoView from '../components/tasks/TaskTodoView';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
-import AssignTaskModal from '../components/tasks/AssignTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EmojiPicker from '../components/EmojiPicker';
@@ -54,7 +53,7 @@ export default function ListDetail() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
-  const [assigningTask, setAssigningTask] = useState<Task | null>(null);
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<Task | null>(null);
   const [showEditList, setShowEditList] = useState(false);
   const [editName, setEditName] = useState('');
   const [editIcon, setEditIcon] = useState<string | null>(null);
@@ -85,8 +84,14 @@ export default function ListDetail() {
   useEffect(() => { const iv = setInterval(loadData, 10_000); return () => clearInterval(iv); }, [loadData]);
 
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => { await createTask(data); setShowCreate(false); loadData(); };
-  const handleAssign = async (data: Parameters<typeof assignTask>[1]) => { if (!assigningTask) return; await assignTask(assigningTask.id, data); setAssigningTask(null); setDetailTask(null); loadData(); };
-  const handleDelete = async (taskId: string) => { if (!confirm('Delete this task?')) return; await deleteTask(taskId); setDetailTask(null); loadData(); };
+  const confirmDeleteTask = async () => {
+    if (!deleteTaskTarget) return;
+    const taskId = deleteTaskTarget.id;
+    setDeleteTaskTarget(null);
+    await deleteTask(taskId);
+    setDetailTask(null);
+    loadData();
+  };
   const handleTaskUpdate = (updated: Task) => { setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated); };
   const handleTaskClick = async (task: Task) => { try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); } };
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
@@ -259,9 +264,16 @@ export default function ListDetail() {
         )}
       </div>
 
-      <CreateTaskModal open={showCreate} lists={allLists} defaultListId={list.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
-      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runner={runners.find((r) => r.id === detailTask.runner_id)} onUpdate={handleTaskUpdate} onAssign={() => setAssigningTask(detailTask)} onDelete={() => handleDelete(detailTask.id)} onClose={() => setDetailTask(null)} />}
-      {assigningTask && <AssignTaskModal open={!!assigningTask} task={assigningTask} runners={runners} onSubmit={handleAssign} onClose={() => setAssigningTask(null)} />}
+      <CreateTaskModal open={showCreate} lists={allLists} runners={runners} defaultListId={list.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runners={runners} onUpdate={handleTaskUpdate} onDelete={() => setDeleteTaskTarget(detailTask)} onClose={() => setDetailTask(null)} />}
+      <ConfirmDialog
+        open={!!deleteTaskTarget}
+        title="Delete task"
+        description={deleteTaskTarget ? `Delete "${deleteTaskTarget.title}"? Its execution history and output will be removed.` : ''}
+        confirmLabel="Delete task"
+        onConfirm={confirmDeleteTask}
+        onCancel={() => setDeleteTaskTarget(null)}
+      />
 
       <Dialog open={showEditList} onOpenChange={(open) => { if (!open) setShowEditList(false); }}>
           <AppDialogContent className="sm:max-w-[460px]">

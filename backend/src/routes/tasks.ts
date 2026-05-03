@@ -31,8 +31,9 @@ router.get('/', (req: Request, res: Response) => {
 
 // POST /api/tasks
 router.post('/', (req: Request, res: Response) => {
-  const { listId, title, description, priority, labels, scheduledAt } = req.body as {
+  const { listId, title, description, priority, labels, scheduledAt, runnerId, aiProvider, harnessConfig } = req.body as {
     listId?: string | null; title?: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
+    runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown;
   };
   if (!title) { res.status(400).json({ error: 'title is required' }); return; }
 
@@ -52,16 +53,27 @@ router.post('/', (req: Request, res: Response) => {
     taskNumber = nextInboxTaskNumber();
   }
 
+  if (runnerId) {
+    const runner = db.prepare('SELECT id FROM runners WHERE id = ?').get(runnerId);
+    if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+  }
+
   const taskKey = formatTaskKey(listName, taskNumber);
   const id = uuid();
-  // Tasks with a scheduled date start as 'todo'; unscheduled tasks go to backlog.
+  // Scheduled tasks queue as 'todo' (runner waits for the scheduled time);
+  // unscheduled tasks stay in 'backlog' until the user explicitly clicks Run.
   const initialStatus = scheduledAt ? 'todo' : 'backlog';
+  const normalizedHarness = harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : '{}';
 
   const insertTask = db.transaction(() => {
     db.prepare(`
-      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_at, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, resolvedListId, taskNumber, taskKey, title, description ?? '', priority ?? 'none', JSON.stringify(labels ?? []), scheduledAt ?? null, initialStatus);
+      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_at, status, runner_id, ai_provider, harness_config)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id, resolvedListId, taskNumber, taskKey, title, description ?? '', priority ?? 'none',
+      JSON.stringify(labels ?? []), scheduledAt ?? null, initialStatus,
+      runnerId ?? null, aiProvider ?? null, normalizedHarness,
+    );
 
     if (resolvedListId) {
       db.prepare('UPDATE lists SET next_task_num = next_task_num + 1, updated_at = datetime(\'now\') WHERE id = ?').run(resolvedListId);
@@ -130,7 +142,9 @@ router.delete('/:id', (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
-// POST /api/tasks/:id/assign
+// POST /api/tasks/:id/assign — attach runner/provider/harness without starting the job.
+// Scheduled tasks already in 'todo' keep that status (so the runner picks them up at
+// the scheduled time); other tasks stay in their current status until the user clicks Run.
 router.post('/:id/assign', (req: Request, res: Response) => {
   const { runnerId, aiProvider, harnessConfig } = req.body as {
     runnerId?: string; aiProvider?: string; harnessConfig?: unknown;
@@ -145,9 +159,34 @@ router.post('/:id/assign', (req: Request, res: Response) => {
   if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
 
   db.prepare(`
-    UPDATE tasks SET runner_id = ?, ai_provider = ?, harness_config = ?, status = 'todo', updated_at = datetime('now')
+    UPDATE tasks SET runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(runnerId, aiProvider, harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config, req.params.id);
+
+  const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
+  res.json(updated);
+});
+
+// POST /api/tasks/:id/run — explicitly trigger task execution.
+// Promotes the task to 'todo' so the assigned runner picks it up. For tasks in
+// terminal states (done/failed/cancelled), this acts as a "rerun" and clears
+// the prior output and timestamps. Any pending scheduled_at is cleared so the
+// task runs immediately rather than waiting for the future schedule.
+router.post('/:id/run', (req: Request, res: Response) => {
+  const db = getDb();
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task | undefined;
+  if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
+  if (!task.runner_id || !task.ai_provider) {
+    res.status(400).json({ error: 'Task must have a runner and AI provider assigned before running' });
+    return;
+  }
+  if (task.status === 'in_progress') { res.status(409).json({ error: 'Task is already running' }); return; }
+
+  db.prepare(`
+    UPDATE tasks SET status = 'todo', output = '', started_at = NULL, completed_at = NULL,
+      scheduled_at = NULL, updated_at = datetime('now')
+    WHERE id = ?
+  `).run(req.params.id);
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
   res.json(updated);

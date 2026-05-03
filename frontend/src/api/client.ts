@@ -95,6 +95,7 @@ export async function fetchTasks(filters?: {
 
 export async function createTask(body: {
   listId?: string | null; title: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
+  runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
 }): Promise<Task> {
   const { data } = await api.post<Task>('/tasks', body);
   return data;
@@ -119,6 +120,11 @@ export async function deleteTask(id: string): Promise<void> {
 
 export async function assignTask(id: string, body: { runnerId: string; aiProvider: string; harnessConfig?: HarnessConfig }): Promise<Task> {
   const { data } = await api.post<Task>(`/tasks/${id}/assign`, body);
+  return data;
+}
+
+export async function runTask(id: string): Promise<Task> {
+  const { data } = await api.post<Task>(`/tasks/${id}/run`);
   return data;
 }
 

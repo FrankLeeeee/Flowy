@@ -25,25 +25,33 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { variant?: 'dialog' | 'drawer' }
+>(({ className, children, variant = 'dialog', ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // ── Mobile: top-sheet (leaves the lower half free for the keyboard) ──
+        // ── Base ──
         'fixed z-50 grid w-full gap-4 border border-border/80 bg-background shadow-soft duration-200',
-        'inset-x-0 top-[max(env(safe-area-inset-top),0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] rounded-b-2xl p-0',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        // ── Mobile: top-sheet (leaves the lower half free for the keyboard) ──
+        'inset-x-0 top-[max(env(safe-area-inset-top),0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] rounded-b-2xl p-0',
         'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
-        // ── Desktop: centered modal ──
-        'sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-h-none sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-0',
-        'sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
-        'sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]',
-        'sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]',
-        'sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0',
+        // ── Desktop: variant-specific ──
+        variant === 'dialog' && [
+          'sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-h-none sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-0',
+          'sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
+          'sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]',
+          'sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]',
+          'sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0',
+        ],
+        variant === 'drawer' && [
+          'sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 sm:max-h-none sm:max-w-md sm:rounded-none sm:rounded-l-xl sm:border-r-0 sm:p-0',
+          'sm:data-[state=open]:slide-in-from-right sm:data-[state=closed]:slide-out-to-right',
+          'sm:data-[state=open]:slide-in-from-top-0 sm:data-[state=closed]:slide-out-to-top-0',
+        ],
         className
       )}
       {...props}
