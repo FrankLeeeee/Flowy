@@ -330,7 +330,6 @@ export default function Runners() {
               className="motion-card rounded-lg border border-border/80 bg-card shadow-soft overflow-hidden"
               style={{ "--motion-delay": "80ms" } as React.CSSProperties}
             >
-              <div className="h-0.5 bg-foreground/10" />
               <div className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Shield className="h-4 w-4 text-muted-foreground/65" />

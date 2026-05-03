@@ -24,6 +24,13 @@ import {
   AppDialogSection,
   APP_DIALOG_TONE_STYLES,
 } from "@/components/ui/app-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getAiProviderStyles, getToneStyles } from "@/lib/semanticColors";
 import {
   Sparkles,
@@ -78,6 +85,9 @@ function groupSkills(skills: Skill[]): SkillGroup[] {
 }
 
 export default function Skills() {
+  const neutralTone = getToneStyles('neutral');
+  const dangerTone = getToneStyles('danger');
+
   const [runners, setRunners] = useState<Runner[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,76 +247,71 @@ export default function Skills() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <div className="border-b border-border/60 bg-background/95 px-6 py-5 backdrop-blur">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <PageTitle icon={Sparkles} title="Skills" />
-            <p className="mt-1 text-[13px] text-muted-foreground/80">
-              Install skills from skills.sh on a runner for Claude Code, Codex, Cursor, and Gemini CLI.
-            </p>
-          </div>
-          <Button onClick={openCreate} disabled={runners.length === 0} className="rounded-full px-4 text-[12px]">
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Add Skill
-          </Button>
-        </div>
-      </div>
-
-      <div className="border-b border-border/60 bg-card/35 px-6 py-3">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="p-6">
+      {/* Header */}
+      <div className="motion-section mb-6 flex flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
+        <div>
+          <PageTitle icon={Sparkles} title="Skills" />
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85">
+            Install skills from skills.sh on a runner for Claude Code, Codex, Cursor, and Gemini CLI.
+          </p>
           {runnerFilter && (
-            <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/70">
-              {filteredGroups.length} skill{filteredGroups.length === 1 ? "" : "s"}
-            </span>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', neutralTone.pill)}>
+                {filteredGroups.length} skill{filteredGroups.length === 1 ? "" : "s"}
+              </span>
+            </div>
           )}
-          <select
-            value={runnerFilter}
-            onChange={(e) => setRunnerFilter(e.target.value)}
-            className="h-8 rounded-full border border-border/60 bg-background px-3 text-[12px]"
-          >
-            <option value="" disabled>Select a runner…</option>
-            {runners.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
         </div>
+        <Button size="sm" onClick={openCreate} disabled={runners.length === 0} className="h-8 text-[13px] shadow-soft">
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Add Skill
+        </Button>
       </div>
 
-      {error && (
-        <div className="mx-6 mt-4 rounded-lg border border-destructive/25 bg-destructive/8 px-4 py-3 text-[13px] text-destructive">
-          {error}
-        </div>
-      )}
+      {error && <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>{error}</div>}
 
-      <div className="flex-1 p-6">
-        {!runnerFilter ? (
-          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-card/30 text-center">
-            <Bot className="mb-3 h-7 w-7 text-muted-foreground/45" />
-            <p className="text-[14px] font-medium text-muted-foreground/80">Select a runner</p>
-            <p className="mt-1 max-w-sm text-[12px] text-muted-foreground/65">
-              {runners.length === 0
-                ? "Register a runner first to install skills."
-                : "Choose a runner above to see its installed skills."}
-            </p>
-          </div>
-        ) : skillsLoading ? (
-          <div className="grid gap-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-20 w-full rounded-lg" />
+      {/* Filter bar */}
+      <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
+        <Select value={runnerFilter} onValueChange={setRunnerFilter}>
+          <SelectTrigger className="w-[140px] h-8 text-[13px] border-border/60">
+            <SelectValue placeholder="Select runner..." />
+          </SelectTrigger>
+          <SelectContent>
+            {runners.map((r) => (
+              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
             ))}
-          </div>
-        ) : filteredGroups.length === 0 ? (
-          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-card/30 text-center">
-            <Sparkles className="mb-3 h-7 w-7 text-muted-foreground/45" />
-            <p className="text-[14px] font-medium text-muted-foreground/80">No skills yet</p>
-            <p className="mt-1 max-w-sm text-[12px] text-muted-foreground/65">
-              Enter a skill name from skills.sh to install it on every supported agent.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {filteredGroups.map((group, index) => (
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!runnerFilter ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Bot className="mb-4 h-10 w-10 text-foreground/10" />
+          <p className="text-[14px] font-medium text-muted-foreground/80">Select a runner</p>
+          <p className="mt-1 max-w-sm text-[12px] text-muted-foreground/70">
+            {runners.length === 0
+              ? "Register a runner first to install skills."
+              : "Choose a runner above to see its installed skills."}
+          </p>
+        </div>
+      ) : skillsLoading ? (
+        <div className="grid gap-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : filteredGroups.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Sparkles className="mb-4 h-10 w-10 text-foreground/10" />
+          <p className="text-[14px] font-medium text-muted-foreground/80">No skills yet</p>
+          <p className="mt-1 max-w-sm text-[12px] text-muted-foreground/70">
+            Enter a skill name from skills.sh to install it on every supported agent.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {filteredGroups.map((group, index) => (
               <div
                 key={`${group.runner_id}::${group.name}`}
                 className="motion-card rounded-lg border border-border/60 bg-card p-4 shadow-soft"
@@ -356,7 +361,6 @@ export default function Skills() {
             ))}
           </div>
         )}
-      </div>
 
       <Dialog open={showCreate} onOpenChange={(open) => { if (!open) { setShowCreate(false); resetForm(); } }}>
         <AppDialogContent className="sm:max-w-[520px]">

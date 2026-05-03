@@ -30,7 +30,7 @@ export default function RunnerCard({
   );
 
   return (
-    <div className="motion-card interactive-lift surface-tint relative rounded-[18px] border border-border/40 dark:border-border/60 p-4 shadow-soft hover:shadow-elevated motion-safe:hover:-translate-y-1 flex flex-col gap-3 overflow-hidden">
+    <div className="motion-card interactive-lift surface-tint relative rounded-2xl border border-border/40 dark:border-border/60 p-4 shadow-soft hover:shadow-elevated motion-safe:hover:-translate-y-1 flex flex-col gap-3 overflow-hidden">
       {/* Header */}
       <div className="relative flex items-start justify-between">
         <div className="min-w-0">

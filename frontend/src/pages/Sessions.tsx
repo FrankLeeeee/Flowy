@@ -20,6 +20,13 @@ import {
   MessagesSquare, Plus, Send, Square, Trash2, Sparkles, Bot, User, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getToneStyles } from '@/lib/semanticColors';
+
+const SESSION_STATUS_TONES: Record<string, 'success' | 'warning' | 'neutral'> = {
+  busy: 'warning',
+  idle: 'success',
+  stopped: 'neutral',
+};
 
 const PROVIDERS = [
   { value: 'claude-code', label: 'Claude Code' },
@@ -136,26 +143,47 @@ export default function SessionsPage({ mobile = false }: SessionsPageProps) {
     await loadSessions();
   };
 
+  const busyCount = sessions.filter((s) => s.status === 'busy').length;
+  const idleCount = sessions.filter((s) => s.status === 'idle').length;
+  const stoppedCount = sessions.filter((s) => s.status === 'stopped').length;
+
   return (
-    <div className={cn('flex flex-col', mobile ? 'min-h-full' : 'h-screen')}>
-      <div className="shrink-0 px-4 pt-5 pb-3 md:px-8 md:pt-7 md:pb-4">
-        <div className="flex items-center justify-between gap-2">
+    <div className={cn('flex flex-col p-6', mobile ? 'min-h-full' : 'h-screen')}>
+      <div
+        className="motion-section mb-6 shrink-0 flex flex-wrap items-center justify-between gap-3"
+        style={{ '--motion-delay': '80ms' } as React.CSSProperties}
+      >
+        <div>
           <PageTitle icon={MessagesSquare} title="Sessions" />
-          <Button
-            size="sm"
-            onClick={() => setShowCreate(true)}
-            className="rounded-full px-3 text-[11px]"
-          >
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            New session
-          </Button>
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85">
+            Hold multi-turn conversations with a runner's AI CLI. Ideal for guiding, clarifying, and iterating.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', getToneStyles('warning').pill)}>
+              {busyCount} busy
+            </span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', getToneStyles('success').pill)}>
+              {idleCount} idle
+            </span>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-1 font-semibold ring-1', getToneStyles('neutral').pill)}>
+              {stoppedCount} stopped
+            </span>
+          </div>
         </div>
-        <p className="mt-2 text-[12px] text-muted-foreground/85">
-          Hold multi-turn conversations with a runner's AI CLI. Ideal for guiding, clarifying, and iterating.
-        </p>
+        <Button
+          size="sm"
+          onClick={() => setShowCreate(true)}
+          className="h-8 text-[13px] shadow-soft"
+        >
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          New session
+        </Button>
       </div>
 
-      <div className={cn('min-h-0 flex-1 px-4 pb-4 md:px-8 md:pb-8', mobile ? 'flex flex-col gap-3' : 'grid grid-cols-[280px_1fr] gap-4')}>
+      <div
+        className={cn('motion-section min-h-0 flex-1', mobile ? 'flex flex-col gap-3' : 'grid grid-cols-[280px_1fr] gap-4')}
+        style={{ '--motion-delay': '140ms' } as React.CSSProperties}
+      >
         {/* Session list */}
         <div className={cn('rounded-lg border border-border/60 bg-background/80', mobile && 'max-h-[38vh]')}>
           <ScrollArea className={cn(mobile ? 'h-[38vh]' : 'h-full')}>
@@ -185,14 +213,7 @@ export default function SessionsPage({ mobile = false }: SessionsPageProps) {
                 >
                   <div className="flex w-full items-center gap-2">
                     <span className="truncate flex-1 text-[13px] font-medium">{s.title}</span>
-                    <span
-                      className={cn(
-                        'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider',
-                        s.status === 'busy' && 'bg-amber-500/15 text-amber-600',
-                        s.status === 'idle' && 'bg-emerald-500/15 text-emerald-600',
-                        s.status === 'stopped' && 'bg-muted-foreground/15 text-muted-foreground',
-                      )}
-                    >
+                    <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider ring-1', getToneStyles(SESSION_STATUS_TONES[s.status] ?? 'neutral').pill)}>
                       {s.status}
                     </span>
                     <button
