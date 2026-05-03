@@ -3,7 +3,7 @@ name: Deploy Flowy Runner
 on:
   workflow_dispatch:
     inputs:
-      runner_name:
+      local_runner_name:
         description: "Runner name to register/reconnect"
         required: false
         type: string
@@ -46,16 +46,17 @@ jobs:
 
       - name: Start runner in tmux session
         env:
-          RUNNER_NAME: ${{ inputs.runner_name || secrets.FLOWY_RUNNER_NAME }}
+          LOCAL_RUNNER_NAME: ${{ inputs.local_runner_name || secrets.FLOWY_LOCAL_RUNNER_NAME }}
           FLOWY_URL: ${{ inputs.flowy_url || secrets.FLOWY_URL }}
           FLOWY_RUNNER_SECRET: ${{ inputs.flowy_runner_secret || secrets.FLOWY_RUNNER_SECRET }}
         run: |
           # ensure the three envs are set
-          if [ -z "$RUNNER_NAME" ] || [ -z "$FLOWY_URL" ] || [ -z "$FLOWY_RUNNER_SECRET" ]; then
-            echo "ERROR: RUNNER_NAME, FLOWY_URL, and FLOWY_RUNNER_SECRET must be set"
+          echo "LOCAL_RUNNER_NAME: $LOCAL_RUNNER_NAME"
+          if [ -z "$LOCAL_RUNNER_NAME" ] || [ -z "$FLOWY_URL" ] || [ -z "$FLOWY_RUNNER_SECRET" ]; then
+            echo "ERROR: LOCAL_RUNNER_NAME, FLOWY_URL, and FLOWY_RUNNER_SECRET must be set"
             exit 1
           fi
-          RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$RUNNER_NAME' --url '$FLOWY_URL' --secret '$FLOWY_RUNNER_SECRET'"
+          RUNNER_CMD="node $(pwd)/runner/dist/cli.js --name '$LOCAL_RUNNER_NAME' --url '$FLOWY_URL' --secret '$FLOWY_RUNNER_SECRET'"
           tmux new-session -d -s flowy-runner "$RUNNER_CMD"
 
       - name: Verify runner started
