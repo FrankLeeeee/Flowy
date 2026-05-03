@@ -70,7 +70,7 @@ flowy-runner --name <name> --url <hub-url> [options]
 
 ```bash
 cd runner
-npm run dev -- --name my-laptop --url http://localhost:3001 --secret my-secret
+npm run dev -- --name my-laptop --url http://localhost:3001 --secret "<registration-secret>"
 ```
 
 **Production** (compiled):
@@ -78,7 +78,7 @@ npm run dev -- --name my-laptop --url http://localhost:3001 --secret my-secret
 ```bash
 cd runner
 npm run build
-npm start -- --name my-laptop --url http://localhost:3001 --secret my-secret
+npm start -- --name my-laptop --url http://localhost:3001 --secret "<registration-secret>"
 ```
 
 **Global install** (use from anywhere):
@@ -87,8 +87,10 @@ npm start -- --name my-laptop --url http://localhost:3001 --secret my-secret
 cd runner
 npm run build
 npm link
-flowy-runner --name office-server --url https://hub.example.com --secret my-secret
+flowy-runner --name office-server --url https://hub.example.com --secret "<registration-secret>"
 ```
+
+Copy the registration command from the hub's `Runners` page. The command includes the generated registration secret automatically.
 
 ## How it works
 

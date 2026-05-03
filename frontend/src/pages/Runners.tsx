@@ -7,8 +7,8 @@ import {
   refreshRunnerProviders,
   updateRunnerProviders,
   fetchSettings,
-  revealRunnerSecret,
-  updateSettings,
+  fetchRunnerRegistrationSecret,
+  updateRunnerRegistrationSecret,
 } from "../api/client";
 import RunnerCard from "../components/runners/RunnerCard";
 import PageTitle from "@/components/PageTitle";
@@ -31,8 +31,8 @@ import {
   Plus,
   Terminal,
   Shield,
-  CheckCircle2,
   Copy,
+  Pencil,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,16 +52,14 @@ export default function Runners() {
   const [refreshingRunnerId, setRefreshingRunnerId] = useState<string | null>(null);
   const [updatingRunnerId, setUpdatingRunnerId] = useState<string | null>(null);
   const [registrationSecret, setRegistrationSecret] = useState("");
-  const [secretRevealed, setSecretRevealed] = useState(false);
-  const [revealOpen, setRevealOpen] = useState(false);
-  const [revealPassword, setRevealPassword] = useState("");
-  const [revealError, setRevealError] = useState("");
-  const [revealing, setRevealing] = useState(false);
-  const [savingSecurity, setSavingSecurity] = useState(false);
-  const [savedSecurity, setSavedSecurity] = useState(false);
+  const [setupSecret, setSetupSecret] = useState("");
+  const [setupSecretLoading, setSetupSecretLoading] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [copiedInstallCommand, setCopiedInstallCommand] = useState(false);
   const [copiedRegisterCommand, setCopiedRegisterCommand] = useState(false);
+  const [isEditingSecret, setIsEditingSecret] = useState(false);
+  const [draftRegistrationSecret, setDraftRegistrationSecret] = useState("");
+  const [savingSecret, setSavingSecret] = useState(false);
   const [tab, setTab] = useState<"runners" | "security">("runners");
 
   const loadData = useCallback(async () => {
@@ -77,18 +75,14 @@ export default function Runners() {
         if (task.runner_id) taskMap.set(task.runner_id, task);
       }
       setBusyTasks(taskMap);
-      // Only seed the masked value if the user hasn't already revealed it,
-      // otherwise the periodic refresh would clobber the unmasked value.
-      setRegistrationSecret((current) =>
-        secretRevealed ? current : settings.runner.registrationSecret,
-      );
+      setRegistrationSecret(settings.runner.registrationSecret);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load runners");
     } finally {
       setLoading(false);
     }
-  }, [secretRevealed]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -138,62 +132,31 @@ export default function Runners() {
     }
   };
 
-  const handleSaveSecurity = async () => {
-    const nextSecret = registrationSecret.trim();
-    if (!nextSecret) {
-      setError("Registration secret cannot be empty.");
-      return;
-    }
-    setSavingSecurity(true);
+  const handleOpenSetup = async () => {
+    setShowSetup(true);
+    setSetupSecret("");
+    setSetupSecretLoading(true);
+    setCopiedRegisterCommand(false);
     try {
-      await updateSettings({ runner: { registrationSecret: nextSecret } });
-      // After save, the new secret is what the user typed — show it as revealed.
-      setRegistrationSecret(nextSecret);
-      setSecretRevealed(true);
-      setSavedSecurity(true);
-      setTimeout(() => setSavedSecurity(false), 3000);
+      const { registrationSecret: secret } = await fetchRunnerRegistrationSecret();
+      setSetupSecret(secret);
       setError("");
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Failed to save runner security",
+        e instanceof Error ? e.message : "Failed to load runner registration secret",
       );
     } finally {
-      setSavingSecurity(false);
-    }
-  };
-
-  const handleRevealSecret = async () => {
-    if (!revealPassword) {
-      setRevealError("Password required");
-      return;
-    }
-    setRevealing(true);
-    setRevealError("");
-    try {
-      const { registrationSecret: secret } = await revealRunnerSecret(revealPassword);
-      setRegistrationSecret(secret);
-      setSecretRevealed(true);
-      setRevealOpen(false);
-      setRevealPassword("");
-    } catch (e) {
-      const status =
-        typeof e === "object" && e && "response" in e
-          ? (e as { response?: { status?: number } }).response?.status
-          : undefined;
-      if (status === 401) setRevealError("Incorrect password");
-      else if (status === 429) setRevealError("Too many attempts. Try again later.");
-      else setRevealError(e instanceof Error ? e.message : "Failed to reveal secret");
-    } finally {
-      setRevealing(false);
+      setSetupSecretLoading(false);
     }
   };
 
   const handleCopySecret = async () => {
-    if (!registrationSecret) return;
     try {
-      await navigator.clipboard.writeText(registrationSecret);
+      const { registrationSecret: secret } = await fetchRunnerRegistrationSecret();
+      await navigator.clipboard.writeText(secret);
       setCopiedSecret(true);
       setTimeout(() => setCopiedSecret(false), 2000);
+      setError("");
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Failed to copy registration secret",
@@ -222,18 +185,54 @@ export default function Runners() {
     }
   };
 
+  const handleStartSecretEdit = () => {
+    setIsEditingSecret(true);
+    setCopiedSecret(false);
+    setError("");
+    // Start from empty to force an explicit rotate action.
+    setDraftRegistrationSecret("");
+  };
+
+  const handleCancelSecretEdit = () => {
+    setIsEditingSecret(false);
+    setDraftRegistrationSecret("");
+  };
+
+  const handleSaveSecret = async () => {
+    const nextSecret = draftRegistrationSecret.trim();
+    if (!nextSecret) {
+      setError("Enter a new registration secret before saving.");
+      return;
+    }
+    try {
+      setSavingSecret(true);
+      const updated = await updateRunnerRegistrationSecret(nextSecret);
+      setRegistrationSecret(updated.runner.registrationSecret);
+      setIsEditingSecret(false);
+      setDraftRegistrationSecret("");
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to update registration secret",
+      );
+    } finally {
+      setSavingSecret(false);
+    }
+  };
+
   const onlineCount = runners.filter(
     (r) => r.status === "online" || r.status === "busy",
   ).length;
   const offlineCount = runners.filter((r) => r.status === "offline").length;
   const installCommand = "npm install -g @frankleeeee/flowy-runner";
-  const commandSecret = secretRevealed
-    ? registrationSecret.trim() || "<registration-secret>"
-    : "<registration-secret>";
-  const runnerCommand = `flowy-runner \\
+  const runnerCommand = setupSecret
+    ? `flowy-runner \\
   --name "my-device" \\
   --url http://YOUR_HOST:PORT \\
-  --secret ${commandSecret}`;
+  --secret ${setupSecret}`
+    : setupSecretLoading
+      ? "Loading registration command..."
+      : "Registration secret unavailable. Close and try Add Runner again.";
 
   if (loading) {
     return (
@@ -295,7 +294,7 @@ export default function Runners() {
         {tab === "runners" && (
           <Button
             size="sm"
-            onClick={() => setShowSetup(true)}
+            onClick={() => void handleOpenSetup()}
             className="h-8 text-[13px] shadow-soft"
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -379,69 +378,70 @@ export default function Runners() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[13px] font-medium">
-                    Registration Secret
+                    Current Registration Secret
                   </Label>
                   <div className="flex flex-wrap items-center gap-2 max-w-xl">
                     <Input
-                      type={secretRevealed ? "text" : "password"}
-                      value={registrationSecret}
-                      onChange={(e) => {
-                        setRegistrationSecret(e.target.value);
-                        // User is typing a new secret — treat as revealed.
-                        if (!secretRevealed) setSecretRevealed(true);
-                      }}
-                      placeholder="Enter a secret..."
+                      type="password"
+                      value={isEditingSecret ? draftRegistrationSecret : registrationSecret}
+                      onChange={(event) => setDraftRegistrationSecret(event.target.value)}
+                      readOnly={!isEditingSecret}
+                      placeholder={
+                        isEditingSecret
+                          ? "Enter 12 to 30 characters"
+                          : "Hidden registration secret"
+                      }
                       className="h-9 max-w-md flex-1 min-w-[220px] font-mono"
                     />
-                    {!secretRevealed && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setRevealError("");
-                          setRevealPassword("");
-                          setRevealOpen(true);
-                        }}
-                        className="h-9 text-[12px]"
-                      >
-                        Reveal
-                      </Button>
+                    {isEditingSecret ? (
+                      <>
+                        <Button
+                          type="button"
+                          onClick={() => void handleSaveSecret()}
+                          disabled={savingSecret || !draftRegistrationSecret.trim()}
+                          className="h-9 text-[12px]"
+                        >
+                          {savingSecret ? "Saving..." : "Save"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCancelSecretEdit}
+                          disabled={savingSecret}
+                          className="h-9 text-[12px]"
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleCopySecret()}
+                          disabled={!registrationSecret}
+                          className="h-9 text-[12px]"
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-1.5" />
+                          {copiedSecret ? "Copied" : "Copy"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleStartSecretEdit}
+                          className="h-9 text-[12px]"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                      </>
                     )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void handleCopySecret()}
-                      disabled={!secretRevealed || !registrationSecret}
-                      className="h-9 text-[12px]"
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-1.5" />
-                      {copiedSecret ? "Copied" : "Copy"}
-                    </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground/75">
-                    Generated automatically on first start. Every new runner
-                    must provide this secret when it registers. Revealing
-                    requires re-entering your password.
+                    {isEditingSecret
+                      ? "Enter a new secret and save to rotate runner registration. Existing runners stay connected."
+                      : "Every new runner must provide this secret when it registers. Copy places the current secret on your clipboard."}
                   </p>
-                </div>
-                <div className="mt-5 flex items-center gap-3">
-                  <Button
-                    onClick={() => void handleSaveSecurity()}
-                    disabled={savingSecurity || !registrationSecret.trim()}
-                    className="h-8 text-[13px]"
-                  >
-                    {savingSecurity ? "Saving..." : "Save configurations"}
-                  </Button>
-                  {savedSecurity && (
-                    <span
-                      className={cn(
-                        "flex items-center gap-1 text-[11px] font-medium",
-                        successTone.emphasis,
-                      )}
-                    >
-                      <CheckCircle2 className="h-3 w-3" /> Saved
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -458,7 +458,7 @@ export default function Runners() {
                   Add a runner to start executing tasks
                 </p>
                 <Button
-                  onClick={() => setShowSetup(true)}
+                  onClick={() => void handleOpenSetup()}
                   size="sm"
                   className="h-8 text-[13px]"
                 >
@@ -493,64 +493,6 @@ export default function Runners() {
           </>
         )}
       </div>
-
-      <Dialog
-        open={revealOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRevealOpen(false);
-            setRevealPassword("");
-            setRevealError("");
-          }
-        }}
-      >
-        <AppDialogContent className="sm:max-w-sm">
-          <AppDialogHeader>
-            <DialogTitle>Reveal registration secret</DialogTitle>
-            <DialogDescription>
-              Re-enter your password to view the runner registration secret.
-            </DialogDescription>
-          </AppDialogHeader>
-          <AppDialogBody className="space-y-3">
-            <Input
-              type="password"
-              autoFocus
-              placeholder="Your password"
-              value={revealPassword}
-              onChange={(e) => setRevealPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void handleRevealSecret();
-              }}
-              className="h-9"
-            />
-            {revealError && (
-              <p className={cn("text-[12px]", dangerTone.emphasis)}>{revealError}</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setRevealOpen(false);
-                  setRevealPassword("");
-                  setRevealError("");
-                }}
-                className="h-8 text-[13px]"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={() => void handleRevealSecret()}
-                disabled={revealing || !revealPassword}
-                className="h-8 text-[13px]"
-              >
-                {revealing ? "Revealing..." : "Reveal"}
-              </Button>
-            </div>
-          </AppDialogBody>
-        </AppDialogContent>
-      </Dialog>
 
       <Dialog
         open={showSetup}
@@ -653,6 +595,7 @@ export default function Runners() {
                       onClick={() =>
                         void handleCopyRunnerCommand(runnerCommand, "register")
                       }
+                      disabled={setupSecretLoading || !setupSecret}
                       className="h-7 rounded-full px-3 text-[11px] shadow-none"
                     >
                       <Copy className="mr-1.5 h-3 w-3" />

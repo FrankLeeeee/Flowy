@@ -9,6 +9,8 @@ import { getDbSetting, setDbSetting } from './db';
 const LEGACY_SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
 const DB_KEY_REGISTRATION_SECRET = 'runner.registrationSecret';
+const MIN_RUNNER_SECRET_LENGTH = 12;
+const MAX_RUNNER_SECRET_LENGTH = 30;
 
 /**
  * Load settings with the database as the primary source of truth.
@@ -18,18 +20,21 @@ const DB_KEY_REGISTRATION_SECRET = 'runner.registrationSecret';
  */
 export function loadSettings(): Settings {
   // 1. Try the database first
-  const dbSecret = getDbSetting(DB_KEY_REGISTRATION_SECRET);
-  if (dbSecret) {
+  const dbSecret = normalizeRunnerSecret(getDbSetting(DB_KEY_REGISTRATION_SECRET));
+  if (isValidRunnerSecret(dbSecret)) {
     return { runner: { registrationSecret: dbSecret } };
   }
 
   // 2. Fall back to the legacy JSON file (pre-migration installs).
   // Migrate the secret into the DB and remove the cleartext copy.
-  const fileSecret = readSecretFromFile();
-  if (fileSecret) {
+  const fileSecret = normalizeRunnerSecret(readSecretFromFile());
+  if (isValidRunnerSecret(fileSecret)) {
     setDbSetting(DB_KEY_REGISTRATION_SECRET, fileSecret);
     try { fs.unlinkSync(LEGACY_SETTINGS_FILE); } catch { /* already gone */ }
     return { runner: { registrationSecret: fileSecret } };
+  }
+  if (fileSecret) {
+    try { fs.unlinkSync(LEGACY_SETTINGS_FILE); } catch { /* already gone */ }
   }
 
   // 3. First-time setup — generate and persist to the DB.
@@ -40,7 +45,13 @@ export function loadSettings(): Settings {
 }
 
 export function saveSettings(s: Settings): void {
-  setDbSetting(DB_KEY_REGISTRATION_SECRET, s.runner.registrationSecret);
+  const secret = normalizeRunnerSecret(s.runner.registrationSecret);
+  if (!isValidRunnerSecret(secret)) {
+    throw new Error(
+      `runner.registrationSecret must be between ${MIN_RUNNER_SECRET_LENGTH} and ${MAX_RUNNER_SECRET_LENGTH} characters`,
+    );
+  }
+  setDbSetting(DB_KEY_REGISTRATION_SECRET, secret);
 }
 
 /** Returns true if the value looks like a masked key (contains 3+ stars). */
@@ -54,14 +65,18 @@ export function maskKey(key: string): string {
   return key.slice(0, 4) + '****' + key.slice(-4);
 }
 
-function generateRunnerSecret(): string {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const bytes = crypto.randomBytes(24);
-  let secret = '';
-  for (const byte of bytes) {
-    secret += alphabet[byte % alphabet.length];
-  }
-  return secret;
+export function generateRunnerSecret(): string {
+  // 15 random bytes => 30 hex chars (fits max length).
+  return crypto.randomBytes(15).toString('hex');
+}
+
+export function isValidRunnerSecret(secret: string | undefined): secret is string {
+  if (!secret) return false;
+  return secret.length >= MIN_RUNNER_SECRET_LENGTH && secret.length <= MAX_RUNNER_SECRET_LENGTH;
+}
+
+function normalizeRunnerSecret(secret: string | undefined): string | undefined {
+  return secret?.trim() || undefined;
 }
 
 /** Best-effort read of the registration secret from the legacy JSON file. */
