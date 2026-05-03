@@ -8,14 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import LabelPicker from '@/components/LabelPicker';
 import RunnerAssignmentFields from './RunnerAssignmentFields';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { normalizeTimeInput, splitScheduledDateTime, updateScheduledDate, updateScheduledTime } from '@/lib/scheduledDateTime';
 import { cn } from '@/lib/utils';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { Circle, FolderKanban, Inbox, ArrowRight, X, Sparkles, CalendarClock, Archive, ChevronDown, ChevronRight, UserPlus } from 'lucide-react';
+import { Circle, FolderKanban, Inbox, ArrowRight, X, Sparkles, CalendarClock, Archive, ChevronRight, UserPlus } from 'lucide-react';
 
 const INBOX_VALUE = '_inbox';
 
@@ -102,7 +101,7 @@ export default function CreateTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <AppDialogContent className="flex flex-col gap-0 overflow-visible sm:max-w-2xl">
+      <AppDialogContent className="mb-[calc(env(safe-area-inset-bottom)+4.5rem)] flex max-h-[calc(100svh-6rem)] flex-col gap-0 overflow-hidden sm:mb-0 sm:max-h-[80svh] sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
           <DialogDescription className="sr-only">Create a new task with title, description, list, priority, and labels.</DialogDescription>
@@ -124,8 +123,8 @@ export default function CreateTaskModal({
           </div>
         </AppDialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
-          <ScrollArea className="min-h-0 flex-1">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div>
               <AppDialogBody>
                 <AppDialogSection tone="primary">
@@ -287,28 +286,37 @@ export default function CreateTaskModal({
                   type="button"
                   onClick={() => setShowRunnerAssign((v) => !v)}
                   className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground/85 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+                  aria-expanded={showRunnerAssign}
                 >
-                  {showRunnerAssign ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  <ChevronRight className={cn('h-3.5 w-3.5 transition-transform duration-300 ease-[var(--ease-out-quart)] motion-reduce:transition-none', showRunnerAssign && 'rotate-90')} />
                   <UserPlus className="h-3.5 w-3.5" />
                   Assign runner now
                   <span className="ml-auto text-[10px] text-muted-foreground/60">Optional</span>
                 </button>
-                {showRunnerAssign && (
-                  <div className="mt-3">
-                    <RunnerAssignmentFields
-                      runners={runners}
-                      runnerId={runnerId}
-                      aiProvider={aiProvider}
-                      harnessConfig={harnessConfig}
-                      onRunnerIdChange={setRunnerId}
-                      onAiProviderChange={setAiProvider}
-                      onHarnessConfigChange={setHarnessConfig}
-                    />
+                <div
+                  className={cn(
+                    'grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out-quart)] motion-reduce:transition-none',
+                    showRunnerAssign ? 'visible grid-rows-[1fr] opacity-100' : 'invisible grid-rows-[0fr] opacity-0'
+                  )}
+                  aria-hidden={!showRunnerAssign}
+                >
+                  <div className="min-h-0 overflow-hidden">
+                    <div className="mt-3">
+                      <RunnerAssignmentFields
+                        runners={runners}
+                        runnerId={runnerId}
+                        aiProvider={aiProvider}
+                        harnessConfig={harnessConfig}
+                        onRunnerIdChange={setRunnerId}
+                        onAiProviderChange={setAiProvider}
+                        onHarnessConfigChange={setHarnessConfig}
+                      />
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <AppDialogFooter>
             <div className="flex items-center gap-2">
