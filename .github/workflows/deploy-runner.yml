@@ -5,15 +5,15 @@ on:
     inputs:
       runner_name:
         description: "Runner name to register/reconnect"
-        required: true
+        required: false
         type: string
       flowy_url:
         description: "Flowy URL"
-        required: true
+        required: false
         type: string
       flowy_runner_secret:
         description: "Flowy runner secret"
-        required: true
+        required: false
         type: string
   push:
     branches:
@@ -28,6 +28,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: [ self-hosted, macOS, ARM64 ]
+    environment: deployment
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
