@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/public/flowy-icon.svg" alt="Flowy icon" width="250" />
+  <img src="./frontend/public/icon-512.png" alt="Flowy logo" width="250" />
 </p>
 
 # 🌊 Flowy
