@@ -98,29 +98,25 @@ function DesktopShell() {
 }
 
 function MobileApp() {
-  const location = useLocation();
-
   return (
     <MobileShell>
-      <div key={location.pathname} className="motion-page min-h-screen">
-        <Routes>
-          <Route path="/" element={<Navigate to="/today" replace />} />
-          <Route path="/today" element={<ScheduledTasksView mode="today" />} />
-          <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
-          <Route path="/all" element={<ScheduledTasksView mode="all" />} />
-          <Route path="/inbox" element={<MobileInbox />} />
-          <Route path="/lists" element={<MobileLists />} />
-          <Route path="/list/:id" element={<MobileListDetail />} />
-          <Route path="/runners" element={<MobileRunners />} />
-          <Route path="/labels" element={<MobileLabels />} />
-          <Route path="/skills" element={<MobileSkills />} />
-          <Route path="/stats" element={<MobileStats />} />
-          <Route path="/sessions" element={<MobileSessions />} />
-          <Route path="/todos" element={<TodoView />} />
-          <Route path="/usage" element={<Navigate to="/runners" replace />} />
-          <Route path="/settings" element={<MobileSettings />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/" element={<Navigate to="/today" replace />} />
+        <Route path="/today" element={<ScheduledTasksView mode="today" />} />
+        <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
+        <Route path="/all" element={<ScheduledTasksView mode="all" />} />
+        <Route path="/inbox" element={<MobileInbox />} />
+        <Route path="/lists" element={<MobileLists />} />
+        <Route path="/list/:id" element={<MobileListDetail />} />
+        <Route path="/runners" element={<MobileRunners />} />
+        <Route path="/labels" element={<MobileLabels />} />
+        <Route path="/skills" element={<MobileSkills />} />
+        <Route path="/stats" element={<MobileStats />} />
+        <Route path="/sessions" element={<MobileSessions />} />
+        <Route path="/todos" element={<TodoView />} />
+        <Route path="/usage" element={<Navigate to="/runners" replace />} />
+        <Route path="/settings" element={<MobileSettings />} />
+      </Routes>
     </MobileShell>
   );
 }
