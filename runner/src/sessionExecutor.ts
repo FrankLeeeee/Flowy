@@ -57,7 +57,7 @@ export function executeSessionTurn(
   let flushTimer: ReturnType<typeof setInterval>;
 
   const promise = new Promise<{ success: boolean }>((resolve) => {
-    console.log(`  [session] Spawning: ${cmd} ${args.slice(0, 6).join(' ')} …`);
+    console.log(`  [session] Spawning: ${cmd} (${args.length} args)`);
 
     child = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],

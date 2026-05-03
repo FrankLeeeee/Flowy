@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Runner, Task, AiProvider } from '../../types';
 import {
   fetchRunners, fetchTasks, deleteRunner, refreshRunnerProviders, updateRunnerProviders,
-  fetchRunnerSecret, updateSettings,
+  fetchSettings, revealRunnerSecret, updateSettings,
 } from '../../api/client';
 import { AI_LABELS } from '@/lib/taskConstants';
 import RunnerStatusBadge from '@/components/runners/RunnerStatusBadge';
@@ -34,6 +34,11 @@ export default function MobileRunners() {
   const [refreshingRunnerId, setRefreshingRunnerId] = useState<string | null>(null);
   const [updatingRunnerId, setUpdatingRunnerId] = useState<string | null>(null);
   const [registrationSecret, setRegistrationSecret] = useState('');
+  const [secretRevealed, setSecretRevealed] = useState(false);
+  const [revealOpen, setRevealOpen] = useState(false);
+  const [revealPassword, setRevealPassword] = useState('');
+  const [revealError, setRevealError] = useState('');
+  const [revealing, setRevealing] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [savedSecurity, setSavedSecurity] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
@@ -43,19 +48,21 @@ export default function MobileRunners() {
 
   const loadData = useCallback(async () => {
     try {
-      const [r, t, secret] = await Promise.all([
-        fetchRunners(), fetchTasks({ status: 'in_progress' }), fetchRunnerSecret(),
+      const [r, t, settings] = await Promise.all([
+        fetchRunners(), fetchTasks({ status: 'in_progress' }), fetchSettings(),
       ]);
       setRunners(r);
       const taskMap = new Map<string, Task>();
       for (const task of t) { if (task.runner_id) taskMap.set(task.runner_id, task); }
       setBusyTasks(taskMap);
-      setRegistrationSecret(secret.registrationSecret);
+      setRegistrationSecret((current) =>
+        secretRevealed ? current : settings.runner.registrationSecret,
+      );
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load runners');
     } finally { setLoading(false); }
-  }, []);
+  }, [secretRevealed]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { const iv = setInterval(loadData, 10_000); return () => clearInterval(iv); }, [loadData]);
@@ -93,12 +100,32 @@ export default function MobileRunners() {
     try {
       await updateSettings({ runner: { registrationSecret: s } });
       setRegistrationSecret(s);
+      setSecretRevealed(true);
       setSavedSecurity(true);
       setTimeout(() => setSavedSecurity(false), 3000);
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save');
     } finally { setSavingSecurity(false); }
+  };
+
+  const handleRevealSecret = async () => {
+    if (!revealPassword) { setRevealError('Password required'); return; }
+    setRevealing(true);
+    setRevealError('');
+    try {
+      const { registrationSecret: secret } = await revealRunnerSecret(revealPassword);
+      setRegistrationSecret(secret);
+      setSecretRevealed(true);
+      setRevealOpen(false);
+      setRevealPassword('');
+    } catch (e) {
+      const status = typeof e === 'object' && e && 'response' in e
+        ? (e as { response?: { status?: number } }).response?.status : undefined;
+      if (status === 401) setRevealError('Incorrect password');
+      else if (status === 429) setRevealError('Too many attempts. Try again later.');
+      else setRevealError(e instanceof Error ? e.message : 'Failed to reveal secret');
+    } finally { setRevealing(false); }
   };
 
   const handleCopy = async (text: string, setter: (v: boolean) => void) => {
@@ -109,7 +136,9 @@ export default function MobileRunners() {
   const onlineCount = runners.filter((r) => r.status === 'online' || r.status === 'busy').length;
   const offlineCount = runners.filter((r) => r.status === 'offline').length;
   const installCommand = 'npm install -g @frankleeeee/flowy-runner';
-  const commandSecret = registrationSecret.trim() || '<registration-secret>';
+  const commandSecret = secretRevealed
+    ? (registrationSecret.trim() || '<registration-secret>')
+    : '<registration-secret>';
   const runnerCommand = `flowy-runner \\\n  --name "my-device" \\\n  --url http://YOUR_HOST:PORT \\\n  --secret ${commandSecret}`;
 
   if (loading) {
@@ -191,22 +220,39 @@ export default function MobileRunners() {
             </div>
             <div className="space-y-2">
               <Input
-                type="password"
+                type={secretRevealed ? 'text' : 'password'}
                 value={registrationSecret}
-                onChange={(e) => setRegistrationSecret(e.target.value)}
+                onChange={(e) => {
+                  setRegistrationSecret(e.target.value);
+                  if (!secretRevealed) setSecretRevealed(true);
+                }}
                 placeholder="Enter a secret..."
-                className="h-10 rounded-xl"
+                className="h-10 rounded-xl font-mono"
               />
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => void handleCopy(registrationSecret, setCopiedSecret)}
-                  disabled={!registrationSecret}
-                  className="h-9 flex-1 rounded-xl text-[12px]"
-                >
-                  <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  {copiedSecret ? 'Copied' : 'Copy'}
-                </Button>
+                {!secretRevealed ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRevealError('');
+                      setRevealPassword('');
+                      setRevealOpen(true);
+                    }}
+                    className="h-9 flex-1 rounded-xl text-[12px]"
+                  >
+                    Reveal
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleCopy(registrationSecret, setCopiedSecret)}
+                    disabled={!registrationSecret}
+                    className="h-9 flex-1 rounded-xl text-[12px]"
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                    {copiedSecret ? 'Copied' : 'Copy'}
+                  </Button>
+                )}
                 <Button
                   onClick={() => void handleSaveSecurity()}
                   disabled={savingSecurity || !registrationSecret.trim()}
@@ -221,7 +267,9 @@ export default function MobileRunners() {
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground/75">Every new runner must provide this secret when it registers.</p>
+            <p className="text-[11px] text-muted-foreground/75">
+              Every new runner must provide this secret when it registers. Revealing requires re-entering your password.
+            </p>
           </div>
         </div>
       ) : (
@@ -323,6 +371,59 @@ export default function MobileRunners() {
           )}
         </div>
       )}
+
+      {/* Reveal-secret password prompt */}
+      <Dialog
+        open={revealOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRevealOpen(false);
+            setRevealPassword('');
+            setRevealError('');
+          }
+        }}
+      >
+        <AppDialogContent className="sm:max-w-sm">
+          <AppDialogHeader>
+            <DialogTitle>Reveal registration secret</DialogTitle>
+            <DialogDescription>Re-enter your password to view the secret.</DialogDescription>
+          </AppDialogHeader>
+          <AppDialogBody className="space-y-3">
+            <Input
+              type="password"
+              autoFocus
+              placeholder="Your password"
+              value={revealPassword}
+              onChange={(e) => setRevealPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleRevealSecret(); }}
+              className="h-10 rounded-xl"
+            />
+            {revealError && (
+              <p className={cn('text-[12px]', dangerTone.emphasis)}>{revealError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRevealOpen(false);
+                  setRevealPassword('');
+                  setRevealError('');
+                }}
+                className="h-9 text-[13px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => void handleRevealSecret()}
+                disabled={revealing || !revealPassword}
+                className="h-9 text-[13px]"
+              >
+                {revealing ? 'Revealing...' : 'Reveal'}
+              </Button>
+            </div>
+          </AppDialogBody>
+        </AppDialogContent>
+      </Dialog>
 
       {/* Add Runner Dialog */}
       <Dialog open={showSetup} onOpenChange={(open) => { if (!open) setShowSetup(false); }}>

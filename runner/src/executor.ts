@@ -40,7 +40,9 @@ export function executeTask(
   let flushTimer: ReturnType<typeof setInterval>;
 
   const promise = new Promise<ExecutionResult>((resolve) => {
-    console.log(`  Spawning: ${cmd} ${args.join(' ')}`);
+    // Log the command shape but not its arguments — the prompt may contain
+    // sensitive data the user pasted into a task.
+    console.log(`  Spawning: ${cmd} (${args.length} args)`);
 
     child = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],

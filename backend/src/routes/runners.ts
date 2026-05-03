@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { getDb } from '../db';
 import { Runner, Task, TaskLog } from '../types';
 import { authenticateRunner } from '../middleware/runnerAuth';
@@ -11,6 +12,22 @@ import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSki
 import { drainSessionCommands } from './sessionCommandQueue';
 
 const router = Router();
+
+// Throttle registration to make brute-forcing the secret infeasible.
+const registrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many registration attempts. Try again in 15 minutes.' },
+});
+
+function secretsMatch(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, 'utf8');
+  const bBuf = Buffer.from(b, 'utf8');
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
 
 function getScheduledTimeMs(scheduledAt: string | null): number | null {
   if (!scheduledAt) return null;
@@ -64,16 +81,16 @@ router.get('/', requireUserAuth, (_req: Request, res: Response) => {
 });
 
 // POST /api/runners/register — register a new runner
-router.post('/register', (req: Request, res: Response) => {
+router.post('/register', registrationLimiter, (req: Request, res: Response) => {
   const { name, aiProviders, deviceInfo, secret } = req.body as {
     name?: string; aiProviders?: string[]; deviceInfo?: string; secret?: string;
   };
   if (!name) { res.status(400).json({ error: 'name is required' }); return; }
 
-  // Check registration secret
+  // Check registration secret using constant-time compare.
   const settings = loadSettings();
   const requiredSecret = settings.runner.registrationSecret;
-  if (!secret || secret !== requiredSecret) {
+  if (!secret || !secretsMatch(secret, requiredSecret)) {
     res.status(403).json({ error: 'Invalid registration secret. Contact the admin to get the correct secret.' });
     return;
   }

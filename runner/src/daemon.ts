@@ -198,7 +198,6 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
 
       console.log(`\nPicked up task: ${task.task_key} - ${task.title}`);
       console.log(`  AI Provider: ${task.ai_provider}`);
-      console.log(`  Description: ${(task.description || task.title).slice(0, 100)}...`);
 
       await api.pickTask(task.id);
       executing = true;
