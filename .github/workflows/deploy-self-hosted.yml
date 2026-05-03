@@ -37,6 +37,8 @@ jobs:
           docker rm -f flowy >/dev/null 2>&1 || true
 
       - name: Start Flowy container
+        env:
+          FLOWY_CORS: ${{ secrets.FLOWY_CORS }}
         run: |
           mkdir -p "$HOME/.flowy-data"
           docker run -d \
@@ -44,6 +46,7 @@ jobs:
             --restart unless-stopped \
             -p 0.0.0.0:3456:8000 \
             -v "$HOME/.flowy-data:/root/.config/flowy" \
+            -e CORS="$FLOWY_CORS" \
             flowy:latest
 
       - name: Health check
