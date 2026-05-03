@@ -13,6 +13,7 @@ import {
   ReconnectTimeoutError,
   retryWithReconnectBackoff,
 } from './reconnect';
+import { resolveWithinRoots } from './paths';
 
 export async function startDaemon(config: RunnerConfig): Promise<void> {
   const api = new RunnerApi(config.url);
@@ -198,12 +199,11 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
 
       console.log(`\nPicked up task: ${task.task_key} - ${task.title}`);
       console.log(`  AI Provider: ${task.ai_provider}`);
-      console.log(`  Description: ${(task.description || task.title).slice(0, 100)}...`);
 
       await api.pickTask(task.id);
       executing = true;
 
-      const { promise, kill } = executeTask(task, async (chunk) => {
+      const { promise, kill } = executeTask(task, config.workspaceRoots, async (chunk) => {
         try {
           await api.sendOutput(task.id, chunk);
         } catch (error) {
@@ -245,7 +245,12 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
       const requests = await api.fetchBrowseRequests();
       for (const { requestId, path: browsePath } of requests) {
         try {
-          const resolved = path.resolve(browsePath);
+          // The hub uses '/' (or empty) as a sentinel for "show me the top".
+          // Resolve that to the first workspace root rather than leaking '/'.
+          const target = (!browsePath || browsePath === '/')
+            ? config.workspaceRoots[0]
+            : browsePath;
+          const resolved = resolveWithinRoots(target, config.workspaceRoots);
           const dirents = fs.readdirSync(resolved, { withFileTypes: true });
           const entries = dirents
             .filter((dirent) => !dirent.name.startsWith('.'))
@@ -330,6 +335,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
         harnessConfig,
         history: history ?? [],
         prompt,
+        workspaceRoots: config.workspaceRoots,
       },
       async (chunk) => {
         try {

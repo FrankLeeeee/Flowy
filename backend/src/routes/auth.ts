@@ -19,11 +19,13 @@ const loginLimiter = rateLimit({
 const SALT_ROUNDS = 10;
 const SESSION_DAYS = 30;
 const COOKIE_NAME = 'flowy_session';
+// Cap password input before bcrypt — prevents CPU-amplification DoS via huge inputs.
+const MAX_PASSWORD_LENGTH = 128;
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  sameSite: 'strict' as const,
   maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000,
   path: '/',
 };
@@ -69,8 +71,12 @@ router.post('/setup', loginLimiter, async (req: Request, res: Response) => {
   }
 
   const { password } = req.body as { password?: string };
-  if (!password || password.length < 8) {
-    res.status(400).json({ error: 'Password must be at least 8 characters' });
+  if (!password || password.length < 12) {
+    res.status(400).json({ error: 'Password must be at least 12 characters' });
+    return;
+  }
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    res.status(400).json({ error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters` });
     return;
   }
 
@@ -93,6 +99,10 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   const { password } = req.body as { password?: string };
   if (!password) {
     res.status(400).json({ error: 'Password required' });
+    return;
+  }
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    res.status(401).json({ error: 'Incorrect password' });
     return;
   }
 
@@ -128,8 +138,12 @@ router.put('/password', requireUserAuth, async (req: Request, res: Response) => 
     res.status(400).json({ error: 'currentPassword and newPassword are required' });
     return;
   }
-  if (newPassword.length < 8) {
-    res.status(400).json({ error: 'New password must be at least 8 characters' });
+  if (newPassword.length < 12) {
+    res.status(400).json({ error: 'New password must be at least 12 characters' });
+    return;
+  }
+  if (newPassword.length > MAX_PASSWORD_LENGTH || currentPassword.length > MAX_PASSWORD_LENGTH) {
+    res.status(400).json({ error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters` });
     return;
   }
 

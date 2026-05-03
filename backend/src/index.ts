@@ -18,11 +18,61 @@ import { requireUserAuth } from './middleware/userAuth';
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
 
-app.use(cors(
-  process.env.NODE_ENV === 'production' && !process.env.CORS
-    ? {}
-    : { origin: true, credentials: true }
-));
+// Conservative security headers. Skipping CSP because the bundled SPA uses
+// inline styles and a full policy needs per-build hashing.
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+app.use(cors(buildCorsOptions()));
+
+// Tight body limit on auth/settings endpoints to prevent CPU-amplification
+// attacks against bcrypt and password handling. Mounted before the global
+// 10mb parser so these route prefixes use the smaller cap.
+app.use(['/api/auth', '/api/settings'], express.json({ limit: '16kb' }));
+
+function buildCorsOptions(): cors.CorsOptions {
+  // Production with no explicit --cors flag: same-origin only.
+  if (process.env.NODE_ENV === 'production' && !process.env.CORS) {
+    return {};
+  }
+
+  // Production with --cors=<allowlist>: only echo origins in the allowlist.
+  if (process.env.NODE_ENV === 'production') {
+    const allowlist = process.env.CORS!.split(',').map((s) => s.trim()).filter(Boolean);
+    return {
+      origin: (origin, cb) => {
+        // Same-origin / curl / native app requests have no Origin header.
+        if (!origin) return cb(null, true);
+        if (allowlist.includes(origin)) return cb(null, true);
+        return cb(new Error(`Origin ${origin} not in --cors allowlist`));
+      },
+      credentials: true,
+    };
+  }
+
+  // Dev: localhost only. Dev still needs credentials for the cookie session.
+  return {
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      try {
+        const host = new URL(origin).hostname;
+        if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+          return cb(null, true);
+        }
+      } catch { /* fall through */ }
+      return cb(new Error(`Origin ${origin} not allowed in dev (localhost only)`));
+    },
+    credentials: true,
+  };
+}
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 

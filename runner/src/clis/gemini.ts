@@ -1,4 +1,5 @@
-import { CLICommand, CLIProvider } from './index';
+import { BuildCommandOptions, CLICommand, CLIProvider } from './index';
+import { resolveWithinRoots } from '../paths';
 import { asRecord, getString, parseRootConfig } from './utils';
 
 export interface GeminiConfig {
@@ -23,9 +24,17 @@ function parseConfig(raw: string | null | undefined): GeminiConfig {
 export const geminiProvider: CLIProvider = {
   id: 'gemini-cli',
 
-  buildCommand(prompt: string, rawHarnessConfig: string | null | undefined): CLICommand {
+  buildCommand(
+    prompt: string,
+    rawHarnessConfig: string | null | undefined,
+    options: BuildCommandOptions,
+  ): CLICommand {
     const config = parseConfig(rawHarnessConfig);
     const args = ['--prompt', prompt];
+
+    const workspace = config.workspace
+      ? resolveWithinRoots(config.workspace, options.workspaceRoots)
+      : undefined;
 
     if (config.model) args.push('--model', config.model);
     if (config.sandbox) args.push('--sandbox');
@@ -34,7 +43,7 @@ export const geminiProvider: CLIProvider = {
     return {
       cmd: 'gemini',
       args,
-      cwd: config.workspace,
+      cwd: workspace,
       streamOutput: true,
     };
   },

@@ -1,4 +1,5 @@
-import { CLICommand, CLIProvider } from './index';
+import { BuildCommandOptions, CLICommand, CLIProvider } from './index';
+import { resolveWithinRoots } from '../paths';
 import { asRecord, getString, parseRootConfig } from './utils';
 
 export interface CursorAgentConfig {
@@ -25,11 +26,19 @@ function parseConfig(raw: string | null | undefined): CursorAgentConfig {
 export const cursorAgentProvider: CLIProvider = {
   id: 'cursor-agent',
 
-  buildCommand(prompt: string, rawHarnessConfig: string | null | undefined): CLICommand {
+  buildCommand(
+    prompt: string,
+    rawHarnessConfig: string | null | undefined,
+    options: BuildCommandOptions,
+  ): CLICommand {
     const config = parseConfig(rawHarnessConfig);
     const args = ['--print', '--force'];
 
-    if (config.workspace) args.push('--workspace', config.workspace);
+    const workspace = config.workspace
+      ? resolveWithinRoots(config.workspace, options.workspaceRoots)
+      : undefined;
+
+    if (workspace) args.push('--workspace', workspace);
     if (config.model) args.push('--model', config.model);
     if (config.mode) args.push('--mode', config.mode);
     if (config.sandbox) args.push('--sandbox', config.sandbox);
@@ -40,7 +49,7 @@ export const cursorAgentProvider: CLIProvider = {
     return {
       cmd: 'agent',
       args,
-      cwd: config.workspace,
+      cwd: workspace,
       streamOutput: true,
     };
   },

@@ -1,9 +1,17 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { buildCommandWithConfig } from '../src/executor';
 
+// Tests use a tmp dir as the workspace root so paths like `${TMP}/project`
+// canonicalize cleanly (avoids surprises on systems where /tmp is a symlink).
+const TMP = fs.realpathSync(os.tmpdir());
+const ROOTS = [TMP];
+
 describe('buildCommandWithConfig', () => {
   it('builds the Claude Code command with streaming enabled', () => {
-    expect(buildCommandWithConfig('claude-code', 'Write a test')).toEqual({
+    expect(buildCommandWithConfig('claude-code', 'Write a test', undefined, ROOTS)).toEqual({
       cmd: 'claude',
       args: ['-p', '--permission-mode', 'bypassPermissions', 'Write a test'],
       cwd: undefined,
@@ -12,17 +20,19 @@ describe('buildCommandWithConfig', () => {
   });
 
   it('builds the Codex command with workspace-write sandboxing', () => {
-    expect(buildCommandWithConfig('codex', 'Fix CI')).toEqual({
+    expect(buildCommandWithConfig('codex', 'Fix CI', undefined, ROOTS)).toEqual({
       cmd: 'codex',
       args: ['exec', '--sandbox', 'workspace-write', '--color', 'never', 'Fix CI'],
+      cwd: undefined,
       streamOutput: true,
     });
   });
 
   it('builds the Cursor Agent command in headless mode with file writes', () => {
-    expect(buildCommandWithConfig('cursor-agent', 'Refactor module')).toEqual({
+    expect(buildCommandWithConfig('cursor-agent', 'Refactor module', undefined, ROOTS)).toEqual({
       cmd: 'agent',
       args: ['--print', '--force', 'Refactor module'],
+      cwd: undefined,
       streamOutput: true,
     });
   });
@@ -30,7 +40,7 @@ describe('buildCommandWithConfig', () => {
   it('maps Claude Code assignment config to command flags', () => {
     expect(buildCommandWithConfig('claude-code', 'Ship it', JSON.stringify({
       claudeCode: {
-        workspace: '/tmp/project',
+        workspace: path.join(TMP, 'project'),
         addDirs: ['/tmp/shared'],
         model: 'sonnet',
         mode: 'auto',
@@ -41,7 +51,7 @@ describe('buildCommandWithConfig', () => {
         allowedTools: ['Read', 'Edit'],
         disallowedTools: ['Bash(rm:*)'],
       },
-    }))).toEqual({
+    }), ROOTS)).toEqual({
       cmd: 'claude',
       args: [
         '-p',
@@ -53,7 +63,7 @@ describe('buildCommandWithConfig', () => {
         'feature-branch',
         'Ship it',
       ],
-      cwd: '/tmp/project',
+      cwd: path.join(TMP, 'project'),
       streamOutput: true,
     });
   });
@@ -61,7 +71,7 @@ describe('buildCommandWithConfig', () => {
   it('maps Codex assignment config to command flags', () => {
     expect(buildCommandWithConfig('codex', 'Audit repo', JSON.stringify({
       codex: {
-        workspace: '/tmp/repo',
+        workspace: path.join(TMP, 'repo'),
         addDirs: ['/tmp/shared', '/tmp/logs'],
         model: 'gpt-5.4',
         profile: 'ci',
@@ -69,12 +79,12 @@ describe('buildCommandWithConfig', () => {
         search: true,
         configOverrides: ['approval_policy="never"', 'model_reasoning_effort="high"'],
       },
-    }))).toEqual({
+    }), ROOTS)).toEqual({
       cmd: 'codex',
       args: [
         'exec',
         '--cd',
-        '/tmp/repo',
+        path.join(TMP, 'repo'),
         '--model',
         'gpt-5.4',
         '--sandbox',
@@ -83,7 +93,7 @@ describe('buildCommandWithConfig', () => {
         'never',
         'Audit repo',
       ],
-      cwd: '/tmp/repo',
+      cwd: path.join(TMP, 'repo'),
       streamOutput: true,
     });
   });
@@ -91,7 +101,7 @@ describe('buildCommandWithConfig', () => {
   it('maps Cursor Agent assignment config to command flags', () => {
     expect(buildCommandWithConfig('cursor-agent', 'Fix lint', JSON.stringify({
       cursorAgent: {
-        workspace: '/tmp/repo',
+        workspace: path.join(TMP, 'repo'),
         model: 'gpt-5',
         mode: 'plan',
         sandbox: 'enabled',
@@ -101,13 +111,13 @@ describe('buildCommandWithConfig', () => {
         approveMcps: true,
         trust: true,
       },
-    }))).toEqual({
+    }), ROOTS)).toEqual({
       cmd: 'agent',
       args: [
         '--print',
         '--force',
         '--workspace',
-        '/tmp/repo',
+        path.join(TMP, 'repo'),
         '--model',
         'gpt-5',
         '--mode',
@@ -118,12 +128,18 @@ describe('buildCommandWithConfig', () => {
         'lint-fix',
         'Fix lint',
       ],
-      cwd: '/tmp/repo',
+      cwd: path.join(TMP, 'repo'),
       streamOutput: true,
     });
   });
 
   it('throws for unsupported providers', () => {
-    expect(() => buildCommandWithConfig('unknown', 'Prompt')).toThrow('Unknown AI provider: unknown');
+    expect(() => buildCommandWithConfig('unknown', 'Prompt', undefined, ROOTS)).toThrow('Unknown AI provider: unknown');
+  });
+
+  it('rejects workspace paths outside the allowed roots', () => {
+    expect(() => buildCommandWithConfig('claude-code', 'pwn', JSON.stringify({
+      claudeCode: { workspace: '/etc' },
+    }), ROOTS)).toThrow(/outside the allowed workspace roots/);
   });
 });

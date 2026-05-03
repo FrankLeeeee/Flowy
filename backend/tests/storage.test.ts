@@ -46,31 +46,40 @@ describe('storage helpers', () => {
   it('creates and persists a registration secret on first load', async () => {
     const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowy-settings-'));
     try {
-      const { loadSettings } = await importStorageForHome(homeDir);
-      const settings = loadSettings();
-      const settingsFile = path.join(homeDir, '.config', 'flowy', 'settings.json');
+      const storage = await importStorageForHome(homeDir);
+      const { initDb, getDbSetting } = await import('../src/db');
+      initDb();
+
+      const settings = storage.loadSettings();
 
       expect(settings.runner.registrationSecret).toMatch(/^[A-Za-z0-9]{24}$/);
-      expect(JSON.parse(fs.readFileSync(settingsFile, 'utf-8'))).toEqual(settings);
+      expect(getDbSetting('runner.registrationSecret')).toBe(settings.runner.registrationSecret);
+      // Confirm no plaintext settings.json is written.
+      const legacyFile = path.join(homeDir, '.config', 'flowy', 'settings.json');
+      expect(fs.existsSync(legacyFile)).toBe(false);
     } finally {
       fs.rmSync(homeDir, { recursive: true, force: true });
     }
   });
 
-  it('backfills a missing registration secret in an existing settings file', async () => {
+  it('migrates a legacy settings.json secret into the DB and removes the file', async () => {
     const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowy-settings-'));
     try {
       const settingsDir = path.join(homeDir, '.config', 'flowy');
-      const settingsFile = path.join(settingsDir, 'settings.json');
+      const legacyFile = path.join(settingsDir, 'settings.json');
       fs.mkdirSync(settingsDir, { recursive: true });
-      fs.writeFileSync(settingsFile, JSON.stringify({ runner: { registrationSecret: '   ' } }, null, 2), 'utf-8');
+      const legacySecret = 'AAAAAAAAAAAAAAAAAAAAAAAA';
+      fs.writeFileSync(legacyFile, JSON.stringify({ runner: { registrationSecret: legacySecret } }), 'utf-8');
 
-      const { loadSettings } = await importStorageForHome(homeDir);
-      const settings = loadSettings();
-      const persisted = JSON.parse(fs.readFileSync(settingsFile, 'utf-8')) as { runner: { registrationSecret: string } };
+      const storage = await importStorageForHome(homeDir);
+      const { initDb, getDbSetting } = await import('../src/db');
+      initDb();
 
-      expect(settings.runner.registrationSecret).toMatch(/^[A-Za-z0-9]{24}$/);
-      expect(persisted.runner.registrationSecret).toBe(settings.runner.registrationSecret);
+      const settings = storage.loadSettings();
+
+      expect(settings.runner.registrationSecret).toBe(legacySecret);
+      expect(getDbSetting('runner.registrationSecret')).toBe(legacySecret);
+      expect(fs.existsSync(legacyFile)).toBe(false);
     } finally {
       fs.rmSync(homeDir, { recursive: true, force: true });
     }

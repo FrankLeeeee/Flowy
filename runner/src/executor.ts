@@ -14,9 +14,10 @@ export interface ExecutionResult {
 export function buildCommandWithConfig(
   aiProvider: string,
   prompt: string,
-  rawHarnessConfig?: string,
+  rawHarnessConfig: string | undefined,
+  workspaceRoots: string[],
 ): CLICommand {
-  return getProvider(aiProvider).buildCommand(prompt, rawHarnessConfig);
+  return getProvider(aiProvider).buildCommand(prompt, rawHarnessConfig, { workspaceRoots });
 }
 
 /**
@@ -26,12 +27,14 @@ export function buildCommandWithConfig(
  */
 export function executeTask(
   task: Task,
+  workspaceRoots: string[],
   onOutput: (chunk: string) => void,
 ): { promise: Promise<ExecutionResult>; kill: () => void } {
   const { cmd, args, cwd, streamOutput } = buildCommandWithConfig(
     task.ai_provider!,
     task.description || task.title,
     task.harness_config,
+    workspaceRoots,
   );
 
   let child: ChildProcess;
@@ -40,7 +43,9 @@ export function executeTask(
   let flushTimer: ReturnType<typeof setInterval>;
 
   const promise = new Promise<ExecutionResult>((resolve) => {
-    console.log(`  Spawning: ${cmd} ${args.join(' ')}`);
+    // Log the command shape but not its arguments — the prompt may contain
+    // sensitive data the user pasted into a task.
+    console.log(`  Spawning: ${cmd} (${args.length} args)`);
 
     child = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],

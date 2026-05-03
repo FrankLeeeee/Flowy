@@ -37,7 +37,7 @@ export default function ChangePasswordDialog({ open, onClose }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    if (next.length < 8) { setError('New password must be at least 8 characters'); return; }
+    if (next.length < 12) { setError('New password must be at least 12 characters'); return; }
     if (next !== confirm) { setError('New passwords do not match'); return; }
     setLoading(true);
     try {
@@ -121,7 +121,7 @@ export default function ChangePasswordDialog({ open, onClose }: Props) {
                         type={showNext ? 'text' : 'password'}
                         value={next}
                         onChange={(e) => setNext(e.target.value)}
-                        placeholder="At least 8 characters"
+                        placeholder="At least 12 characters"
                         className="pr-10"
                         required
                       />

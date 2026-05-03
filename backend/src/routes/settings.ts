@@ -1,8 +1,20 @@
 import { Router, Request, Response } from 'express';
+import bcrypt from 'bcrypt';
+import rateLimit from 'express-rate-limit';
 import { loadSettings, saveSettings, maskKey, isMasked } from '../storage';
+import { getDbSetting } from '../db';
 import { Settings } from '../types';
 
 const router = Router();
+
+// Throttle reveal attempts so a stolen session can't grind the password.
+const revealLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Try again in 15 minutes.' },
+});
 
 function maskedSettings(s: Settings) {
   return {
@@ -15,8 +27,21 @@ router.get('/', (_req: Request, res: Response) => {
   res.json(maskedSettings(loadSettings()));
 });
 
-// GET /api/settings/runner-secret
-router.get('/runner-secret', (_req: Request, res: Response) => {
+// POST /api/settings/runner-secret/reveal
+// Requires the user's current password to return the unmasked secret.
+router.post('/runner-secret/reveal', revealLimiter, async (req: Request, res: Response) => {
+  const { password } = req.body as { password?: string };
+  if (!password) {
+    res.status(400).json({ error: 'Password required' });
+    return;
+  }
+
+  const passwordHash = getDbSetting('auth.passwordHash');
+  if (!passwordHash || !(await bcrypt.compare(password, passwordHash))) {
+    res.status(401).json({ error: 'Incorrect password' });
+    return;
+  }
+
   const settings = loadSettings();
   res.json({ registrationSecret: settings.runner.registrationSecret });
 });

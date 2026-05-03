@@ -11,6 +11,7 @@ export interface SessionTurnParams {
   harnessConfig?: string;
   history: SessionMessageHistory[];
   prompt: string;
+  workspaceRoots: string[];
 }
 
 /**
@@ -50,14 +51,19 @@ export function executeSessionTurn(
   onOutput: (chunk: string) => void,
 ): SessionExecution {
   const fullPrompt = composeSessionPrompt(params.history, params.prompt);
-  const { cmd, args, cwd } = buildCommandWithConfig(params.aiProvider, fullPrompt, params.harnessConfig);
+  const { cmd, args, cwd } = buildCommandWithConfig(
+    params.aiProvider,
+    fullPrompt,
+    params.harnessConfig,
+    params.workspaceRoots,
+  );
 
   let child: ChildProcess;
   let buffer = '';
   let flushTimer: ReturnType<typeof setInterval>;
 
   const promise = new Promise<{ success: boolean }>((resolve) => {
-    console.log(`  [session] Spawning: ${cmd} ${args.slice(0, 6).join(' ')} …`);
+    console.log(`  [session] Spawning: ${cmd} (${args.length} args)`);
 
     child = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
