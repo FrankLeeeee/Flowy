@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Task, List, Runner, Label } from '../../types';
 import {
   fetchTasks, fetchLists, fetchRunners, fetchLabels,
-  createTask, assignTask, deleteTask, getTask,
+  createTask, deleteTask, getTask,
 } from '../../api/client';
 import MobileTaskList from '@/components/mobile/MobileTaskList';
 import MobileFilterSheet from '@/components/mobile/MobileFilterSheet';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
-import AssignTaskModal from '@/components/tasks/AssignTaskModal';
 import TaskDetailModal from '@/components/tasks/TaskDetailModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
@@ -33,7 +33,7 @@ export default function MobileInbox() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
-  const [assigningTask, setAssigningTask] = useState<Task | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 
   const hasActiveFilters = priorityFilter !== '_all' || runnerFilter !== '_all' || search !== '' || dateFilter.mode !== 'today';
 
@@ -60,13 +60,13 @@ export default function MobileInbox() {
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => {
     await createTask(data); setShowCreate(false); loadData();
   };
-  const handleAssign = async (data: Parameters<typeof assignTask>[1]) => {
-    if (!assigningTask) return;
-    await assignTask(assigningTask.id, data); setAssigningTask(null); setDetailTask(null); loadData();
-  };
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this task?')) return;
-    await deleteTask(id); setDetailTask(null); loadData();
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    await deleteTask(id);
+    setDetailTask(null);
+    loadData();
   };
   const handleTaskUpdate = (updated: Task) => {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated);
@@ -148,27 +148,25 @@ export default function MobileInbox() {
       />
 
       {/* Modals */}
-      <CreateTaskModal open={showCreate} lists={lists} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal open={showCreate} lists={lists} runners={runners} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && (
         <TaskDetailModal
           open={!!detailTask}
           task={detailTask}
-          runner={runners.find((r) => r.id === detailTask.runner_id)}
+          runners={runners}
           onUpdate={handleTaskUpdate}
-          onAssign={() => setAssigningTask(detailTask)}
-          onDelete={() => handleDelete(detailTask.id)}
+          onDelete={() => setDeleteTarget(detailTask)}
           onClose={() => setDetailTask(null)}
         />
       )}
-      {assigningTask && (
-        <AssignTaskModal
-          open={!!assigningTask}
-          task={assigningTask}
-          runners={runners}
-          onSubmit={handleAssign}
-          onClose={() => setAssigningTask(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete task"
+        description={deleteTarget ? `Delete "${deleteTarget.title}"? Its execution history and output will be removed.` : ''}
+        confirmLabel="Delete task"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
