@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Task, TaskStatus } from '@/types';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { STATUS_CONFIG } from '@/lib/taskConstants';
-import { getTaskStatusStyles } from '@/lib/semanticColors';
+import { STATUS_CONFIG, PRIORITY_ICON } from '@/lib/taskConstants';
+import { getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 
 function TodoRow({
   task,
@@ -18,6 +18,8 @@ function TodoRow({
 }) {
   const showStatus = task.status === 'in_progress' || task.status === 'failed';
   const statusStyles = getTaskStatusStyles(task.status);
+  const showPriority = !checked && (task.priority === 'urgent' || task.priority === 'high');
+  const priorityStyles = getTaskPriorityStyles(task.priority);
   const [optimistic, setOptimistic] = useState(false);
 
   const handleCheck = (e: React.MouseEvent) => {
@@ -31,7 +33,12 @@ function TodoRow({
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-2.5 transition-colors duration-100 hover:bg-foreground/[0.03] group cursor-pointer"
+      className={cn(
+        'flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all duration-150 group cursor-pointer',
+        isChecked
+          ? 'border-border/25 bg-card/40 hover:bg-card/60'
+          : 'border-border/45 bg-card shadow-soft hover:border-border/75 hover:shadow-elevated motion-safe:hover:-translate-y-px',
+      )}
       onClick={onRowClick}
     >
       <button
@@ -40,19 +47,25 @@ function TodoRow({
         disabled={isChecked}
         aria-label={isChecked ? 'Completed' : 'Mark as complete'}
         className={cn(
-          'shrink-0 h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-all duration-150',
+          'shrink-0 h-[18px] w-[18px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-150',
           isChecked
-            ? 'border-emerald-500/70 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-            : 'border-border/60 hover:border-primary/50 hover:bg-primary/[0.06] cursor-pointer',
+            ? 'border-emerald-500/60 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400'
+            : 'border-foreground/20 hover:border-primary/50 hover:bg-primary/[0.06] cursor-pointer',
         )}
       >
         {isChecked && <Check className="h-2.5 w-2.5 stroke-[2.5]" />}
       </button>
 
+      {showPriority && (
+        <span className={cn('shrink-0 [&>svg]:h-3 [&>svg]:w-3', priorityStyles.icon)}>
+          {PRIORITY_ICON[task.priority]}
+        </span>
+      )}
+
       <span
         className={cn(
-          'flex-1 min-w-0 text-[13px] font-medium leading-snug',
-          isChecked ? 'line-through text-muted-foreground/50' : 'text-foreground',
+          'flex-1 min-w-0 text-[13px] font-medium leading-snug truncate',
+          isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
         )}
       >
         {task.title}
@@ -70,7 +83,7 @@ function TodoRow({
         </span>
       )}
 
-      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors">
+      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
         {task.task_key}
       </span>
     </div>
@@ -90,32 +103,35 @@ export default function TaskTodoView({ tasks, onTaskClick, onStatusChange }: Tas
   const completed = tasks.filter((t) => t.status === 'done');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <section>
-        <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">
-          Uncompleted
-          <span className="ml-2 rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/80">
+        <div className="mb-1.5 flex items-center justify-between px-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/60">
+            Open
+          </h2>
+          <span className="text-[11px] tabular-nums font-medium text-muted-foreground/45">
             {uncompleted.length}
           </span>
-        </h2>
-        <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-          {uncompleted.length === 0 ? (
-            <div className="px-3 py-8 text-center text-[13px] text-muted-foreground/60">
-              All tasks completed
-            </div>
-          ) : (
-            <div className="divide-y divide-border/40">
-              {uncompleted.map((task) => (
-                <TodoRow
-                  key={task.id}
-                  task={task}
-                  onCheck={() => onStatusChange(task.id, 'done')}
-                  onRowClick={() => onTaskClick(task)}
-                />
-              ))}
-            </div>
-          )}
         </div>
+        {uncompleted.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/45 px-3 py-10 gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/8">
+              <Circle className="h-4 w-4 text-emerald-500/50" />
+            </div>
+            <p className="text-[13px] text-muted-foreground/50">No open tasks</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {uncompleted.map((task) => (
+              <TodoRow
+                key={task.id}
+                task={task}
+                onCheck={() => onStatusChange(task.id, 'done')}
+                onRowClick={() => onTaskClick(task)}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {completed.length > 0 && (
@@ -123,16 +139,18 @@ export default function TaskTodoView({ tasks, onTaskClick, onStatusChange }: Tas
           <button
             type="button"
             onClick={() => setCompletedOpen((v) => !v)}
-            className="interactive-lift mb-2 flex w-full items-center gap-2 px-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70 hover:text-foreground transition-colors"
+            className="mb-1.5 flex w-full items-center justify-between px-3 transition-colors duration-100 hover:text-muted-foreground"
           >
-            <ChevronDown
-              className={cn(
-                'h-3.5 w-3.5 transition-transform duration-200 ease-[var(--ease-out-quart)]',
-                completedOpen ? 'rotate-0' : '-rotate-90',
-              )}
-            />
-            Completed
-            <span className="rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/80">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/50">
+              <ChevronDown
+                className={cn(
+                  'h-3 w-3 transition-transform duration-200 ease-[var(--ease-out-quart)]',
+                  completedOpen ? 'rotate-0' : '-rotate-90',
+                )}
+              />
+              Completed
+            </span>
+            <span className="text-[11px] tabular-nums font-medium text-muted-foreground/35">
               {completed.length}
             </span>
           </button>
@@ -144,17 +162,15 @@ export default function TaskTodoView({ tasks, onTaskClick, onStatusChange }: Tas
             )}
           >
             <div className="min-h-0 overflow-hidden">
-              <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
-                <div className="divide-y divide-border/30">
-                  {completed.map((task) => (
-                    <TodoRow
-                      key={task.id}
-                      task={task}
-                      checked
-                      onRowClick={() => onTaskClick(task)}
-                    />
-                  ))}
-                </div>
+              <div className="space-y-1">
+                {completed.map((task) => (
+                  <TodoRow
+                    key={task.id}
+                    task={task}
+                    checked
+                    onRowClick={() => onTaskClick(task)}
+                  />
+                ))}
               </div>
             </div>
           </div>
