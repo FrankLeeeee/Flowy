@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -7,6 +8,8 @@ import {
 } from "react-router-dom";
 import { useIsMobile } from "./hooks/useIsMobile";
 import Sidebar from "./components/Sidebar";
+import CommandPalette from "./components/CommandPalette";
+import CreateTaskModal from "./components/tasks/CreateTaskModal";
 import MobileShell from "./components/mobile/MobileShell";
 import Inbox from "./pages/Inbox";
 import ListDetail from "./pages/ListDetail";
@@ -26,9 +29,30 @@ import MobileStats from "./pages/mobile/MobileStats";
 import MobileSettings from "./pages/mobile/MobileSettings";
 import TodoView from "./pages/TodoView";
 import ScheduledTasksView from "./pages/ScheduledTasksView";
+import { fetchLists, createTask } from "./api/client";
+import { List, TaskPriority } from "./types";
 
 function DesktopShell() {
   const location = useLocation();
+  const [showGlobalCreate, setShowGlobalCreate] = useState(false);
+  const [globalLists, setGlobalLists] = useState<List[]>([]);
+
+  useEffect(() => {
+    const handler = () => {
+      fetchLists().then(setGlobalLists).catch(() => {});
+      setShowGlobalCreate(true);
+    };
+    window.addEventListener('flowy:create-task', handler);
+    return () => window.removeEventListener('flowy:create-task', handler);
+  }, []);
+
+  const handleGlobalCreateTask = useCallback(
+    async (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledAt?: string | null }) => {
+      await createTask({ listId: data.listId, title: data.title, description: data.description, priority: data.priority, labels: data.labels, scheduledAt: data.scheduledAt });
+      setShowGlobalCreate(false);
+    },
+    [],
+  );
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -60,6 +84,13 @@ function DesktopShell() {
           </Routes>
         </div>
       </main>
+      <CommandPalette />
+      <CreateTaskModal
+        open={showGlobalCreate}
+        lists={globalLists}
+        onSubmit={handleGlobalCreateTask}
+        onClose={() => setShowGlobalCreate(false)}
+      />
     </div>
   );
 }
