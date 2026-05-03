@@ -178,13 +178,6 @@ export default function CreateTaskModal({
                 <div className="flex flex-wrap items-center gap-2">
                   <Select value={listSelection} onValueChange={setListSelection}>
                     <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                      {selectedList?.icon ? (
-                        <span className="text-[12px] leading-none">{selectedList.icon}</span>
-                      ) : selectedList ? (
-                        <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-                      ) : (
-                        <Inbox className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
                       <SelectValue placeholder="List" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
