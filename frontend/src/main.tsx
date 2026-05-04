@@ -5,29 +5,39 @@ import { ThemeProvider } from './lib/theme';
 import { startSyncListener } from './lib/syncQueue';
 import './index.css';
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  // Register immediately (not on load) for faster SW activation on first visit
-  navigator.serviceWorker.register('/sw.js').then((reg) => {
-    // Auto-update: when a new SW is waiting, tell it to activate
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      if (newWorker) {
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            newWorker.postMessage({ type: 'SKIP_WAITING' });
-          }
+// Register the service worker in both dev and prod so PWA features (offline
+// shell, background sync, push) can be exercised locally. The SW only caches
+// hashed bundles and static assets, so it won't interfere with Vite HMR.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        console.info('[sw] registered, scope:', reg.scope);
+
+        // Auto-update: skip waiting when a new SW is installed
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
         });
+      })
+      .catch((err) => {
+        console.warn('[sw] registration failed:', err);
+      });
+
+    // Reload once when a new SW takes control to pick up fresh assets
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
       }
     });
-  });
-
-  // Reload when a new SW takes over to get fresh assets
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
   });
 }
 

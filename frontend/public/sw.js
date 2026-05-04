@@ -38,19 +38,37 @@ function isCacheableApiRequest(url) {
 
 // ── Install: precache app shell ──────────────────────────────────────────────
 
+const PRECACHE_URLS = [
+  '/',
+  '/today', // start_url — ensures the PWA's launch URL is always cached
+  '/manifest.webmanifest',
+  '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-192-maskable.png',
+  '/icon-512-maskable.png',
+  '/apple-touch-icon.png',
+];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_SHELL).then((cache) =>
-      cache.addAll([
-        '/',
-        '/manifest.webmanifest',
-        '/favicon.ico',
-        '/icon-192.png',
-        '/icon-512.png',
-        '/icon-192-maskable.png',
-        '/icon-512-maskable.png',
-      ])
-    ).then(() => self.skipWaiting())
+    (async () => {
+      const cache = await caches.open(CACHE_SHELL);
+      // Per-URL precache so a single 404 doesn't fail the whole install
+      await Promise.allSettled(
+        PRECACHE_URLS.map(async (url) => {
+          try {
+            const res = await fetch(url, { cache: 'reload' });
+            if (res.ok || res.type === 'opaque') {
+              await cache.put(url, res);
+            }
+          } catch (err) {
+            console.warn('[sw] precache failed for', url, err);
+          }
+        }),
+      );
+      await self.skipWaiting();
+    })(),
   );
 });
 
@@ -120,26 +138,7 @@ self.addEventListener('fetch', (event) => {
 
   // Navigation requests: cache-first for instant loading (app shell)
   if (request.mode === 'navigate') {
-    event.respondWith(
-      caches.match('/').then((cached) => {
-        // Serve cached shell immediately for instant paint
-        const networkFetch = fetch(request)
-          .then((res) => {
-            const clone = res.clone();
-            caches.open(CACHE_SHELL).then((c) => c.put('/', clone));
-            return res;
-          })
-          .catch(() => null);
-
-        if (cached) {
-          // Update cache in background, serve cached immediately
-          networkFetch;
-          return cached;
-        }
-        // No cache yet, wait for network
-        return networkFetch.then((res) => res || new Response('Offline', { status: 503 }));
-      })
-    );
+    event.respondWith(handleNavigation(request));
     return;
   }
 
@@ -174,6 +173,46 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+async function handleNavigation(request) {
+  const cache = await caches.open(CACHE_SHELL);
+
+  // Try cache first for instant paint; fall back through shell entries
+  const cached =
+    (await cache.match(request, { ignoreSearch: true })) ||
+    (await cache.match('/today')) ||
+    (await cache.match('/'));
+
+  if (cached) {
+    // Stale-while-revalidate: refresh cache in the background
+    fetch(request)
+      .then((res) => {
+        if (res && res.ok) {
+          cache.put(request, res.clone());
+          cache.put('/', res.clone());
+        }
+      })
+      .catch(() => {});
+    return cached;
+  }
+
+  // No cached shell yet — try the network
+  try {
+    const res = await fetch(request);
+    if (res.ok) {
+      cache.put('/', res.clone());
+      cache.put(request, res.clone());
+    }
+    return res;
+  } catch {
+    return new Response(
+      `<!doctype html><meta charset="utf-8"><title>Offline · Flowy</title>
+      <style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f7f8fc;color:#1a1a1a}main{text-align:center;max-width:340px;padding:24px}h1{margin:0 0 8px;font-size:18px}p{margin:0;color:#666;font-size:14px}</style>
+      <main><h1>Flowy is offline</h1><p>The app shell hasn't been cached yet. Reconnect once and reopen.</p></main>`,
+      { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+    );
+  }
+}
 
 // ── Background Sync: replay queued mutations ─────────────────────────────────
 
