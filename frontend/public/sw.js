@@ -1,4 +1,4 @@
-const CACHE_SHELL = 'flowy-shell-v3';
+const CACHE_SHELL = 'flowy-shell-v4';
 const CACHE_API = 'flowy-api-v1';
 const SYNC_TAG = 'flowy-offline-sync';
 
@@ -176,37 +176,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Hashed JS/CSS bundles: cache-first (immutable by hash)
-  if (/\.[a-f0-9]{8,}\.(js|css)$/.test(url.pathname)) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_SHELL).then((c) => c.put(request, clone));
-          return res;
-        });
-      })
-    );
-    return;
-  }
-
-  // Static assets (fonts, images): cache-first
-  if (/\.(woff2?|png|svg|ico|webp|jpg|jpeg)$/.test(url.pathname)) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((res) => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_SHELL).then((c) => c.put(request, clone));
-          }
-          return res;
-        });
-      })
-    );
-  }
+  // Everything else (JS, CSS, manifest, fonts, images, ...): cache-first
+  // with auto-cache on network success. A single generic rule avoids the
+  // trap where a request that matches no narrow URL pattern silently falls
+  // through to the network and fails offline.
+  event.respondWith(cacheFirst(request));
 });
+
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE_SHELL);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  try {
+    const res = await fetch(request);
+    if (res.ok && res.type !== 'opaque') {
+      cache.put(request, res.clone());
+    }
+    return res;
+  } catch (err) {
+    // No cache and no network — return a 504 the caller can detect
+    return new Response('', { status: 504, statusText: 'Offline' });
+  }
+}
 
 async function handleNavigation(request) {
   const cache = await caches.open(CACHE_SHELL);
