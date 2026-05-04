@@ -1,4 +1,4 @@
-const CACHE_SHELL = 'flowy-shell-v2';
+const CACHE_SHELL = 'flowy-shell-v3';
 const CACHE_API = 'flowy-api-v1';
 const SYNC_TAG = 'flowy-offline-sync';
 
@@ -54,23 +54,57 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_SHELL);
+
       // Per-URL precache so a single 404 doesn't fail the whole install
       await Promise.allSettled(
-        PRECACHE_URLS.map(async (url) => {
-          try {
-            const res = await fetch(url, { cache: 'reload' });
-            if (res.ok || res.type === 'opaque') {
-              await cache.put(url, res);
-            }
-          } catch (err) {
-            console.warn('[sw] precache failed for', url, err);
-          }
-        }),
+        PRECACHE_URLS.map((url) => cachePut(cache, url)),
       );
+
+      // Fetch the app shell HTML and cache every JS/CSS/asset it references.
+      // Without this step, the SW only has the HTML — so when it serves the
+      // cached shell offline, the hashed bundle requests fail and the page
+      // renders blank.
+      const indexAssets = await extractShellAssets('/');
+      await Promise.allSettled(
+        indexAssets.map((url) => cachePut(cache, url)),
+      );
+
       await self.skipWaiting();
     })(),
   );
 });
+
+async function cachePut(cache, url) {
+  try {
+    const res = await fetch(url, { cache: 'reload' });
+    if (res.ok || res.type === 'opaque') {
+      await cache.put(url, res);
+    }
+  } catch (err) {
+    console.warn('[sw] precache failed for', url, err);
+  }
+}
+
+async function extractShellAssets(htmlUrl) {
+  try {
+    const res = await fetch(htmlUrl, { cache: 'reload' });
+    if (!res.ok) return [];
+    const html = await res.text();
+    const urls = new Set();
+    // <script src="...">
+    for (const m of html.matchAll(/<script[^>]+src=["']([^"']+)["']/g)) {
+      urls.add(m[1]);
+    }
+    // <link href="..." rel="stylesheet|modulepreload|preload|icon">
+    for (const m of html.matchAll(/<link[^>]+href=["']([^"']+)["']/g)) {
+      urls.add(m[1]);
+    }
+    // Same-origin only
+    return [...urls].filter((u) => u.startsWith('/'));
+  } catch {
+    return [];
+  }
+}
 
 // ── Activate: clean old caches, claim clients ────────────────────────────────
 
