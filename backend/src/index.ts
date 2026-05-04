@@ -102,8 +102,23 @@ app.use('/api/runners',  runnersRouter);
 // In production, serve the bundled frontend
 if (process.env.NODE_ENV === 'production') {
   const dist = path.join(__dirname, 'public');
-  app.use(express.static(dist));
-  app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+
+  // The service worker file must never be HTTP-cached, otherwise browsers
+  // can serve a stale SW after a redeploy and updates appear lost. Hashed
+  // bundles in /assets are content-addressed so they're safe to cache long.
+  app.use(express.static(dist, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (filePath.endsWith('.html') || filePath.endsWith('manifest.webmanifest')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }));
+  app.get('*', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(dist, 'index.html'));
+  });
 }
 
 app.listen(PORT, () => {
