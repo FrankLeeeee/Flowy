@@ -11,10 +11,12 @@ import labelsRouter    from './routes/labels';
 import skillsRouter    from './routes/skills';
 import statsRouter     from './routes/stats';
 import sessionsRouter  from './routes/sessions';
+import pushRouter      from './routes/push';
 import { initDb }      from './db';
 import { DATA_DIR }    from './dataDir';
 import { loadSettings } from './storage';
 import { requireUserAuth } from './middleware/userAuth';
+import { initPush }    from './pushService';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -79,6 +81,7 @@ app.use(cookieParser());
 
 initDb();
 loadSettings();
+initPush();
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth',     authRouter);
@@ -91,6 +94,7 @@ app.use('/api/labels',   requireUserAuth, labelsRouter);
 app.use('/api/skills',   requireUserAuth, skillsRouter);
 app.use('/api/stats',    requireUserAuth, statsRouter);
 app.use('/api/sessions', requireUserAuth, sessionsRouter);
+app.use('/api/push',     requireUserAuth, pushRouter);
 
 // Runners router manages its own auth internally (runner Bearer + user session per endpoint)
 app.use('/api/runners',  runnersRouter);
@@ -98,8 +102,23 @@ app.use('/api/runners',  runnersRouter);
 // In production, serve the bundled frontend
 if (process.env.NODE_ENV === 'production') {
   const dist = path.join(__dirname, 'public');
-  app.use(express.static(dist));
-  app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+
+  // The service worker file must never be HTTP-cached, otherwise browsers
+  // can serve a stale SW after a redeploy and updates appear lost. Hashed
+  // bundles in /assets are content-addressed so they're safe to cache long.
+  app.use(express.static(dist, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (filePath.endsWith('.html') || filePath.endsWith('manifest.webmanifest')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }));
+  app.get('*', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(dist, 'index.html'));
+  });
 }
 
 app.listen(PORT, () => {

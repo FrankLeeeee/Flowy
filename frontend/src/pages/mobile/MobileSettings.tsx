@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ChangePasswordDialog from "@/components/ChangePasswordDialog";
+import NotificationToggle from "@/components/NotificationToggle";
 
 const SETTINGS_ITEMS = [
   {
@@ -78,6 +79,11 @@ export default function MobileSettings() {
             <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
           </button>
         ))}
+
+        {/* Notifications */}
+        <div className="px-4 py-3">
+          <NotificationToggle />
+        </div>
 
         {/* Change password */}
         <button
