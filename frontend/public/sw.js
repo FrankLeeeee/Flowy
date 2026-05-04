@@ -91,22 +91,25 @@ async function cachePut(cache, url) {
   }
 }
 
+function parseShellAssetUrls(html) {
+  const urls = new Set();
+  // <script src="...">
+  for (const m of html.matchAll(/<script[^>]+src=["']([^"']+)["']/g)) {
+    urls.add(m[1]);
+  }
+  // <link href="...">
+  for (const m of html.matchAll(/<link[^>]+href=["']([^"']+)["']/g)) {
+    urls.add(m[1]);
+  }
+  // Same-origin only
+  return [...urls].filter((u) => u.startsWith('/'));
+}
+
 async function extractShellAssets(htmlUrl) {
   try {
     const res = await fetch(htmlUrl, { cache: 'reload' });
     if (!res.ok) return [];
-    const html = await res.text();
-    const urls = new Set();
-    // <script src="...">
-    for (const m of html.matchAll(/<script[^>]+src=["']([^"']+)["']/g)) {
-      urls.add(m[1]);
-    }
-    // <link href="..." rel="stylesheet|modulepreload|preload|icon">
-    for (const m of html.matchAll(/<link[^>]+href=["']([^"']+)["']/g)) {
-      urls.add(m[1]);
-    }
-    // Same-origin only
-    return [...urls].filter((u) => u.startsWith('/'));
+    return parseShellAssetUrls(await res.text());
   } catch {
     return [];
   }
@@ -219,13 +222,18 @@ async function handleNavigation(request) {
     (await cache.match('/'));
 
   if (cached) {
-    // Stale-while-revalidate: refresh cache in the background
+    // Stale-while-revalidate: refresh the shell AND any new bundles it
+    // references. Without the asset re-precache, a redeploy would update
+    // the cached HTML but leave its new bundle hashes unfetched, so the
+    // next offline open would render a blank page until two online loads.
     fetch(request)
-      .then((res) => {
-        if (res && res.ok) {
-          cache.put(request, res.clone());
-          cache.put('/', res.clone());
-        }
+      .then(async (res) => {
+        if (!res || !res.ok) return;
+        await cache.put(request, res.clone());
+        await cache.put('/', res.clone());
+        const html = await res.clone().text();
+        const assets = parseShellAssetUrls(html);
+        await Promise.allSettled(assets.map((u) => cachePut(cache, u)));
       })
       .catch(() => {});
     return cached;
