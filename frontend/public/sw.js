@@ -252,10 +252,10 @@ self.addEventListener('sync', (event) => {
 
 async function replayOfflineQueue() {
   const db = await openSyncDb();
-  const tx = db.transaction('queue', 'readwrite');
-  const store = tx.objectStore('queue');
-  const items = await idbGetAll(store);
+  const items = await readQueueItemsSorted(db);
+  if (items.length === 0) return;
 
+  let processed = 0;
   for (const item of items) {
     try {
       const init = {
@@ -266,19 +266,42 @@ async function replayOfflineQueue() {
       if (item.body) init.body = item.body;
 
       const res = await fetch(item.url, init);
-      if (res.ok || res.status === 409 || res.status === 404) {
-        // Success or conflict/not-found — remove from queue
-        const delTx = db.transaction('queue', 'readwrite');
-        delTx.objectStore('queue').delete(item.id);
-        await idbTxDone(delTx);
-      } else if (res.status >= 500) {
-        // Server error, retry later
+      if (res.status >= 500) {
+        // Transient server error — leave the item in the queue and stop.
         break;
       }
+      // Anything else (2xx success, 4xx including 404/409 from a duplicate
+      // replay) is terminal — drop the item so we don't retry forever.
+      await deleteQueueItem(db, item.id);
+      processed += 1;
     } catch {
-      // Network still down, stop replaying
+      // Still offline; stop and try again next time.
       break;
     }
+  }
+
+  if (processed > 0) {
+    await notifyClientsSyncComplete(processed);
+  }
+}
+
+async function readQueueItemsSorted(db) {
+  const tx = db.transaction('queue', 'readonly');
+  const items = await idbGetAll(tx.objectStore('queue'));
+  // Replay in the order the user made the changes.
+  return items.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+}
+
+async function deleteQueueItem(db, id) {
+  const tx = db.transaction('queue', 'readwrite');
+  tx.objectStore('queue').delete(id);
+  await idbTxDone(tx);
+}
+
+async function notifyClientsSyncComplete(count) {
+  const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const client of clients) {
+    client.postMessage({ type: 'SYNC_COMPLETE', count });
   }
 }
 
@@ -339,7 +362,26 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+  if (event.data && event.data.type === 'PENDING_COUNT') {
+    event.waitUntil(replyPendingCount(event));
+  }
+  if (event.data && event.data.type === 'TRIGGER_SYNC') {
+    event.waitUntil(replayOfflineQueue());
+  }
 });
+
+async function replyPendingCount(event) {
+  const db = await openSyncDb();
+  const tx = db.transaction('queue', 'readonly');
+  const count = await new Promise((resolve, reject) => {
+    const req = tx.objectStore('queue').count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  if (event.source && 'postMessage' in event.source) {
+    event.source.postMessage({ type: 'PENDING_COUNT_RESULT', count });
+  }
+}
 
 async function queueMutation(payload) {
   const db = await openSyncDb();

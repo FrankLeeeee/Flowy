@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ThemeProvider } from './lib/theme';
 import { startSyncListener } from './lib/syncQueue';
+import { SYNC_REFRESH_EVENT } from './hooks/useSyncStatus';
 import './index.css';
 
 // Register the service worker in both dev and prod so PWA features (offline
@@ -36,6 +37,14 @@ if ('serviceWorker' in navigator) {
       if (!refreshing) {
         refreshing = true;
         window.location.reload();
+      }
+    });
+
+    // When the SW finishes replaying queued offline mutations, ask any
+    // listening components to refetch so temp IDs get replaced by real ones.
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'SYNC_COMPLETE') {
+        window.dispatchEvent(new CustomEvent(SYNC_REFRESH_EVENT, { detail: event.data }));
       }
     });
   });

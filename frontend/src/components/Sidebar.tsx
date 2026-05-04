@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationToggle from './NotificationToggle';
+import { useReconnectRefresh } from '@/hooks/useSyncStatus';
 
 export default function Sidebar() {
   const { theme, setTheme } = useTheme();
@@ -51,6 +52,8 @@ export default function Sidebar() {
     const iv = setInterval(loadLists, 10_000);
     return () => clearInterval(iv);
   }, []);
+
+  useReconnectRefresh(loadLists);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
