@@ -1,4 +1,6 @@
-const CACHE_SHELL = 'flowy-shell-v4';
+const CACHE_SHELL = 'flowy-shell-v5';
+const SW_VERSION = 'v5';
+console.info('[sw]', SW_VERSION, 'script loaded');
 const CACHE_API = 'flowy-api-v1';
 const SYNC_TAG = 'flowy-offline-sync';
 
@@ -51,6 +53,7 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', (event) => {
+  console.info('[sw]', SW_VERSION, 'install start');
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_SHELL);
@@ -65,10 +68,13 @@ self.addEventListener('install', (event) => {
       // cached shell offline, the hashed bundle requests fail and the page
       // renders blank.
       const indexAssets = await extractShellAssets('/');
+      console.info('[sw] precaching shell assets:', indexAssets);
       await Promise.allSettled(
         indexAssets.map((url) => cachePut(cache, url)),
       );
 
+      const keys = await cache.keys();
+      console.info('[sw] install done, cache contains', keys.length, 'entries');
       await self.skipWaiting();
     })(),
   );
@@ -109,11 +115,15 @@ async function extractShellAssets(htmlUrl) {
 // ── Activate: clean old caches, claim clients ────────────────────────────────
 
 self.addEventListener('activate', (event) => {
+  console.info('[sw]', SW_VERSION, 'activate');
   const validCaches = [CACHE_SHELL, CACHE_API];
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((k) => !validCaches.includes(k)).map((k) => caches.delete(k))
+        keys.filter((k) => !validCaches.includes(k)).map((k) => {
+          console.info('[sw] deleting old cache', k);
+          return caches.delete(k);
+        })
       ))
       .then(() => self.clients.claim())
   );
