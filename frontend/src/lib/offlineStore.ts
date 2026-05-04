@@ -49,16 +49,6 @@ export async function setCached(key: string, data: unknown): Promise<void> {
   });
 }
 
-export async function removeCached(key: string): Promise<void> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
 export async function clearCacheByPrefix(prefix: string): Promise<void> {
   const db = await openDb();
   return new Promise((resolve, reject) => {

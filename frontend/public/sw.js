@@ -1,14 +1,6 @@
 const CACHE_SHELL = 'flowy-shell-v5';
-const SW_VERSION = 'v5';
-console.info('[sw]', SW_VERSION, 'script loaded');
 const CACHE_API = 'flowy-api-v1';
 const SYNC_TAG = 'flowy-offline-sync';
-
-// Runner-related API paths that require network (no offline support)
-const RUNNER_PATHS = [
-  '/api/runners',
-  '/api/tasks/', // only for /assign, /run, /logs subpaths — handled below
-];
 
 function isRunnerOnlyRequest(url) {
   const path = url.pathname;
@@ -53,7 +45,6 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.info('[sw]', SW_VERSION, 'install start');
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_SHELL);
@@ -68,13 +59,10 @@ self.addEventListener('install', (event) => {
       // cached shell offline, the hashed bundle requests fail and the page
       // renders blank.
       const indexAssets = await extractShellAssets('/');
-      console.info('[sw] precaching shell assets:', indexAssets);
       await Promise.allSettled(
         indexAssets.map((url) => cachePut(cache, url)),
       );
 
-      const keys = await cache.keys();
-      console.info('[sw] install done, cache contains', keys.length, 'entries');
       await self.skipWaiting();
     })(),
   );
@@ -101,8 +89,9 @@ function parseShellAssetUrls(html) {
   for (const m of html.matchAll(/<link[^>]+href=["']([^"']+)["']/g)) {
     urls.add(m[1]);
   }
-  // Same-origin only
-  return [...urls].filter((u) => u.startsWith('/'));
+  // Same-origin only: must start with a single "/", never "//" which is a
+  // protocol-relative cross-origin URL.
+  return [...urls].filter((u) => u.startsWith('/') && !u.startsWith('//'));
 }
 
 async function extractShellAssets(htmlUrl) {
@@ -118,17 +107,13 @@ async function extractShellAssets(htmlUrl) {
 // ── Activate: clean old caches, claim clients ────────────────────────────────
 
 self.addEventListener('activate', (event) => {
-  console.info('[sw]', SW_VERSION, 'activate');
   const validCaches = [CACHE_SHELL, CACHE_API];
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((k) => !validCaches.includes(k)).map((k) => {
-          console.info('[sw] deleting old cache', k);
-          return caches.delete(k);
-        })
+        keys.filter((k) => !validCaches.includes(k)).map((k) => caches.delete(k)),
       ))
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 

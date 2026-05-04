@@ -1,6 +1,5 @@
 import webpush from 'web-push';
-import { getDb } from './db';
-import { getDbSetting, setDbSetting } from './db';
+import { getDb, getDbSetting, setDbSetting } from './db';
 
 interface PushSubscriptionRow {
   endpoint: string;

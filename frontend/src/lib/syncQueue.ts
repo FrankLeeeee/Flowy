@@ -58,17 +58,7 @@ function openSyncDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function getPendingCount(): Promise<number> {
-  const db = await openSyncDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('queue', 'readonly');
-    const req = tx.objectStore('queue').count();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export function triggerSync(): void {
+function triggerSync(): void {
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
     navigator.serviceWorker.ready.then((reg) => {
       if ('sync' in reg) {
@@ -82,15 +72,6 @@ let onlineHandler: (() => void) | null = null;
 
 export function startSyncListener(): void {
   if (onlineHandler) return;
-  onlineHandler = () => {
-    triggerSync();
-  };
+  onlineHandler = triggerSync;
   window.addEventListener('online', onlineHandler);
-}
-
-export function stopSyncListener(): void {
-  if (onlineHandler) {
-    window.removeEventListener('online', onlineHandler);
-    onlineHandler = null;
-  }
 }
