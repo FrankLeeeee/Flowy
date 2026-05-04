@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Inbox, FolderKanban, CalendarDays, MessagesSquare, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import OfflineBanner from "@/components/OfflineBanner";
 
 const TABS = [
   { to: "/today", icon: CalendarDays, label: "Today" },
@@ -27,6 +28,7 @@ export default function MobileShell({
 
   return (
     <div className="flex min-w-0 h-screen flex-col bg-background">
+      <OfflineBanner />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(3.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] [contain:content]">
         {children}
       </main>

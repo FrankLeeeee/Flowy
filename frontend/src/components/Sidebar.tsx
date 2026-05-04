@@ -22,6 +22,7 @@ import {
   CalendarDays, CalendarRange, Layers,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import NotificationToggle from './NotificationToggle';
 
 export default function Sidebar() {
   const { theme, setTheme } = useTheme();
@@ -274,8 +275,11 @@ export default function Sidebar() {
           </nav>
         </ScrollArea>
 
-        {/* Bottom bar: theme toggle + logout */}
+        {/* Bottom bar: notifications + theme toggle + logout */}
         <div className="shrink-0 border-t border-border/60 px-3 py-3">
+          <div className="mb-2">
+            <NotificationToggle />
+          </div>
           <div className="mb-2 flex items-center gap-1">
             <div className="flex flex-1 items-center rounded-lg border border-border/60 bg-background/80 p-0.5">
               {([

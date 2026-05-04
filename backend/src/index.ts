@@ -11,10 +11,12 @@ import labelsRouter    from './routes/labels';
 import skillsRouter    from './routes/skills';
 import statsRouter     from './routes/stats';
 import sessionsRouter  from './routes/sessions';
+import pushRouter      from './routes/push';
 import { initDb }      from './db';
 import { DATA_DIR }    from './dataDir';
 import { loadSettings } from './storage';
 import { requireUserAuth } from './middleware/userAuth';
+import { initPush }    from './pushService';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -79,6 +81,7 @@ app.use(cookieParser());
 
 initDb();
 loadSettings();
+initPush();
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth',     authRouter);
@@ -91,6 +94,7 @@ app.use('/api/labels',   requireUserAuth, labelsRouter);
 app.use('/api/skills',   requireUserAuth, skillsRouter);
 app.use('/api/stats',    requireUserAuth, statsRouter);
 app.use('/api/sessions', requireUserAuth, sessionsRouter);
+app.use('/api/push',     requireUserAuth, pushRouter);
 
 // Runners router manages its own auth internally (runner Bearer + user session per endpoint)
 app.use('/api/runners',  runnersRouter);

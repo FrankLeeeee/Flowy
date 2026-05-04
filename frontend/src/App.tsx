@@ -33,6 +33,7 @@ import TodoView from "./pages/TodoView";
 import ScheduledTasksView from "./pages/ScheduledTasksView";
 import { fetchLists, createTask } from "./api/client";
 import { List, TaskPriority } from "./types";
+import OfflineBanner from "./components/OfflineBanner";
 
 function DesktopShell() {
   const location = useLocation();
@@ -57,7 +58,9 @@ function DesktopShell() {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
+      <OfflineBanner />
+      <div className="flex min-w-0 flex-1">
       <Sidebar />
       <main className="min-w-0 flex-1 overflow-auto">
         <div key={location.pathname} className="motion-page min-h-screen">
@@ -93,6 +96,7 @@ function DesktopShell() {
         onSubmit={handleGlobalCreateTask}
         onClose={() => setShowGlobalCreate(false)}
       />
+      </div>
     </div>
   );
 }

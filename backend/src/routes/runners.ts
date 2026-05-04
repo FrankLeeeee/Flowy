@@ -10,6 +10,7 @@ import { loadSettings } from '../storage';
 import { drainSkillCommandsFor } from '../skillQueue';
 import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSkillEntry } from '../skillInventory';
 import { drainSessionCommands } from './sessionCommandQueue';
+import { sendPushToAll } from '../pushService';
 
 const router = Router();
 
@@ -410,6 +411,15 @@ router.post('/tasks/:taskId/complete', authenticateRunner, (req: Request, res: R
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(task.id) as Task;
   res.json(updated);
+
+  // Send push notification to all subscribed clients
+  const statusLabel = success ? 'completed' : 'failed';
+  void sendPushToAll({
+    title: `Task ${statusLabel}`,
+    body: task.title,
+    tag: `task-${task.id}`,
+    data: { url: task.list_id ? `/list/${task.list_id}` : '/inbox' },
+  });
 });
 
 // ── Session command endpoints ─────────────────────────────────────────────

@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { Settings, List, Task, Runner, TaskLog, HarnessConfig, Label, Skill, AiProvider, Stats, Session, SessionMessage } from '../types';
+import { getCached, setCached, clearCacheByPrefix } from '../lib/offlineStore';
+import { isOnline, queueMutation } from '../lib/syncQueue';
 
 const api = axios.create({ baseURL: '/api', withCredentials: true });
 
@@ -16,6 +18,54 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+// ── Offline-aware GET helper ─────────────────────────────────────────────────
+
+async function cachedGet<T>(cacheKey: string, path: string, params?: Record<string, string | undefined>): Promise<T> {
+  try {
+    const { data } = await api.get<T>(path, { params });
+    void setCached(cacheKey, data);
+    return data;
+  } catch (err) {
+    if (!isOnline()) {
+      const cached = await getCached<T>(cacheKey);
+      if (cached !== null) return cached;
+    }
+    throw err;
+  }
+}
+
+// ── Offline-aware mutation helper ────────────────────────────────────────────
+
+async function offlineMutation<T>(
+  method: 'post' | 'put' | 'delete',
+  path: string,
+  body?: unknown,
+  opts?: { optimisticResult?: T; invalidatePrefix?: string },
+): Promise<T> {
+  if (isOnline()) {
+    const { data } = method === 'delete'
+      ? await api.delete<T>(path)
+      : await api[method]<T>(path, body);
+    if (opts?.invalidatePrefix) {
+      void clearCacheByPrefix(opts.invalidatePrefix);
+    }
+    return data;
+  }
+
+  // Offline: queue the mutation for background sync
+  const fullUrl = `/api${path}`;
+  await queueMutation(fullUrl, method.toUpperCase(), body);
+
+  if (opts?.invalidatePrefix) {
+    void clearCacheByPrefix(opts.invalidatePrefix);
+  }
+
+  if (opts?.optimisticResult !== undefined) {
+    return opts.optimisticResult;
+  }
+  return {} as T;
+}
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 
@@ -41,8 +91,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 export async function fetchSettings(): Promise<Settings> {
-  const { data } = await api.get<Settings>('/settings');
-  return data;
+  return cachedGet<Settings>('settings', '/settings');
 }
 
 export async function fetchRunnerRegistrationSecret(): Promise<{ registrationSecret: string }> {
@@ -59,66 +108,60 @@ export async function updateRunnerRegistrationSecret(
   return data;
 }
 
-// ── Lists ─────────────────────────────────────────────────────────────────
+// ── Lists ─��───────────────────────────────────────────────────────────────
 
 export async function fetchLists(): Promise<List[]> {
-  const { data } = await api.get<List[]>('/lists');
-  return data;
+  return cachedGet<List[]>('lists', '/lists');
 }
 
 export async function createList(body: { name: string; description?: string; icon?: string | null }): Promise<List> {
-  const { data } = await api.post<List>('/lists', body);
-  return data;
+  return offlineMutation<List>('post', '/lists', body, { invalidatePrefix: 'lists' });
 }
 
 export async function updateList(id: string, body: { name?: string; description?: string; icon?: string | null }): Promise<List> {
-  const { data } = await api.put<List>(`/lists/${id}`, body);
-  return data;
+  return offlineMutation<List>('put', `/lists/${id}`, body, { invalidatePrefix: 'lists' });
 }
 
 export async function deleteList(id: string): Promise<void> {
-  await api.delete(`/lists/${id}`);
+  await offlineMutation<void>('delete', `/lists/${id}`, undefined, { invalidatePrefix: 'lists' });
 }
 
 export async function reorderLists(ids: string[]): Promise<List[]> {
-  const { data } = await api.put<List[]>('/lists/reorder', { ids });
-  return data;
+  return offlineMutation<List[]>('put', '/lists/reorder', { ids }, { invalidatePrefix: 'lists' });
 }
 
-// ── Tasks ─────────────────────────────────────────────────────────────────
+// ── Tasks ────────────────��────────────────────────────��───────────────────
 
 export async function fetchTasks(filters?: {
   list?: string; inbox?: '1'; status?: string; priority?: string; runner?: string; search?: string;
 }): Promise<Task[]> {
-  const { data } = await api.get<Task[]>('/tasks', { params: filters });
-  return data;
+  const cacheKey = `tasks:${JSON.stringify(filters ?? {})}`;
+  return cachedGet<Task[]>(cacheKey, '/tasks', filters as Record<string, string | undefined>);
 }
 
 export async function createTask(body: {
   listId?: string | null; title: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
   runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
 }): Promise<Task> {
-  const { data } = await api.post<Task>('/tasks', body);
-  return data;
+  return offlineMutation<Task>('post', '/tasks', body, { invalidatePrefix: 'tasks' });
 }
 
 export async function getTask(id: string): Promise<Task> {
-  const { data } = await api.get<Task>(`/tasks/${id}`);
-  return data;
+  return cachedGet<Task>(`task:${id}`, `/tasks/${id}`);
 }
 
 export async function updateTask(id: string, body: {
   title?: string; description?: string; status?: string; priority?: string;
   labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null; scheduledAt?: string | null;
 }): Promise<Task> {
-  const { data } = await api.put<Task>(`/tasks/${id}`, body);
-  return data;
+  return offlineMutation<Task>('put', `/tasks/${id}`, body, { invalidatePrefix: 'tasks' });
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  await api.delete(`/tasks/${id}`);
+  await offlineMutation<void>('delete', `/tasks/${id}`, undefined, { invalidatePrefix: 'tasks' });
 }
 
+// Runner-dependent task operations (network only)
 export async function assignTask(id: string, body: { runnerId: string; aiProvider: string; harnessConfig?: HarnessConfig }): Promise<Task> {
   const { data } = await api.post<Task>(`/tasks/${id}/assign`, body);
   return data;
@@ -134,28 +177,25 @@ export async function fetchTaskLogs(id: string): Promise<TaskLog[]> {
   return data;
 }
 
-// ── Labels ───────────────────────────────────────────────────────────────
+// ── Labels ─────────────────────────────────────���─────────────────────────
 
 export async function fetchLabels(): Promise<Label[]> {
-  const { data } = await api.get<Label[]>('/labels');
-  return data;
+  return cachedGet<Label[]>('labels', '/labels');
 }
 
 export async function createLabel(body: { name: string; color: string }): Promise<Label> {
-  const { data } = await api.post<Label>('/labels', body);
-  return data;
+  return offlineMutation<Label>('post', '/labels', body, { invalidatePrefix: 'labels' });
 }
 
 export async function updateLabel(id: string, body: { name?: string; color?: string }): Promise<Label> {
-  const { data } = await api.put<Label>(`/labels/${id}`, body);
-  return data;
+  return offlineMutation<Label>('put', `/labels/${id}`, body, { invalidatePrefix: 'labels' });
 }
 
 export async function deleteLabel(id: string): Promise<void> {
-  await api.delete(`/labels/${id}`);
+  await offlineMutation<void>('delete', `/labels/${id}`, undefined, { invalidatePrefix: 'labels' });
 }
 
-// ── Runners ───────────────────────────────────────────────────────────────
+// ── Runners (network only) ───────────────────────────────────────────────────
 
 export async function fetchRunners(): Promise<Runner[]> {
   const { data } = await api.get<Runner[]>('/runners');
@@ -182,13 +222,12 @@ export interface BrowseEntry {
 // ── Skills ────────────────────────────────────────────────────────────────
 
 export async function fetchSkills(filters?: { runner?: string; cli?: AiProvider }): Promise<Skill[]> {
-  const { data } = await api.get<Skill[]>('/skills', { params: filters });
-  return data;
+  const cacheKey = `skills:${JSON.stringify(filters ?? {})}`;
+  return cachedGet<Skill[]>(cacheKey, '/skills', filters as Record<string, string | undefined>);
 }
 
 export async function fetchSkill(id: string): Promise<Skill> {
-  const { data } = await api.get<Skill>(`/skills/${id}`);
-  return data;
+  return cachedGet<Skill>(`skill:${id}`, `/skills/${id}`);
 }
 
 export async function createOrUpdateSkill(body: {
@@ -218,18 +257,16 @@ export async function browseRunnerDirectory(runnerId: string, path: string): Pro
   return data.entries;
 }
 
-// ── Stats ─────────────────────────────────────────────────────────────────
+// ── Stats ───────────────────────────���─────────────────────────────────────
 
 export async function fetchStats(): Promise<Stats> {
-  const { data } = await api.get<Stats>('/stats');
-  return data;
+  return cachedGet<Stats>('stats', '/stats');
 }
 
 // ── Sessions ─────────────────────────────────────────────────────────────
 
 export async function fetchSessions(): Promise<Session[]> {
-  const { data } = await api.get<Session[]>('/sessions');
-  return data;
+  return cachedGet<Session[]>('sessions', '/sessions');
 }
 
 export async function createSession(body: {
@@ -243,8 +280,7 @@ export async function createSession(body: {
 }
 
 export async function fetchSession(id: string): Promise<{ session: Session; messages: SessionMessage[] }> {
-  const { data } = await api.get<{ session: Session; messages: SessionMessage[] }>(`/sessions/${id}`);
-  return data;
+  return cachedGet<{ session: Session; messages: SessionMessage[] }>(`session:${id}`, `/sessions/${id}`);
 }
 
 export async function sendSessionInput(id: string, content: string): Promise<Session> {
@@ -259,4 +295,14 @@ export async function stopSession(id: string): Promise<Session> {
 
 export async function deleteSession(id: string): Promise<void> {
   await api.delete(`/sessions/${id}`);
+}
+
+// ── Push Notification Subscription ───────────────────────────────────────────
+
+export async function subscribePush(subscription: PushSubscriptionJSON): Promise<void> {
+  await api.post('/push/subscribe', subscription);
+}
+
+export async function unsubscribePush(endpoint: string): Promise<void> {
+  await api.post('/push/unsubscribe', { endpoint });
 }
