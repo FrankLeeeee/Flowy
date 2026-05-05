@@ -117,7 +117,7 @@ export default function MobileListDetail() {
     catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete list'); setShowDeleteConfirm(false); }
   };
 
-  // Apply date filter: backlog tasks (no scheduled_at) always shown; scheduled tasks filtered by date
+  // Apply date filter using the mandatory task date.
   const visibleTasks = filterTasksByDate(tasks, dateFilter);
 
   if (loading) {

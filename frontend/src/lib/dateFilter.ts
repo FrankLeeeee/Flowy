@@ -1,13 +1,5 @@
 import { Task } from '../types';
 
-function getLocalDateString(scheduledAt: string): string {
-  if (scheduledAt.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(scheduledAt)) {
-    const d = new Date(scheduledAt);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-  return scheduledAt.slice(0, 10);
-}
-
 export type DateFilterMode = 'today' | 'week' | 'custom';
 
 export interface DateFilterState {
@@ -59,17 +51,14 @@ export function getEffectiveDateRange(filter: DateFilterState): { start: string;
  * Applies date filtering to a list of tasks.
  *
  * Rules:
- *  - Backlog tasks (no scheduled_at) are always included regardless of date filter.
- *  - Scheduled tasks (have scheduled_at) are shown when their date falls within the range.
- *  - Non-backlog tasks without a scheduled date (edge case: manually promoted) are always shown.
+ *  - Every task has a scheduled_date.
+ *  - Tasks are shown when their date falls within the range.
  */
 export function filterTasksByDate(tasks: Task[], filter: DateFilterState): Task[] {
   const { start, end } = getEffectiveDateRange(filter);
 
   return tasks.filter((task) => {
-    if (!task.scheduled_at) return true; // backlog or unscheduled — always show
-    const taskDate = getLocalDateString(task.scheduled_at);
-    return taskDate >= start && taskDate <= end;
+    return task.scheduled_date >= start && task.scheduled_date <= end;
   });
 }
 

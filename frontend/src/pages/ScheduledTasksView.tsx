@@ -8,6 +8,7 @@ import { CalendarDays, CalendarRange, Layers, ChevronDown, Check } from 'lucide-
 import PageTitle from '@/components/PageTitle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTodayDateString, getWeekRange } from '@/lib/dateFilter';
+import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 
 type ViewMode = 'today' | 'week' | 'all';
 
@@ -75,9 +76,9 @@ function TodoRow({
         </span>
       )}
 
-      {task.scheduled_at && !isChecked && (
+      {!isChecked && (
         <span className="shrink-0 text-[11px] text-muted-foreground/60">
-          {formatScheduleDate(task.scheduled_at)}
+          {formatTaskScheduleCompact(task.scheduled_date, task.scheduled_time)}
         </span>
       )}
 
@@ -86,19 +87,6 @@ function TodoRow({
       </span>
     </div>
   );
-}
-
-function formatScheduleDate(scheduledAt: string): string {
-  const d = new Date(scheduledAt);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function getLocalDateString(scheduledAt: string): string {
-  if (scheduledAt.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(scheduledAt)) {
-    const d = new Date(scheduledAt);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-  return scheduledAt.slice(0, 10);
 }
 
 const VIEW_CONFIG: Record<ViewMode, { title: string; subtitle: string; icon: typeof CalendarDays }> = {
@@ -126,19 +114,12 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
 
     if (mode === 'today') {
       const today = getTodayDateString();
-      return nonCancelled.filter((t) => {
-        if (!t.scheduled_at) return false;
-        return getLocalDateString(t.scheduled_at) === today;
-      });
+      return nonCancelled.filter((t) => t.scheduled_date === today);
     }
 
     // week
     const { start, end } = getWeekRange();
-    return nonCancelled.filter((t) => {
-      if (!t.scheduled_at) return false;
-      const taskDate = getLocalDateString(t.scheduled_at);
-      return taskDate >= start && taskDate <= end;
-    });
+    return nonCancelled.filter((t) => t.scheduled_date >= start && t.scheduled_date <= end);
   }, [mode]);
 
   const loadData = useCallback(async () => {

@@ -32,7 +32,7 @@ import MobileSettings from "./pages/mobile/MobileSettings";
 import TodoView from "./pages/TodoView";
 import ScheduledTasksView from "./pages/ScheduledTasksView";
 import { fetchLists, createTask } from "./api/client";
-import { List, TaskPriority } from "./types";
+import { List } from "./types";
 import OfflineBanner from "./components/OfflineBanner";
 
 function DesktopShell() {
@@ -50,8 +50,8 @@ function DesktopShell() {
   }, []);
 
   const handleGlobalCreateTask = useCallback(
-    async (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledAt?: string | null }) => {
-      await createTask({ listId: data.listId, title: data.title, description: data.description, priority: data.priority, labels: data.labels, scheduledAt: data.scheduledAt });
+    async (data: Parameters<typeof createTask>[0]) => {
+      await createTask(data);
       setShowGlobalCreate(false);
     },
     [],

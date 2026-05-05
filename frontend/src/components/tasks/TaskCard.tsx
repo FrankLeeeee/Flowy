@@ -1,8 +1,9 @@
 import { Task, Runner, Label } from '../../types';
 import { PRIORITY_ICON } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
+import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { Clock3 } from 'lucide-react';
+import { CalendarDays, Clock3 } from 'lucide-react';
 
 export default function TaskCard({
   task, runner, allLabels = [], onClick,
@@ -64,6 +65,11 @@ export default function TaskCard({
           )}
         </div>
       )}
+
+      <div className="relative mt-2 flex items-center gap-1.5 pl-1.5 text-[10px] font-medium text-muted-foreground/80">
+        <CalendarDays className="h-3 w-3" />
+        <span>{formatTaskScheduleCompact(task.scheduled_date, task.scheduled_time)}</span>
+      </div>
 
       {elapsed && (
         <div className="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground/80">
