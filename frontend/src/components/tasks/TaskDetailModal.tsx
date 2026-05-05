@@ -13,7 +13,7 @@ import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import RunnerAssignmentFields from './RunnerAssignmentFields';
 import { cn } from '@/lib/utils';
-import { formatTaskSchedule } from '@/lib/taskSchedule';
+import { formatTaskSchedule, normalizeScheduledTime } from '@/lib/taskSchedule';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
@@ -74,7 +74,7 @@ export default function TaskDetailModal({
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [scheduledDate, setScheduledDate] = useState(task.scheduled_date);
-  const [scheduledTime, setScheduledTime] = useState(task.scheduled_time ?? '');
+  const [scheduledTime, setScheduledTime] = useState(normalizeScheduledTime(task.scheduled_time));
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
   const [editRunnerId, setEditRunnerId] = useState(task.runner_id ?? '');
   const [editAiProvider, setEditAiProvider] = useState<AiProvider | ''>((task.ai_provider as AiProvider | null) ?? '');
@@ -106,7 +106,7 @@ export default function TaskDetailModal({
     setPriority(task.priority);
     setLabelsText(JSON.parse(task.labels || '[]').join(', '));
     setScheduledDate(task.scheduled_date);
-    setScheduledTime(task.scheduled_time ?? '');
+    setScheduledTime(normalizeScheduledTime(task.scheduled_time));
     setEditRunnerId(task.runner_id ?? '');
     setEditAiProvider((task.ai_provider as AiProvider | null) ?? '');
     setEditHarnessConfig(parseHarnessConfig(task.harness_config));
@@ -304,6 +304,7 @@ export default function TaskDetailModal({
                   <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     type="time"
+                    step={60}
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
                     className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
