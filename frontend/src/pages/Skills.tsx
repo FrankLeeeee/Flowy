@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAiProviderStyles, getToneStyles } from "@/lib/semanticColors";
+import { getAiHarnessPillStyle, getToneStyles } from "@/lib/semanticColors";
 import {
   Sparkles,
   Plus,
@@ -329,11 +329,12 @@ export default function Skills() {
                             key={cli}
                             title={present ? `Installed · ${meta.path}` : `Not installed · ${meta.path}`}
                             className={cn(
-                              "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-semibold ring-1",
+                              "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-semibold",
                               present
-                                ? getAiProviderStyles(cli).pill
-                                : `${getToneStyles('neutral').pill} opacity-60`,
+                                ? "ai-harness-pill"
+                                : `ring-1 ${getToneStyles('neutral').pill} opacity-60`,
                             )}
+                            style={present ? getAiHarnessPillStyle(cli) : undefined}
                           >
                             <span className={cn("h-1.5 w-1.5 rounded-full bg-current", present ? "opacity-70" : "opacity-35")} />
                             {meta.label}

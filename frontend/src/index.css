@@ -213,6 +213,19 @@
     box-shadow: inset 0 0 0 1px hsl(var(--terminal-border) / 0.55);
     font-family: var(--font-mono);
   }
+
+  /* AI harness badge pill — colors driven by inline --harness-color (see getAiHarnessPillStyle). */
+  .ai-harness-pill {
+    background-color: color-mix(in srgb, var(--harness-color) 12%, transparent);
+    color: var(--harness-color);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--harness-color) 22%, transparent);
+  }
+
+  .dark .ai-harness-pill {
+    background-color: color-mix(in srgb, var(--harness-color) 20%, transparent);
+    color: color-mix(in srgb, var(--harness-color) 60%, white);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--harness-color) 36%, transparent);
+  }
 }
 
 @media (max-width: 767px) {
