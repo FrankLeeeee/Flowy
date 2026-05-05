@@ -241,6 +241,7 @@ export default function CreateTaskModal({
                     <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       type="time"
+                      step={60}
                       value={scheduledTime}
                       onChange={(e) => setScheduledTime(e.target.value)}
                       className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
