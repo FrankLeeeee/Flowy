@@ -16,7 +16,6 @@ function TodoRow({
   onRowClick?: () => void;
   checked?: boolean;
 }) {
-  const showStatus = task.status === 'in_progress' || task.status === 'failed';
   const statusStyles = getTaskStatusStyles(task.status);
   const showPriority = !checked && (task.priority === 'urgent' || task.priority === 'high');
   const priorityStyles = getTaskPriorityStyles(task.priority);
@@ -71,17 +70,15 @@ function TodoRow({
         {task.title}
       </span>
 
-      {showStatus && !isChecked && (
-        <span
-          className={cn(
-            'shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1',
-            statusStyles.pill,
-          )}
-        >
-          {STATUS_CONFIG[task.status].icon}
-          {STATUS_CONFIG[task.status].label}
-        </span>
-      )}
+      <span
+        className={cn(
+          'hidden shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 md:inline-flex',
+          statusStyles.pill,
+        )}
+      >
+        {STATUS_CONFIG[task.status].icon}
+        {STATUS_CONFIG[task.status].label}
+      </span>
 
       <span className="shrink-0 text-[11px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
         {task.task_key}
