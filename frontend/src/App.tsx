@@ -58,44 +58,44 @@ function DesktopShell() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen min-h-0 flex-col bg-background">
       <OfflineBanner />
-      <div className="flex min-w-0 flex-1">
-      <Sidebar />
-      <main className="min-w-0 flex-1 overflow-auto">
-        <div key={location.pathname} className="motion-page min-h-screen">
-          <Routes>
-            <Route path="/" element={<Navigate to="/today" replace />} />
-            <Route path="/today" element={<ScheduledTasksView mode="today" />} />
-            <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
-            <Route path="/all" element={<ScheduledTasksView mode="all" />} />
-            <Route path="/inbox" element={<Inbox />} />
-            <Route path="/list/:id" element={<ListDetail />} />
-            <Route path="/runners" element={<Runners />} />
-            <Route path="/labels" element={<Labels />} />
-            <Route path="/skills" element={<Skills />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/sessions" element={<Sessions />} />
-            <Route path="/todos" element={<TodoView />} />
-            <Route
-              path="/lists"
-              element={<Navigate to="/inbox" replace />}
-            />
-            <Route path="/usage" element={<Navigate to="/runners" replace />} />
-            <Route
-              path="/settings"
-              element={<Navigate to="/runners" replace />}
-            />
-          </Routes>
-        </div>
-      </main>
-      <CommandPalette />
-      <CreateTaskModal
-        open={showGlobalCreate}
-        lists={globalLists}
-        onSubmit={handleGlobalCreateTask}
-        onClose={() => setShowGlobalCreate(false)}
-      />
+      <div className="flex min-h-0 min-w-0 flex-1">
+        <Sidebar />
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <div key={location.pathname} className="motion-page min-h-full">
+            <Routes>
+              <Route path="/" element={<Navigate to="/today" replace />} />
+              <Route path="/today" element={<ScheduledTasksView mode="today" />} />
+              <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
+              <Route path="/all" element={<ScheduledTasksView mode="all" />} />
+              <Route path="/inbox" element={<Inbox />} />
+              <Route path="/list/:id" element={<ListDetail />} />
+              <Route path="/runners" element={<Runners />} />
+              <Route path="/labels" element={<Labels />} />
+              <Route path="/skills" element={<Skills />} />
+              <Route path="/stats" element={<Stats />} />
+              <Route path="/sessions" element={<Sessions />} />
+              <Route path="/todos" element={<TodoView />} />
+              <Route
+                path="/lists"
+                element={<Navigate to="/inbox" replace />}
+              />
+              <Route path="/usage" element={<Navigate to="/runners" replace />} />
+              <Route
+                path="/settings"
+                element={<Navigate to="/runners" replace />}
+              />
+            </Routes>
+          </div>
+        </main>
+        <CommandPalette />
+        <CreateTaskModal
+          open={showGlobalCreate}
+          lists={globalLists}
+          onSubmit={handleGlobalCreateTask}
+          onClose={() => setShowGlobalCreate(false)}
+        />
       </div>
     </div>
   );
