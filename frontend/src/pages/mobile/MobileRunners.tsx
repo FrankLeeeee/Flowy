@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn, timeAgo } from '@/lib/utils';
+import { cn, parseUtcTimestamp, timeAgo } from '@/lib/utils';
 import { getToneStyles, getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
 import {
   Bot, Plus, Shield, Copy, CheckCircle2, Sparkles, Terminal,
@@ -221,7 +221,7 @@ export default function MobileRunners() {
               const busyStyles = getRunnerStatusStyles('busy');
               const cliRefreshPending = Boolean(
                 runner.cli_refresh_requested_at &&
-                (!runner.last_cli_scan_at || new Date(runner.cli_refresh_requested_at).getTime() > new Date(runner.last_cli_scan_at).getTime()),
+                (!runner.last_cli_scan_at || parseUtcTimestamp(runner.cli_refresh_requested_at) > parseUtcTimestamp(runner.last_cli_scan_at)),
               );
 
               return (

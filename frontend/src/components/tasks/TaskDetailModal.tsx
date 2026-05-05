@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection } from '@/components/ui/app-dialog';
 import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalDateTime } from '@/lib/utils';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
@@ -47,11 +47,6 @@ const OUTPUT_MARKDOWN_CLASSNAME = `min-w-0 max-w-full overflow-hidden rounded-lg
   prose-table:block prose-table:max-w-full prose-table:overflow-x-auto prose-table:text-[12px] prose-th:text-foreground prose-th:font-medium prose-td:text-muted-foreground
   prose-hr:border-border/40
   prose-blockquote:border-border/60 prose-blockquote:text-muted-foreground/70`;
-
-function fmtTime(iso: string | null): string {
-  if (!iso) return '-';
-  return new Date(iso + 'Z').toLocaleString();
-}
 
 export default function TaskDetailModal({
   open, task, runner, onUpdate, onAssign, onDelete, onClose,
@@ -298,10 +293,10 @@ export default function TaskDetailModal({
 
           {/* Timestamps */}
           <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/75">
-            <div>Created: {fmtTime(task.created_at)}</div>
-            <div>Updated: {fmtTime(task.updated_at)}</div>
-            {task.started_at && <div>Started: {fmtTime(task.started_at)}</div>}
-            {task.completed_at && <div>Completed: {fmtTime(task.completed_at)}</div>}
+            <div>Created: {formatLocalDateTime(task.created_at)}</div>
+            <div>Updated: {formatLocalDateTime(task.updated_at)}</div>
+            {task.started_at && <div>Started: {formatLocalDateTime(task.started_at)}</div>}
+            {task.completed_at && <div>Completed: {formatLocalDateTime(task.completed_at)}</div>}
           </div>
 
           {/* Output */}
@@ -354,7 +349,7 @@ export default function TaskDetailModal({
                 <div className="space-y-1">
                   {logs.map((log) => (
                     <div key={log.id} className="flex items-start gap-2 text-[11px]">
-                      <span className="whitespace-nowrap text-muted-foreground/70">{fmtTime(log.created_at)}</span>
+                      <span className="whitespace-nowrap text-muted-foreground/70">{formatLocalDateTime(log.created_at)}</span>
                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-foreground/[0.04] text-muted-foreground">{log.event}</span>
                       {log.data && log.event !== 'output' && (
                         <span className="truncate text-muted-foreground/75">{log.data.slice(0, 100)}</span>

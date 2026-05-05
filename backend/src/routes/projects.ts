@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { getDb, DEFAULT_PROJECT_ID } from '../db';
 import { Project } from '../types';
 import { formatTaskKey, normalizeProjectName } from '../projectIdentity';
+import { utcNow } from '../time';
 
 const router = Router();
 
@@ -24,9 +25,10 @@ router.post('/', (req: Request, res: Response) => {
   if (nameCollision) { res.status(409).json({ error: `Project name "${normalizedName}" already exists` }); return; }
 
   const id = uuid();
+  const now = utcNow();
   getDb().prepare(`
-    INSERT INTO projects (id, name, key, description) VALUES (?, ?, ?, ?)
-  `).run(id, normalizedName, id, description ?? '');
+    INSERT INTO projects (id, name, key, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, normalizedName, id, description ?? '', now, now);
 
   const project = getDb().prepare('SELECT * FROM projects WHERE id = ?').get(id) as Project;
   res.status(201).json(project);
@@ -57,11 +59,12 @@ router.put('/:id', (req: Request, res: Response) => {
   const projectTasks = db.prepare(`
     SELECT id, task_number FROM tasks WHERE project_id = ? ORDER BY task_number ASC
   `).all(req.params.id) as Array<{ id: string; task_number: number }>;
+  const now = utcNow();
 
   const updateProject = db.transaction(() => {
     db.prepare(`
-      UPDATE projects SET name = ?, description = ?, updated_at = datetime('now') WHERE id = ?
-    `).run(normalizedName, description ?? project.description, req.params.id);
+      UPDATE projects SET name = ?, description = ?, updated_at = ? WHERE id = ?
+    `).run(normalizedName, description ?? project.description, now, req.params.id);
 
     if (normalizedName !== project.name) {
       const updateTaskKey = db.prepare('UPDATE tasks SET task_key = ? WHERE id = ?');

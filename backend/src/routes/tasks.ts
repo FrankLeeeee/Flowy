@@ -4,6 +4,7 @@ import { getDb } from '../db';
 import { Task, Project, TaskLog } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
 import { formatTaskKey } from '../projectIdentity';
+import { utcNow } from '../time';
 
 const router = Router();
 
@@ -38,14 +39,15 @@ router.post('/', (req: Request, res: Response) => {
   const taskNumber = project.next_task_num;
   const taskKey = formatTaskKey(project.name, taskNumber);
   const id = uuid();
+  const now = utcNow();
 
   const insertTask = db.transaction(() => {
     db.prepare(`
-      INSERT INTO tasks (id, project_id, task_number, task_key, title, description, priority, labels)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, projectId, taskNumber, taskKey, title, description ?? '', priority ?? 'none', JSON.stringify(labels ?? []));
+      INSERT INTO tasks (id, project_id, task_number, task_key, title, description, priority, labels, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, projectId, taskNumber, taskKey, title, description ?? '', priority ?? 'none', JSON.stringify(labels ?? []), now, now);
 
-    db.prepare('UPDATE projects SET next_task_num = next_task_num + 1, updated_at = datetime(\'now\') WHERE id = ?').run(projectId);
+    db.prepare('UPDATE projects SET next_task_num = next_task_num + 1, updated_at = ? WHERE id = ?').run(now, projectId);
   });
 
   insertTask();
@@ -70,11 +72,12 @@ router.put('/:id', (req: Request, res: Response) => {
     title?: string; description?: string; status?: string; priority?: string;
     labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown;
   };
+  const now = utcNow();
 
   db.prepare(`
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
-      labels = ?, runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = datetime('now')
+      labels = ?, runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = ?
     WHERE id = ?
   `).run(
     title ?? task.title,
@@ -85,6 +88,7 @@ router.put('/:id', (req: Request, res: Response) => {
     runnerId !== undefined ? runnerId : task.runner_id,
     aiProvider !== undefined ? aiProvider : task.ai_provider,
     harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config,
+    now,
     req.params.id,
   );
 
@@ -112,11 +116,12 @@ router.post('/:id/assign', (req: Request, res: Response) => {
 
   const runner = db.prepare('SELECT id FROM runners WHERE id = ?').get(runnerId);
   if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+  const now = utcNow();
 
   db.prepare(`
-    UPDATE tasks SET runner_id = ?, ai_provider = ?, harness_config = ?, status = 'todo', updated_at = datetime('now')
+    UPDATE tasks SET runner_id = ?, ai_provider = ?, harness_config = ?, status = 'todo', updated_at = ?
     WHERE id = ?
-  `).run(runnerId, aiProvider, harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config, req.params.id);
+  `).run(runnerId, aiProvider, harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config, now, req.params.id);
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
   res.json(updated);

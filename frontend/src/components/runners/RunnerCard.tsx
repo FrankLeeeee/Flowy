@@ -2,7 +2,7 @@ import { Runner, Task, AiProvider } from '../../types';
 import { AI_LABELS } from '@/lib/taskConstants';
 import { Button } from '@/components/ui/button';
 import RunnerStatusBadge from './RunnerStatusBadge';
-import { cn, timeAgo } from '@/lib/utils';
+import { cn, parseUtcTimestamp, timeAgo } from '@/lib/utils';
 import { getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
@@ -19,7 +19,7 @@ export default function RunnerCard({
   const busyStyles = getRunnerStatusStyles('busy');
   const cliRefreshPending = Boolean(
     runner.cli_refresh_requested_at &&
-    (!runner.last_cli_scan_at || new Date(runner.cli_refresh_requested_at).getTime() > new Date(runner.last_cli_scan_at).getTime())
+    (!runner.last_cli_scan_at || parseUtcTimestamp(runner.cli_refresh_requested_at) > parseUtcTimestamp(runner.last_cli_scan_at))
   );
 
   return (

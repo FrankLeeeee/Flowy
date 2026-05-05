@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatTaskKey, normalizeProjectName } from './projectIdentity';
 import { DATA_DIR, ensureDataDir } from './dataDir';
+import { utcNow } from './time';
 
 const DB_DIR = DATA_DIR;
 const DB_FILE = path.join(DB_DIR, 'hub.db');
@@ -35,8 +36,8 @@ function migrate(): void {
       key           TEXT NOT NULL UNIQUE,
       description   TEXT NOT NULL DEFAULT '',
       next_task_num INTEGER NOT NULL DEFAULT 1,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE TABLE IF NOT EXISTS runners (
@@ -48,8 +49,8 @@ function migrate(): void {
       ai_providers   TEXT NOT NULL DEFAULT '[]',
       last_heartbeat TEXT,
       device_info    TEXT NOT NULL DEFAULT '',
-      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE TABLE IF NOT EXISTS tasks (
@@ -70,8 +71,8 @@ function migrate(): void {
       output        TEXT,
       started_at    TEXT,
       completed_at  TEXT,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE TABLE IF NOT EXISTS task_logs (
@@ -80,7 +81,7 @@ function migrate(): void {
       runner_id  TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
       event      TEXT NOT NULL CHECK (event IN ('picked_up','output','completed','failed','cancelled')),
       data       TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
   `);
 
@@ -89,8 +90,8 @@ function migrate(): void {
       id         TEXT PRIMARY KEY,
       name       TEXT NOT NULL UNIQUE,
       color      TEXT NOT NULL DEFAULT 'blue',
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE TABLE IF NOT EXISTS settings (
@@ -117,9 +118,10 @@ export const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
 function seedDefaultProject(): void {
   const exists = db.prepare('SELECT id FROM projects WHERE id = ?').get(DEFAULT_PROJECT_ID);
   if (!exists) {
+    const now = utcNow();
     db.prepare(`
-      INSERT INTO projects (id, name, key, description) VALUES (?, ?, ?, ?)
-    `).run(DEFAULT_PROJECT_ID, 'default', 'DEFAULT', '');
+      INSERT INTO projects (id, name, key, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+    `).run(DEFAULT_PROJECT_ID, 'default', 'DEFAULT', '', now, now);
   }
 }
 
@@ -169,10 +171,11 @@ function seedDefaultLabels(): void {
   const count = (db.prepare('SELECT COUNT(*) AS cnt FROM labels').get() as { cnt: number }).cnt;
   if (count > 0) return;
 
-  const insert = db.prepare('INSERT INTO labels (id, name, color) VALUES (?, ?, ?)');
+  const insert = db.prepare('INSERT INTO labels (id, name, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?)');
   const seed = db.transaction(() => {
     for (const label of DEFAULT_LABELS) {
-      insert.run(uuid(), label.name, label.color);
+      const now = utcNow();
+      insert.run(uuid(), label.name, label.color, now, now);
     }
   });
   seed();
@@ -205,8 +208,8 @@ function migrateTaskStatuses(): void {
       output        TEXT,
       started_at    TEXT,
       completed_at  TEXT,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     INSERT INTO tasks_new (
@@ -272,11 +275,12 @@ export function setDbSetting(key: string, value: string): void {
 /** Mark runners as offline if heartbeat is stale (>90 seconds). */
 function startOfflineChecker(): void {
   setInterval(() => {
+    const now = utcNow();
     db.prepare(`
-      UPDATE runners SET status = 'offline', updated_at = datetime('now')
+      UPDATE runners SET status = 'offline', updated_at = ?
       WHERE status != 'offline'
         AND last_heartbeat IS NOT NULL
         AND (julianday('now') - julianday(last_heartbeat)) * 86400 > 90
-    `).run();
+    `).run(now);
   }, 60_000);
 }
