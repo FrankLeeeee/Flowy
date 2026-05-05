@@ -12,12 +12,13 @@ import { AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, A
 import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { cn } from '@/lib/utils';
+import { formatTaskSchedule } from '@/lib/taskSchedule';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand } from 'lucide-react';
+import { CalendarDays, Clock3, Pencil, UserPlus, Trash2, Download, ArrowRight, X, Expand } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -70,6 +71,8 @@ export default function TaskDetailModal({
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
+  const [scheduledDate, setScheduledDate] = useState(task.scheduled_date);
+  const [scheduledTime, setScheduledTime] = useState(task.scheduled_time ?? '');
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
   const [outputFullscreenOpen, setOutputFullscreenOpen] = useState(false);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
@@ -91,8 +94,17 @@ export default function TaskDetailModal({
   }, [task.status, loadLogs]);
 
   const handleSave = async () => {
+    if (!scheduledDate) return;
     const nextLabels = labelsText.split(',').map((label: string) => label.trim()).filter(Boolean);
-    const updated = await updateTask(task.id, { title, description, status, priority, labels: nextLabels });
+    const updated = await updateTask(task.id, {
+      title,
+      description,
+      status,
+      priority,
+      labels: nextLabels,
+      scheduledDate,
+      scheduledTime: scheduledTime || null,
+    });
     onUpdate(updated);
     setEditing(false);
   };
@@ -227,6 +239,27 @@ export default function TaskDetailModal({
                   </SelectContent>
                 </Select>
 
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
+                  <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="date"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    required
+                    className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
+                  <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+
                 <LabelPicker
                   selectedLabels={labels}
                   allLabels={allLabels}
@@ -236,13 +269,13 @@ export default function TaskDetailModal({
               </div>
 
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleSave} className="h-8 rounded-full px-4 text-[11px]">
+                <Button size="sm" onClick={handleSave} disabled={!scheduledDate} className="h-8 rounded-full px-4 text-[11px]">
                   Save changes
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
                 <Button size="sm" variant="ghost" className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground" onClick={() => {
                   setEditing(false); setTitle(task.title); setDescription(task.description);
-                  setStatus(task.status); setPriority(task.priority); setLabelsText(JSON.parse(task.labels || '[]').join(', '));
+                  setStatus(task.status); setPriority(task.priority); setScheduledDate(task.scheduled_date); setScheduledTime(task.scheduled_time ?? ''); setLabelsText(JSON.parse(task.labels || '[]').join(', '));
                 }}>Cancel</Button>
               </div>
             </div>
@@ -265,6 +298,16 @@ export default function TaskDetailModal({
                 );
               })}
             </div>
+          )}
+
+          {!editing && (
+            <AppDialogSection className="rounded-lg bg-foreground/[0.02] p-4">
+              <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Scheduled</h3>
+              <div className="flex flex-wrap items-center gap-2 text-[13px] text-foreground">
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <span>{formatTaskSchedule(task.scheduled_date, task.scheduled_time)}</span>
+              </div>
+            </AppDialogSection>
           )}
 
           {/* Runner Info */}

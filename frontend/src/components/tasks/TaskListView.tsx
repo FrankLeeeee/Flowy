@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Task, Runner, TaskStatus } from '../../types';
 import { STATUS_CONFIG, PRIORITY_ICON, TASK_STATUSES } from '@/lib/taskConstants';
-import { cn, timeAgo } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { GripVertical } from 'lucide-react';
 
@@ -81,7 +82,7 @@ function StatusGroup({
               delete e.currentTarget.dataset.dragging;
             }}
             onClick={() => onTaskClick(task)}
-            className="motion-card interactive-row grid grid-cols-[20px_1fr_80px_100px_80px] gap-2 px-4 py-2.5 items-center cursor-grab active:cursor-grabbing hover:bg-primary/[0.035] motion-safe:hover:translate-x-0.5 data-[dragging=true]:scale-[0.995] border-b border-border/30 last:border-b-0"
+            className="motion-card interactive-row grid grid-cols-[20px_1fr_80px_100px_110px] gap-2 px-4 py-2.5 items-center cursor-grab active:cursor-grabbing hover:bg-primary/[0.035] motion-safe:hover:translate-x-0.5 data-[dragging=true]:scale-[0.995] border-b border-border/30 last:border-b-0"
           >
             <GripVertical className="h-3 w-3 text-muted-foreground/45 transition-colors hover:text-muted-foreground/75" />
             <div className="flex items-center gap-2.5 min-w-0">
@@ -92,7 +93,7 @@ function StatusGroup({
               {PRIORITY_ICON[task.priority]}
             </div>
             <span className="text-[12px] text-muted-foreground truncate">{runner?.name ?? '-'}</span>
-            <span className="text-right text-[11px] text-muted-foreground/75">{timeAgo(task.updated_at)}</span>
+            <span className="text-right text-[11px] text-muted-foreground/75">{formatTaskScheduleCompact(task.scheduled_date, task.scheduled_time)}</span>
           </div>
         );
       })}
@@ -142,12 +143,12 @@ export default function TaskListView({
   return (
     <div className="surface-tint rounded-[20px] border border-border/40 dark:border-border/60 overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-[20px_1fr_80px_100px_80px] gap-2 border-b border-border/60 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground/80">
+      <div className="grid grid-cols-[20px_1fr_80px_100px_110px] gap-2 border-b border-border/60 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground/80">
         <span />
         <span>Issue</span>
         <span>Priority</span>
         <span>Runner</span>
-        <span className="text-right">Updated</span>
+        <span className="text-right">Scheduled</span>
       </div>
 
       {/* Grouped rows */}

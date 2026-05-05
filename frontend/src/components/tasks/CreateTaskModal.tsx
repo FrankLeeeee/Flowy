@@ -12,8 +12,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import LabelPicker from '@/components/LabelPicker';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
+import { getTodayDateInputValue } from '@/lib/taskSchedule';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { Circle, FolderKanban, ArrowRight, X, Sparkles } from 'lucide-react';
+import { CalendarDays, Circle, Clock3, FolderKanban, ArrowRight, X, Sparkles } from 'lucide-react';
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: 'none',   label: 'No Priority' },
@@ -29,7 +30,7 @@ export default function CreateTaskModal({
   open: boolean;
   projects: Project[];
   defaultProjectId?: string;
-  onSubmit: (data: { projectId: string; title: string; description: string; priority: TaskPriority; labels: string[] }) => void;
+  onSubmit: (data: { projectId: string; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledDate: string; scheduledTime: string | null }) => void;
   onClose: () => void;
 }) {
   const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.id ?? '');
@@ -37,6 +38,8 @@ export default function CreateTaskModal({
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('none');
   const [labels, setLabels] = useState<string[]>([]);
+  const [scheduledDate, setScheduledDate] = useState(getTodayDateInputValue());
+  const [scheduledTime, setScheduledTime] = useState('');
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const isMobile = useIsMobile();
 
@@ -46,6 +49,8 @@ export default function CreateTaskModal({
   useEffect(() => {
     if (open) {
       fetchLabels().then(setAllLabels).catch(() => {});
+      setScheduledDate(getTodayDateInputValue());
+      setScheduledTime('');
     }
   }, [open]);
 
@@ -64,8 +69,8 @@ export default function CreateTaskModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectId || !title.trim()) return;
-    onSubmit({ projectId, title: title.trim(), description, priority, labels });
+    if (!projectId || !title.trim() || !scheduledDate) return;
+    onSubmit({ projectId, title: title.trim(), description, priority, labels, scheduledDate, scheduledTime: scheduledTime || null });
   };
 
   return (
@@ -177,6 +182,27 @@ export default function CreateTaskModal({
                   </SelectContent>
                 </Select>
 
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium shadow-soft">
+                  <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="date"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    required
+                    className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium shadow-soft">
+                  <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+
                 <LabelPicker
                   selectedLabels={labels}
                   allLabels={allLabels}
@@ -193,7 +219,7 @@ export default function CreateTaskModal({
               <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
                 Cancel
               </Button>
-              <Button type="submit" disabled={!projectId || !title.trim()} className="rounded-full px-4 text-[11px]">
+              <Button type="submit" disabled={!projectId || !title.trim() || !scheduledDate} className="rounded-full px-4 text-[11px]">
                 Create task
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>

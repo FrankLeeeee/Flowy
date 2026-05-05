@@ -68,6 +68,8 @@ function migrate(): void {
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
+      scheduled_date TEXT NOT NULL DEFAULT (date('now')),
+      scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
@@ -105,6 +107,7 @@ function migrate(): void {
   ensureColumn('runners', 'last_cli_scan_at', 'TEXT');
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
+  ensureTaskScheduleColumns();
   seedDefaultProject();
   normalizeProjectNames();
   ensureUniqueProjectNamesIndex();
@@ -203,6 +206,8 @@ function migrateTaskStatuses(): void {
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
+      scheduled_date TEXT NOT NULL DEFAULT (date('now')),
+      scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
@@ -211,11 +216,15 @@ function migrateTaskStatuses(): void {
 
     INSERT INTO tasks_new (
       id, project_id, task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, harness_config, labels, output, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, harness_config, labels, output, scheduled_date, scheduled_time,
+      started_at, completed_at, created_at, updated_at
     )
     SELECT
       id, project_id, task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, '{}' AS harness_config, labels, output, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, '{}' AS harness_config, labels, output,
+      date(COALESCE(created_at, 'now')) AS scheduled_date,
+      NULL AS scheduled_time,
+      started_at, completed_at, created_at, updated_at
     FROM tasks;
 
     DROP TABLE tasks;
@@ -232,6 +241,16 @@ function ensureColumn(table: string, column: string, definition: string): void {
   if (!columns.some((entry) => entry.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   }
+}
+
+function ensureTaskScheduleColumns(): void {
+  ensureColumn('tasks', 'scheduled_date', 'TEXT');
+  ensureColumn('tasks', 'scheduled_time', 'TEXT');
+  db.prepare(`
+    UPDATE tasks
+    SET scheduled_date = date(COALESCE(created_at, 'now'))
+    WHERE scheduled_date IS NULL OR scheduled_date = ''
+  `).run();
 }
 
 function migrateTaskKeysToProjectNames(): void {
