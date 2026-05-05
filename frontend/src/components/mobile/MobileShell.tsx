@@ -1,68 +1,70 @@
-import { NavLink, useLocation } from "react-router-dom";
-import { Inbox, FolderKanban, CalendarDays, MessagesSquare, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
-import OfflineBanner from "@/components/OfflineBanner";
+import { useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Menu, Plus } from 'lucide-react';
+import MobileDrawer from './MobileDrawer';
+import MobileDateBar from './MobileDateBar';
+import OfflineBanner from '@/components/OfflineBanner';
+import { getTodayDateString } from '@/lib/dateFilter';
 
-const TABS = [
-  { to: "/today", icon: CalendarDays, label: "Today" },
-  { to: "/inbox", icon: Inbox, label: "Inbox" },
-  { to: "/lists", icon: FolderKanban, label: "Lists" },
-  { to: "/sessions", icon: MessagesSquare, label: "Sessions" },
-  { to: "/settings", icon: Settings, label: "Settings" },
-] as const;
+interface MobileShellProps {
+  children: (props: { selectedDate: string; onDateChange: (d: string) => void }) => React.ReactNode;
+}
 
-export default function MobileShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function MobileShell({ children }: MobileShellProps) {
   const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString);
+  const isHomePage = location.pathname === '/' || location.pathname === '/today';
 
-  // Highlight "Lists" tab when viewing a specific list
-  const isListRoute = location.pathname.startsWith("/list/");
+  const handleDateChange = useCallback((date: string) => {
+    setSelectedDate(date);
+  }, []);
 
-  // Highlight "Settings" tab when on sub-routes
-  const isSettingsRoute = ["/runners", "/skills", "/labels", "/stats"].some(
-    (path) => location.pathname.startsWith(path),
-  );
+  const handleCreate = () => {
+    window.dispatchEvent(new CustomEvent('flowy:mobile-create-task'));
+  };
 
   return (
-    <div className="flex min-w-0 h-screen flex-col bg-background">
+    <div className="flex h-[100svh] flex-col bg-background pt-[env(safe-area-inset-top)]">
       <OfflineBanner />
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(3.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] [contain:content]">
-        {children}
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(3.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch]">
+        {children({ selectedDate, onDateChange: handleDateChange })}
       </main>
-      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-lg will-change-transform pb-[env(safe-area-inset-bottom)]">
-        <div className="flex h-12 items-stretch">
-          {TABS.map(({ to, icon: Icon, label }) => {
-            let isActive = undefined;
-            if (to === "/lists") {
-              isActive = location.pathname === "/lists" || isListRoute;
-            } else if (to === "/settings") {
-              isActive = location.pathname === "/settings" || isSettingsRoute;
-            }
 
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive: navActive }) => {
-                  const active = isActive ?? navActive;
-                  return cn(
-                    "flex flex-1 flex-col items-center justify-end text-[10px] font-medium transition-colors duration-150",
-                    active
-                      ? "text-primary"
-                      : "text-muted-foreground/70 active:text-foreground",
-                  );
-                }}
-              >
-                <Icon className="mb-0.5 h-5 w-5" />
-                <span>{label}</span>
-              </NavLink>
-            );
-          })}
-        </div>
-      </footer>
+      {/* Date bar - only on home */}
+      {isHomePage && (
+        <MobileDateBar currentDate={selectedDate} onDateChange={handleDateChange} />
+      )}
+
+      {/* Fixed bottom bar for non-home pages */}
+      {!isHomePage && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 h-[calc(env(safe-area-inset-bottom))] bg-background" />
+      )}
+
+      {/* FAB: Menu (bottom left) */}
+      <button
+        type="button"
+        onClick={() => setDrawerOpen(true)}
+        className="fixed left-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border/60 shadow-elevated active:scale-95 transition-transform"
+        style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 0.75rem)' }}
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5 text-foreground" />
+      </button>
+
+      {/* FAB: Create task (bottom right) */}
+      <button
+        type="button"
+        onClick={handleCreate}
+        className="fixed right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elevated active:scale-95 transition-transform"
+        style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 0.75rem)' }}
+        aria-label="Create task"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
+
+      {/* Drawer */}
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }

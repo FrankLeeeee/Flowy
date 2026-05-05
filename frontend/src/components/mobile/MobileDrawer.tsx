@@ -1,0 +1,82 @@
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Inbox, FolderKanban, Tags, BarChart2, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const MENU_ITEMS = [
+  { to: '/inbox', icon: Inbox, label: 'Inbox' },
+  { to: '/lists', icon: FolderKanban, label: 'Lists' },
+  { to: '/labels', icon: Tags, label: 'Labels' },
+  { to: '/stats', icon: BarChart2, label: 'Stats' },
+] as const;
+
+interface MobileDrawerProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigate = (to: string) => {
+    navigate(to);
+    onClose();
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 z-[60] bg-foreground/20 backdrop-blur-sm transition-opacity duration-300',
+          open ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-[61] w-[280px] bg-background shadow-xl transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          'pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] pl-[env(safe-area-inset-left)]',
+          open ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pb-6">
+          <h2 className="text-[20px] font-bold tracking-tight text-foreground">Flowy</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors active:bg-muted/50"
+          >
+            <X className="h-4.5 w-4.5" />
+          </button>
+        </div>
+
+        {/* Menu items */}
+        <nav className="flex flex-col gap-1 px-3">
+          {MENU_ITEMS.map(({ to, icon: Icon, label }) => {
+            const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
+            return (
+              <button
+                key={to}
+                type="button"
+                onClick={() => handleNavigate(to)}
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors',
+                  isActive
+                    ? 'bg-primary/8 text-primary'
+                    : 'text-foreground active:bg-muted/50',
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[15px] font-medium">{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </>
+  );
+}
