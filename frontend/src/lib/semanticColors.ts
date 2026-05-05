@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { AiProvider, LabelColor, RunnerStatus, TaskPriority, TaskStatus } from '../types';
 
 type SemanticTone = 'neutral' | 'brand' | 'warning' | 'success' | 'danger';
@@ -101,6 +102,21 @@ export const AI_PROVIDER_TONES: Record<AiProvider, SemanticTone> = {
   'cursor-agent': 'neutral',
   'gemini-cli': 'neutral',
 };
+
+/** Brand hex colors for AI harness badges, used in runner and skills pages. */
+export const AI_HARNESS_HEX: Record<AiProvider, string> = {
+  'claude-code':  '#DE7356',
+  codex:          '#3936d7',
+  'cursor-agent': '#4d4d4d',
+  'gemini-cli':   '#3187fd',
+};
+
+/** Inline style to drive `.ai-harness-pill` colors via the --harness-color CSS variable. */
+export function getAiHarnessPillStyle(provider: AiProvider | string): CSSProperties | undefined {
+  const hex = AI_HARNESS_HEX[provider as AiProvider];
+  if (!hex) return undefined;
+  return { ['--harness-color' as string]: hex };
+}
 
 export type LabelColorStyles = {
   dot: string;

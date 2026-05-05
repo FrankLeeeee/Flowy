@@ -3,7 +3,7 @@ import { AI_LABELS } from '@/lib/taskConstants';
 import { Button } from '@/components/ui/button';
 import RunnerStatusBadge from './RunnerStatusBadge';
 import { cn, timeAgo } from '@/lib/utils';
-import { getAiProviderStyles, getRunnerStatusStyles } from '@/lib/semanticColors';
+import { getAiHarnessPillStyle, getRunnerStatusStyles } from '@/lib/semanticColors';
 import { ArrowUpCircle, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 export default function RunnerCard({
@@ -46,7 +46,11 @@ export default function RunnerCard({
       {providers.length > 0 && (
         <div className="relative flex flex-wrap gap-1.5">
           {providers.map((p) => (
-            <span key={p} className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ring-1', getAiProviderStyles(p).pill)}>
+            <span
+              key={p}
+              className="ai-harness-pill inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold"
+              style={getAiHarnessPillStyle(p)}
+            >
               {AI_LABELS[p] ?? p}
               {versions[p] && <span className="font-normal opacity-60">v{versions[p]}</span>}
             </span>
