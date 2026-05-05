@@ -75,11 +75,38 @@ export default function MobileDateBar({ currentDate, onDateChange }: MobileDateB
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="fixed bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-lg border-t border-border/60"
+        onMouseDown={(e) => {
+          touchStartX.current = e.clientX;
+          touchStartY.current = e.clientY;
+          isDraggingUp.current = false;
+          setDragging(true);
+        }}
+        onMouseMove={(e) => {
+          if (!dragging) return;
+          const dx = e.clientX - touchStartX.current;
+          const dy = touchStartY.current - e.clientY;
+          if (dy > 20 && Math.abs(dy) > Math.abs(dx)) {
+            isDraggingUp.current = true;
+            setCalendarDragY(Math.min(dy, PULL_THRESHOLD * 1.5));
+            setTranslateX(0);
+          } else if (!isDraggingUp.current) {
+            setTranslateX(dx);
+            setCalendarDragY(0);
+          }
+        }}
+        onMouseUp={handleTouchEnd}
+        onMouseLeave={() => { if (dragging) handleTouchEnd(); }}
+        className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex items-center justify-center h-12 select-none touch-pan-y">
+        {/* Drag handle */}
+        <div className="flex justify-center pt-1.5 pb-0.5">
+          <div className="h-1 w-10 rounded-full bg-foreground/20" />
+        </div>
+
+        <div className="relative flex items-center justify-center h-14 select-none touch-pan-y cursor-grab active:cursor-grabbing">
           <div
-            className="flex items-center gap-2 transition-transform"
+            className="flex items-center gap-1.5"
             style={{
               transform: dragging ? `translateX(${translateX}px)` : undefined,
               transition: dragging ? 'none' : 'transform 0.2s ease-out',
@@ -87,34 +114,34 @@ export default function MobileDateBar({ currentDate, onDateChange }: MobileDateB
           >
             <ChevronUp
               className={cn(
-                'h-3.5 w-3.5 text-muted-foreground/50 transition-transform',
+                'h-4 w-4 text-muted-foreground transition-transform',
                 calendarDragY > 20 && '-translate-y-1',
               )}
             />
-            <span className="text-[13px] font-semibold text-foreground">
+            <span className="text-[15px] font-semibold text-foreground">
               {formatDateLabel(currentDate)}
             </span>
           </div>
-        </div>
 
-        {/* Swipe hint indicators */}
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-6 h-12 pointer-events-none">
-          <span
-            className={cn(
-              'text-[11px] text-muted-foreground/50 transition-opacity',
-              translateX > 30 ? 'opacity-100' : 'opacity-0',
-            )}
-          >
-            {formatDateLabel(addDays(currentDate, -1))}
-          </span>
-          <span
-            className={cn(
-              'text-[11px] text-muted-foreground/50 transition-opacity',
-              translateX < -30 ? 'opacity-100' : 'opacity-0',
-            )}
-          >
-            {formatDateLabel(addDays(currentDate, 1))}
-          </span>
+          {/* Swipe hint indicators */}
+          <div className="absolute inset-x-0 flex items-center justify-between px-6 pointer-events-none">
+            <span
+              className={cn(
+                'text-[12px] text-muted-foreground/60 transition-opacity',
+                translateX > 30 ? 'opacity-100' : 'opacity-0',
+              )}
+            >
+              ← {formatDateLabel(addDays(currentDate, -1))}
+            </span>
+            <span
+              className={cn(
+                'text-[12px] text-muted-foreground/60 transition-opacity',
+                translateX < -30 ? 'opacity-100' : 'opacity-0',
+              )}
+            >
+              {formatDateLabel(addDays(currentDate, 1))} →
+            </span>
+          </div>
         </div>
       </div>
 

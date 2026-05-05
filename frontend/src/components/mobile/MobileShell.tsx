@@ -25,9 +25,15 @@ export default function MobileShell({ children }: MobileShellProps) {
   };
 
   return (
-    <div className="flex h-[100svh] flex-col bg-background pt-[env(safe-area-inset-top)]">
+    <div className="relative flex min-h-screen flex-col bg-background">
       <OfflineBanner />
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(3.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch]">
+      <main
+        className="flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))',
+        }}
+      >
         {children({ selectedDate, onDateChange: handleDateChange })}
       </main>
 
@@ -36,9 +42,12 @@ export default function MobileShell({ children }: MobileShellProps) {
         <MobileDateBar currentDate={selectedDate} onDateChange={handleDateChange} />
       )}
 
-      {/* Fixed bottom bar for non-home pages */}
+      {/* Bottom safe-area filler for non-home pages */}
       {!isHomePage && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 h-[calc(env(safe-area-inset-bottom))] bg-background" />
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 bg-background"
+          style={{ height: 'env(safe-area-inset-bottom)' }}
+        />
       )}
 
       {/* FAB: Menu (bottom left) */}
@@ -46,7 +55,7 @@ export default function MobileShell({ children }: MobileShellProps) {
         type="button"
         onClick={() => setDrawerOpen(true)}
         className="fixed left-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border/60 shadow-elevated active:scale-95 transition-transform"
-        style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 0.75rem)' }}
+        style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom) + 0.75rem)' }}
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5 text-foreground" />
@@ -57,7 +66,7 @@ export default function MobileShell({ children }: MobileShellProps) {
         type="button"
         onClick={handleCreate}
         className="fixed right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elevated active:scale-95 transition-transform"
-        style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 0.75rem)' }}
+        style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom) + 0.75rem)' }}
         aria-label="Create task"
       >
         <Plus className="h-5 w-5" />
