@@ -1,93 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task } from '../types';
-import { fetchTasks, updateTask } from '../api/client';
-import { STATUS_CONFIG } from '@/lib/taskConstants';
-import { getTaskStatusStyles, getToneStyles } from '@/lib/semanticColors';
+import { Task, List, Runner, TaskStatus } from '../types';
+import {
+  fetchTasks, fetchRunners, fetchLists, createTask, deleteTask, getTask, updateTask,
+} from '../api/client';
+import TaskTodoView from '../components/tasks/TaskTodoView';
+import CreateTaskModal from '../components/tasks/CreateTaskModal';
+import TaskDetailModal from '../components/tasks/TaskDetailModal';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { getToneStyles } from '@/lib/semanticColors';
 import { cn } from '@/lib/utils';
-import { CalendarDays, CalendarRange, Layers, ChevronDown, Check } from 'lucide-react';
+import { CalendarDays, CalendarRange, Layers, Plus } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTodayDateString, getWeekRange } from '@/lib/dateFilter';
-import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 
 type ViewMode = 'today' | 'week' | 'all';
-
-function TodoRow({
-  task,
-  onCheck,
-  checked = false,
-}: {
-  task: Task;
-  onCheck?: () => void;
-  checked?: boolean;
-}) {
-  const showStatus = task.status === 'in_progress' || task.status === 'failed';
-  const statusStyles = getTaskStatusStyles(task.status);
-  const [optimistic, setOptimistic] = useState(false);
-
-  const handleClick = () => {
-    if (checked || !onCheck) return;
-    setOptimistic(true);
-    onCheck();
-  };
-
-  const isChecked = checked || optimistic;
-
-  return (
-    <div
-      className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-100',
-        'hover:bg-foreground/[0.03] group',
-      )}
-    >
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={isChecked}
-        aria-label={isChecked ? 'Completed' : 'Mark as complete'}
-        className={cn(
-          'shrink-0 h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-all duration-150',
-          isChecked
-            ? 'border-emerald-500/70 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-            : 'border-border/60 hover:border-primary/50 hover:bg-primary/[0.06] cursor-pointer',
-        )}
-      >
-        {isChecked && <Check className="h-2.5 w-2.5 stroke-[2.5]" />}
-      </button>
-
-      <span
-        className={cn(
-          'flex-1 min-w-0 text-[13px] font-medium leading-snug',
-          isChecked ? 'line-through text-muted-foreground/50' : 'text-foreground',
-        )}
-      >
-        {task.title}
-      </span>
-
-      {showStatus && !isChecked && (
-        <span
-          className={cn(
-            'shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1',
-            statusStyles.pill,
-          )}
-        >
-          {STATUS_CONFIG[task.status].icon}
-          {STATUS_CONFIG[task.status].label}
-        </span>
-      )}
-
-      {!isChecked && (
-        <span className="shrink-0 text-[11px] text-muted-foreground/60">
-          {formatTaskScheduleCompact(task.scheduled_date, task.scheduled_time)}
-        </span>
-      )}
-
-      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors">
-        {task.task_key}
-      </span>
-    </div>
-  );
-}
 
 const VIEW_CONFIG: Record<ViewMode, { title: string; subtitle: string; icon: typeof CalendarDays }> = {
   today: { title: 'Today', subtitle: 'Tasks scheduled for today', icon: CalendarDays },
@@ -103,9 +31,14 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
   const dangerTone = getToneStyles('danger');
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [allLists, setAllLists] = useState<List[]>([]);
+  const [runners, setRunners] = useState<Runner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [completedOpen, setCompletedOpen] = useState(false);
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<Task | null>(null);
 
   const filterTasks = useCallback((all: Task[]): Task[] => {
     const nonCancelled = all.filter((t) => t.status !== 'cancelled');
@@ -117,15 +50,16 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
       return nonCancelled.filter((t) => t.scheduled_date === today);
     }
 
-    // week
     const { start, end } = getWeekRange();
     return nonCancelled.filter((t) => t.scheduled_date >= start && t.scheduled_date <= end);
   }, [mode]);
 
   const loadData = useCallback(async () => {
     try {
-      const all = await fetchTasks();
-      setTasks(filterTasks(all));
+      const [allTasks, ls, r] = await Promise.all([fetchTasks(), fetchLists(), fetchRunners()]);
+      setTasks(filterTasks(allTasks));
+      setAllLists(ls);
+      setRunners(r);
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load tasks');
@@ -134,24 +68,45 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
     }
   }, [filterTasks]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { setLoading(true); loadData(); }, [loadData]);
   useEffect(() => {
     const iv = setInterval(loadData, 10_000);
     return () => clearInterval(iv);
   }, [loadData]);
 
-  const handleCheck = async (task: Task) => {
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: 'done' } : t)));
-    try {
-      await updateTask(task.id, { status: 'done' });
-    } catch {
-      loadData();
-    }
+  const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => {
+    await createTask(data);
+    setShowCreate(false);
+    loadData();
+  };
+
+  const handleTaskClick = async (task: Task) => {
+    try { setDetailTask(await getTask(task.id)); }
+    catch { setDetailTask(task); }
+  };
+
+  const handleTaskUpdate = (updated: Task) => {
+    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    setDetailTask(updated);
+  };
+
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    try { await updateTask(taskId, { status: newStatus }); }
+    catch { loadData(); }
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!deleteTaskTarget) return;
+    const taskId = deleteTaskTarget.id;
+    setDeleteTaskTarget(null);
+    await deleteTask(taskId);
+    setDetailTask(null);
+    loadData();
   };
 
   const uncompleted = tasks.filter((t) => t.status !== 'done');
   const completed = tasks.filter((t) => t.status === 'done');
-
   const inProgressCount = uncompleted.filter((t) => t.status === 'in_progress').length;
   const failedCount = uncompleted.filter((t) => t.status === 'failed').length;
 
@@ -166,7 +121,7 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
   }
 
   return (
-    <div className="flex flex-col p-6 min-h-screen">
+    <div className="flex flex-col p-6 min-h-screen pb-10">
       <div
         className="motion-section mb-6 flex shrink-0 flex-wrap items-start justify-between gap-3"
         style={{ '--motion-delay': '80ms' } as React.CSSProperties}
@@ -195,6 +150,12 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
             )}
           </div>
         </div>
+        <div className="flex items-center gap-1.5">
+          <Button size="sm" onClick={() => setShowCreate(true)} className="h-8 text-[13px] shadow-soft">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            New Task
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -204,69 +165,37 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
       )}
 
       <div
-        className="motion-section space-y-6"
-        style={{ '--motion-delay': '140ms' } as React.CSSProperties}
+        className="motion-section"
+        style={{ '--motion-delay': '200ms' } as React.CSSProperties}
       >
-        <section>
-          <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">
-            Uncompleted
-            <span className="ml-2 rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/80">
-              {uncompleted.length}
-            </span>
-          </h2>
-          <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-            {uncompleted.length === 0 ? (
-              <div className="px-3 py-8 text-center text-[13px] text-muted-foreground/60">
-                {mode === 'today' ? 'No tasks scheduled for today' : mode === 'week' ? 'No tasks scheduled this week' : 'No tasks'}
-              </div>
-            ) : (
-              <div className="divide-y divide-border/40">
-                {uncompleted.map((task) => (
-                  <TodoRow key={task.id} task={task} onCheck={() => handleCheck(task)} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {completed.length > 0 && (
-          <section>
-            <button
-              type="button"
-              onClick={() => setCompletedOpen((v) => !v)}
-              className="interactive-lift mb-2 flex w-full items-center gap-2 px-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70 hover:text-foreground transition-colors"
-            >
-              <ChevronDown
-                className={cn(
-                  'h-3.5 w-3.5 transition-transform duration-200 ease-[var(--ease-out-quart)]',
-                  completedOpen ? 'rotate-0' : '-rotate-90',
-                )}
-              />
-              Completed
-              <span className="rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/80">
-                {completed.length}
-              </span>
-            </button>
-
-            <div
-              className={cn(
-                'grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out-quart)]',
-                completedOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
-                  <div className="divide-y divide-border/30">
-                    {completed.map((task) => (
-                      <TodoRow key={task.id} task={task} checked />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
+        <TaskTodoView tasks={tasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
       </div>
+
+      <CreateTaskModal
+        open={showCreate}
+        lists={allLists}
+        runners={runners}
+        onSubmit={handleCreateTask}
+        onClose={() => setShowCreate(false)}
+      />
+      {detailTask && (
+        <TaskDetailModal
+          open={!!detailTask}
+          task={detailTask}
+          runners={runners}
+          onUpdate={handleTaskUpdate}
+          onDelete={() => setDeleteTaskTarget(detailTask)}
+          onClose={() => setDetailTask(null)}
+        />
+      )}
+      <ConfirmDialog
+        open={!!deleteTaskTarget}
+        title="Delete task"
+        description={deleteTaskTarget ? `Delete "${deleteTaskTarget.title}"? Its execution history and output will be removed.` : ''}
+        confirmLabel="Delete task"
+        onConfirm={confirmDeleteTask}
+        onCancel={() => setDeleteTaskTarget(null)}
+      />
     </div>
   );
 }
