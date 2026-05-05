@@ -168,7 +168,8 @@ export async function fetchTasks(filters?: {
 }
 
 export async function createTask(body: {
-  listId?: string | null; title: string; description?: string; priority?: string; labels?: string[]; scheduledAt?: string | null;
+  listId?: string | null; title: string; description?: string; priority?: string; labels?: string[];
+  scheduledDate?: string; scheduledTime?: string | null;
   runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
 }): Promise<Task> {
   if (isOnline()) {
@@ -191,7 +192,8 @@ export async function createTask(body: {
     harness_config: JSON.stringify(body.harnessConfig ?? {}),
     labels: JSON.stringify(body.labels ?? []),
     output: null,
-    scheduled_at: body.scheduledAt ?? null,
+    scheduled_date: body.scheduledDate ?? new Date().toISOString().slice(0, 10),
+    scheduled_time: body.scheduledTime ?? null,
     started_at: null,
     completed_at: null,
     created_at: now,
@@ -208,7 +210,8 @@ export async function getTask(id: string): Promise<Task> {
 
 export async function updateTask(id: string, body: {
   title?: string; description?: string; status?: string; priority?: string;
-  labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null; scheduledAt?: string | null;
+  labels?: string[]; scheduledDate?: string; scheduledTime?: string | null;
+  runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
 }): Promise<Task> {
   if (isOnline()) {
     const { data } = await api.put<Task>(`/tasks/${id}`, body);
@@ -227,7 +230,8 @@ export async function updateTask(id: string, body: {
       ai_provider: body.aiProvider !== undefined ? (body.aiProvider as AiProvider | null) : task.ai_provider,
       harness_config: body.harnessConfig !== undefined ? JSON.stringify(body.harnessConfig ?? {}) : task.harness_config,
       labels: body.labels !== undefined ? JSON.stringify(body.labels) : task.labels,
-      scheduled_at: body.scheduledAt !== undefined ? body.scheduledAt : task.scheduled_at,
+      scheduled_date: body.scheduledDate !== undefined ? body.scheduledDate : task.scheduled_date,
+      scheduled_time: body.scheduledTime !== undefined ? body.scheduledTime : task.scheduled_time,
       updated_at: nowIso(),
     };
     updated = next;

@@ -89,6 +89,8 @@ function migrate(): void {
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
+      scheduled_date TEXT NOT NULL DEFAULT (date('now')),
+      scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
@@ -163,7 +165,7 @@ function migrate(): void {
   ensureColumn('runners', 'cli_update_requested_at', 'TEXT');
   ensureColumn('runners', 'cli_versions', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
-  ensureColumn('tasks', 'scheduled_at', 'TEXT');
+  ensureTaskScheduleColumns();
   ensureColumn('lists', 'icon', 'TEXT');
   ensureColumn('lists', 'position', 'INTEGER NOT NULL DEFAULT 0');
   backfillListPositions();
@@ -226,7 +228,8 @@ function migrateProjectsToLists(): void {
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
-      scheduled_at  TEXT,
+      scheduled_date TEXT NOT NULL DEFAULT (date('now')),
+      scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
@@ -235,13 +238,16 @@ function migrateProjectsToLists(): void {
 
     INSERT INTO tasks_new (
       id, list_id, task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, harness_config, labels, output, scheduled_at, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, harness_config, labels, output, scheduled_date, scheduled_time, started_at, completed_at, created_at, updated_at
     )
     SELECT
       id,
       CASE WHEN project_id = '${LEGACY_DEFAULT_PROJECT_ID}' THEN NULL ELSE project_id END,
       task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, harness_config, labels, output, scheduled_at, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, harness_config, labels, output,
+      date(COALESCE(scheduled_at, created_at, 'now')) AS scheduled_date,
+      CASE WHEN scheduled_at IS NOT NULL AND scheduled_at != '' THEN strftime('%H:%M', scheduled_at) ELSE NULL END AS scheduled_time,
+      started_at, completed_at, created_at, updated_at
     FROM tasks;
 
     DROP TABLE tasks;
@@ -398,6 +404,8 @@ function migrateTaskStatuses(): void {
       harness_config TEXT NOT NULL DEFAULT '{}',
       labels        TEXT NOT NULL DEFAULT '[]',
       output        TEXT,
+      scheduled_date TEXT NOT NULL DEFAULT (date('now')),
+      scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
@@ -406,11 +414,15 @@ function migrateTaskStatuses(): void {
 
     INSERT INTO tasks_new (
       id, project_id, task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, harness_config, labels, output, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, harness_config, labels, output, scheduled_date, scheduled_time,
+      started_at, completed_at, created_at, updated_at
     )
     SELECT
       id, project_id, task_number, task_key, title, description, status, priority,
-      runner_id, ai_provider, '{}' AS harness_config, labels, output, started_at, completed_at, created_at, updated_at
+      runner_id, ai_provider, '{}' AS harness_config, labels, output,
+      date(COALESCE(created_at, 'now')) AS scheduled_date,
+      NULL AS scheduled_time,
+      started_at, completed_at, created_at, updated_at
     FROM tasks;
 
     DROP TABLE tasks;
@@ -522,6 +534,32 @@ function backfillListPositions(): void {
     lists.forEach((list, i) => update.run(i + 1, list.id));
   });
   tx();
+}
+
+function ensureTaskScheduleColumns(): void {
+  ensureColumn('tasks', 'scheduled_date', 'TEXT');
+  ensureColumn('tasks', 'scheduled_time', 'TEXT');
+  const hasScheduledAt = (db.prepare(`PRAGMA table_info(tasks)`).all() as Array<{ name: string }>).some((entry) => entry.name === 'scheduled_at');
+  if (hasScheduledAt) {
+    db.prepare(`
+      UPDATE tasks
+      SET scheduled_date = date(COALESCE(NULLIF(scheduled_at, ''), created_at, 'now'))
+      WHERE scheduled_date IS NULL OR scheduled_date = ''
+    `).run();
+    db.prepare(`
+      UPDATE tasks
+      SET scheduled_time = strftime('%H:%M', scheduled_at)
+      WHERE scheduled_time IS NULL
+        AND scheduled_at IS NOT NULL
+        AND scheduled_at != ''
+    `).run();
+  } else {
+    db.prepare(`
+      UPDATE tasks
+      SET scheduled_date = date(COALESCE(created_at, 'now'))
+      WHERE scheduled_date IS NULL OR scheduled_date = ''
+    `).run();
+  }
 }
 
 function ensureColumn(table: string, column: string, definition: string): void {

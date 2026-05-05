@@ -24,6 +24,8 @@ export interface Task {
   harness_config: string;
   labels: string;
   output: string | null;
+  scheduled_date: string;
+  scheduled_time: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;

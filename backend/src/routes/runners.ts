@@ -30,16 +30,16 @@ function secretsMatch(a: string, b: string): boolean {
   return crypto.timingSafeEqual(aBuf, bBuf);
 }
 
-function getScheduledTimeMs(scheduledAt: string | null): number | null {
-  if (!scheduledAt) return null;
+function getScheduledTimeMs(scheduledDate: string | null, scheduledTime: string | null): number | null {
+  if (!scheduledDate || !scheduledTime) return null;
 
-  const scheduledTimeMs = new Date(scheduledAt).getTime();
+  const scheduledTimeMs = new Date(`${scheduledDate}T${scheduledTime}:00`).getTime();
   return Number.isFinite(scheduledTimeMs) ? scheduledTimeMs : null;
 }
 
-export function isTaskDue(task: Pick<Task, 'scheduled_at'>, nowMs = Date.now()): boolean {
-  const scheduledTimeMs = getScheduledTimeMs(task.scheduled_at);
-  return scheduledTimeMs === null || scheduledTimeMs <= nowMs;
+export function isTaskDue(task: Pick<Task, 'scheduled_date' | 'scheduled_time'>, nowMs = Date.now()): boolean {
+  const scheduledTimeMs = getScheduledTimeMs(task.scheduled_date, task.scheduled_time);
+  return scheduledTimeMs !== null && scheduledTimeMs <= nowMs;
 }
 
 // ── In-memory browse-request store ────────────────────────────────────────
@@ -318,10 +318,10 @@ router.get('/poll', authenticateRunner, (req: Request, res: Response) => {
   const runner = req.runner!;
   const tasks = getDb().prepare(`
     SELECT * FROM tasks
-    WHERE runner_id = ? AND status = 'todo'
+    WHERE runner_id = ? AND status = 'todo' AND scheduled_time IS NOT NULL
     ORDER BY
-      CASE WHEN scheduled_at IS NULL OR scheduled_at = '' THEN 1 ELSE 0 END,
-      scheduled_at ASC,
+      scheduled_date ASC,
+      scheduled_time ASC,
       CASE priority
         WHEN 'urgent' THEN 0
         WHEN 'high'   THEN 1

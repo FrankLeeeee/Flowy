@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Task, Runner, Label, TaskStatus } from '../../types';
 import { STATUS_CONFIG, PRIORITY_ICON, TASK_STATUSES } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
+import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
-import { ChevronRight, Clock3 } from 'lucide-react';
+import { CalendarDays, ChevronRight, Clock3 } from 'lucide-react';
 
 function MobileTaskCard({
   task, runner, allLabels, onClick,
@@ -60,6 +61,11 @@ function MobileTaskCard({
           )}
         </div>
       )}
+
+      <div className="mt-2 flex items-center gap-1.5 pl-1.5 text-[10px] font-medium text-muted-foreground/80">
+        <CalendarDays className="h-3 w-3" />
+        <span>{formatTaskScheduleCompact(task.scheduled_date, task.scheduled_time)}</span>
+      </div>
     </button>
   );
 }

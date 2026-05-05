@@ -13,13 +13,13 @@ import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import RunnerAssignmentFields from './RunnerAssignmentFields';
 import { cn } from '@/lib/utils';
-import { formatScheduledDateTime, normalizeTimeInput, splitScheduledDateTime, updateScheduledDate, updateScheduledTime } from '@/lib/scheduledDateTime';
+import { formatTaskSchedule } from '@/lib/taskSchedule';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { Pencil, Trash2, Download, ArrowRight, X, Expand, CalendarClock, Archive, Play, RotateCcw } from 'lucide-react';
+import { CalendarDays, Clock3, Pencil, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -73,8 +73,9 @@ export default function TaskDetailModal({
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
+  const [scheduledDate, setScheduledDate] = useState(task.scheduled_date);
+  const [scheduledTime, setScheduledTime] = useState(task.scheduled_time ?? '');
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
-  const [scheduledAt, setScheduledAt] = useState(task.scheduled_at ?? '');
   const [editRunnerId, setEditRunnerId] = useState(task.runner_id ?? '');
   const [editAiProvider, setEditAiProvider] = useState<AiProvider | ''>((task.ai_provider as AiProvider | null) ?? '');
   const [editHarnessConfig, setEditHarnessConfig] = useState<HarnessConfig>(parseHarnessConfig(task.harness_config));
@@ -104,7 +105,8 @@ export default function TaskDetailModal({
     setStatus(task.status);
     setPriority(task.priority);
     setLabelsText(JSON.parse(task.labels || '[]').join(', '));
-    setScheduledAt(task.scheduled_at ?? '');
+    setScheduledDate(task.scheduled_date);
+    setScheduledTime(task.scheduled_time ?? '');
     setEditRunnerId(task.runner_id ?? '');
     setEditAiProvider((task.ai_provider as AiProvider | null) ?? '');
     setEditHarnessConfig(parseHarnessConfig(task.harness_config));
@@ -112,10 +114,12 @@ export default function TaskDetailModal({
   };
 
   const handleSave = async () => {
+    if (!scheduledDate) return;
     const nextLabels = labelsText.split(',').map((label: string) => label.trim()).filter(Boolean);
     let updated = await updateTask(task.id, {
       title, description, status, priority, labels: nextLabels,
-      scheduledAt: scheduledAt || null,
+      scheduledDate,
+      scheduledTime: scheduledTime || null,
     });
 
     // Handle runner assignment changes separately so we go through the assign endpoint,
@@ -160,7 +164,6 @@ export default function TaskDetailModal({
   const editingStatusStyles = getTaskStatusStyles(status);
   const priorityStyles = getTaskPriorityStyles(task.priority);
   const editingPriorityStyles = getTaskPriorityStyles(priority);
-  const scheduledParts = splitScheduledDateTime(scheduledAt);
 
   const canRun = !!task.runner_id && !!task.ai_provider && task.status !== 'in_progress' && task.status !== 'todo';
   const isRerun = TERMINAL_STATUSES.includes(task.status);
@@ -286,62 +289,33 @@ export default function TaskDetailModal({
                   </SelectContent>
                 </Select>
 
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
+                  <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="date"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    required
+                    className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
+                  <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+
                 <LabelPicker
                   selectedLabels={labels}
                   allLabels={allLabels}
                   onToggle={toggleLabel}
                   onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
                 />
-              </div>
-
-              {/* Scheduled date / time */}
-              <div className="flex flex-col gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center">
-                <div className="flex min-w-0 items-center gap-2">
-                  <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                  <span className="text-[11px] font-medium text-muted-foreground/85">
-                    {scheduledAt ? 'Scheduled:' : 'No scheduled date'}
-                    {!scheduledAt && (
-                      <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/70">
-                        <Archive className="h-3 w-3" />
-                        Backlog
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[9.75rem_7.25rem]">
-                  <label className="min-w-0">
-                    <span className="sr-only">Schedule date</span>
-                    <Input
-                      type="date"
-                      value={scheduledParts.date}
-                      onChange={(e) => setScheduledAt((current) => updateScheduledDate(current, e.target.value))}
-                      className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
-                    />
-                  </label>
-                  <label className="min-w-0">
-                    <span className="sr-only">Schedule time</span>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={5}
-                      placeholder="HH:mm"
-                      value={scheduledParts.time}
-                      disabled={!scheduledParts.date}
-                      onChange={(e) => setScheduledAt((current) => updateScheduledTime(current, e.target.value))}
-                      onBlur={(e) => setScheduledAt((current) => updateScheduledTime(current, normalizeTimeInput(e.target.value)))}
-                      className="h-8 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:light] dark:[color-scheme:dark]"
-                    />
-                  </label>
-                </div>
-                {scheduledAt && (
-                  <button
-                    type="button"
-                    onClick={() => setScheduledAt('')}
-                    className="text-muted-foreground/60 hover:text-foreground transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
               </div>
 
               {/* Runner assignment */}
@@ -389,6 +363,14 @@ export default function TaskDetailModal({
                 </div>
               )}
 
+              <AppDialogSection className="rounded-lg bg-foreground/[0.02] p-4">
+                <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Scheduled</h3>
+                <div className="flex flex-wrap items-center gap-2 text-[13px] text-foreground">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                  <span>{formatTaskSchedule(task.scheduled_date, task.scheduled_time)}</span>
+                </div>
+              </AppDialogSection>
+
               {/* Runner Info */}
               <AppDialogSection className="rounded-lg bg-foreground/[0.02] p-4">
                 <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Runner Assignment</h3>
@@ -419,22 +401,6 @@ export default function TaskDetailModal({
                   </p>
                 )}
               </AppDialogSection>
-
-              {/* Scheduled date */}
-              <div className={cn('flex items-center gap-2 rounded-lg px-3 py-2.5 text-[12px]', task.scheduled_at ? 'bg-primary/[0.06] ring-1 ring-primary/15' : 'bg-muted/40')}>
-                <CalendarClock className={cn('h-3.5 w-3.5 shrink-0', task.scheduled_at ? 'text-primary/70' : 'text-muted-foreground/50')} />
-                {task.scheduled_at ? (
-                  <div>
-                    <span className="font-medium text-foreground/80">Scheduled: </span>
-                    <span className="text-muted-foreground/85">{formatScheduledDateTime(task.scheduled_at)}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <Archive className="h-3 w-3 text-muted-foreground/50" />
-                    <span className="text-muted-foreground/70">No schedule — stored in backlog</span>
-                  </div>
-                )}
-              </div>
 
               {/* Timestamps */}
               <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/75">
