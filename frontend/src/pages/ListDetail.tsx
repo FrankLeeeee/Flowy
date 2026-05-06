@@ -260,7 +260,7 @@ export default function ListDetail() {
         ) : viewMode === 'list' ? (
           <TaskListView tasks={visibleTasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         ) : (
-          <TaskTodoView tasks={visibleTasks} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+          <TaskTodoView tasks={visibleTasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}
       </div>
 

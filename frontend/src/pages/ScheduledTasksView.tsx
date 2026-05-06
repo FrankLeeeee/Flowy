@@ -170,7 +170,7 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
         className="motion-section"
         style={{ '--motion-delay': '200ms' } as React.CSSProperties}
       >
-        <TaskTodoView tasks={tasks} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+        <TaskTodoView tasks={tasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
       </div>
 
       <CreateTaskModal

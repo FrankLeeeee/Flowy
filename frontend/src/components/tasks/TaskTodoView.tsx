@@ -1,21 +1,23 @@
 import { useState } from 'react';
-import { Label, Task, TaskStatus } from '@/types';
+import { Label, Runner, Task, TaskStatus } from '@/types';
 import { ChevronDown, Check, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_CONFIG, PRIORITY_ICON } from '@/lib/taskConstants';
-import { getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
+import { getAiProviderStyles, getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 
 function TodoRow({
   task,
   onCheck,
   onRowClick,
   allLabels,
+  runner,
   checked = false,
 }: {
   task: Task;
   onCheck?: () => void;
   onRowClick?: () => void;
   allLabels: Label[];
+  runner?: Runner;
   checked?: boolean;
 }) {
   const statusStyles = getTaskStatusStyles(task.status);
@@ -32,11 +34,12 @@ function TodoRow({
   };
 
   const isChecked = checked || optimistic;
+  const hasMetadata = labels.length > 0 || runner || task.ai_provider;
 
   return (
     <div
       className={cn(
-        'flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all duration-150 group cursor-pointer',
+        'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border transition-all duration-150 group cursor-pointer',
         isChecked
           ? 'border-border/25 bg-card/40 hover:bg-card/60'
           : 'border-border/45 bg-card shadow-soft hover:border-border/75 hover:shadow-elevated motion-safe:hover:-translate-y-px',
@@ -49,7 +52,7 @@ function TodoRow({
         disabled={isChecked}
         aria-label={isChecked ? 'Completed' : 'Mark as complete'}
         className={cn(
-          'shrink-0 h-[18px] w-[18px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-150',
+          'shrink-0 mt-0.5 h-[18px] w-[18px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-150',
           isChecked
             ? 'border-emerald-500/60 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400'
             : 'border-foreground/20 hover:border-primary/50 hover:bg-primary/[0.06] cursor-pointer',
@@ -59,22 +62,24 @@ function TodoRow({
       </button>
 
       {showPriority && (
-        <span className={cn('shrink-0 [&>svg]:h-3 [&>svg]:w-3', priorityStyles.icon)}>
+        <span className={cn('shrink-0 mt-0.5 [&>svg]:h-3 [&>svg]:w-3', priorityStyles.icon)}>
           {PRIORITY_ICON[task.priority]}
         </span>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-        <span
-          className={cn(
-            'min-w-0 text-[13px] font-medium leading-snug truncate',
-            isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
-          )}
-        >
-          {task.title}
-        </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'min-w-0 text-[13px] font-medium leading-snug truncate',
+              isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
+            )}
+          >
+            {task.title}
+          </span>
+        </div>
 
-        {labels.length > 0 && (
+        {hasMetadata && (
           <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
             {labels.map((label) => {
               const colorStyles = getLabelColorStyles(label, allLabels);
@@ -84,6 +89,16 @@ function TodoRow({
                 </span>
               );
             })}
+            {runner && (
+              <span className="inline-flex items-center rounded-full bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-foreground/8">
+                {runner.name}
+              </span>
+            )}
+            {task.ai_provider && (
+              <span className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', getAiProviderStyles(task.ai_provider).pill)}>
+                {task.ai_provider}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -108,11 +123,13 @@ function TodoRow({
 interface TaskTodoViewProps {
   tasks: Task[];
   allLabels?: Label[];
+  runners?: Runner[];
   onTaskClick: (task: Task) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
 }
 
-export default function TaskTodoView({ tasks, allLabels = [], onTaskClick, onStatusChange }: TaskTodoViewProps) {
+export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTaskClick, onStatusChange }: TaskTodoViewProps) {
+  const runnerMap = new Map(runners.map((r) => [r.id, r]));
   const [completedOpen, setCompletedOpen] = useState(false);
 
   const uncompleted = tasks.filter((t) => t.status !== 'done' && t.status !== 'cancelled');
@@ -143,6 +160,7 @@ export default function TaskTodoView({ tasks, allLabels = [], onTaskClick, onSta
                 key={task.id}
                 task={task}
                 allLabels={allLabels}
+                runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
                 onCheck={() => onStatusChange(task.id, 'done')}
                 onRowClick={() => onTaskClick(task)}
               />
@@ -185,6 +203,7 @@ export default function TaskTodoView({ tasks, allLabels = [], onTaskClick, onSta
                     key={task.id}
                     task={task}
                     allLabels={allLabels}
+                    runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
                     checked
                     onRowClick={() => onTaskClick(task)}
                   />
