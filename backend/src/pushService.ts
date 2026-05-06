@@ -29,7 +29,7 @@ function ensurePushTable(): void {
       endpoint    TEXT PRIMARY KEY,
       keys_p256dh TEXT NOT NULL,
       keys_auth   TEXT NOT NULL,
-      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
   `);
 }

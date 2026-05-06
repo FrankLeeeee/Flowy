@@ -11,6 +11,7 @@ import { drainSkillCommandsFor } from '../skillQueue';
 import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSkillEntry } from '../skillInventory';
 import { drainSessionCommands } from './sessionCommandQueue';
 import { sendPushToAll } from '../pushService';
+import { parseUtcTimestamp, utcNow } from '../time';
 
 const router = Router();
 
@@ -98,11 +99,12 @@ router.post('/register', registrationLimiter, (req: Request, res: Response) => {
 
   const id = uuid();
   const token = crypto.randomBytes(32).toString('hex');
+  const now = utcNow();
 
   getDb().prepare(`
-    INSERT INTO runners (id, name, token, ai_providers, device_info, last_cli_scan_at)
-    VALUES (?, ?, ?, ?, ?, datetime('now'))
-  `).run(id, name, token, JSON.stringify(aiProviders ?? []), deviceInfo ?? '');
+    INSERT INTO runners (id, name, token, ai_providers, device_info, last_cli_scan_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, name, token, JSON.stringify(aiProviders ?? []), deviceInfo ?? '', now, now, now);
 
   res.status(201).json({ id, token });
 });
@@ -161,11 +163,12 @@ router.post('/:id/update-providers', requireUserAuth, (req: Request, res: Respon
     return;
   }
 
+  const now = utcNow();
   db.prepare(`
     UPDATE runners
-    SET cli_update_requested_at = datetime('now'), updated_at = datetime('now')
+    SET cli_update_requested_at = ?, updated_at = ?
     WHERE id = ?
-  `).run(runner.id);
+  `).run(now, now, runner.id);
 
   res.json({ ok: true });
 });
@@ -180,11 +183,12 @@ router.post('/:id/refresh-providers', requireUserAuth, (req: Request, res: Respo
     return;
   }
 
+  const now = utcNow();
   db.prepare(`
     UPDATE runners
-    SET cli_refresh_requested_at = datetime('now'), updated_at = datetime('now')
+    SET cli_refresh_requested_at = ?, updated_at = ?
     WHERE id = ?
-  `).run(runner.id);
+  `).run(now, now, runner.id);
 
   res.json({ ok: true });
 });
@@ -203,14 +207,15 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   `).get(runner.id) as { status: string; cli_refresh_requested_at: string | null; cli_update_requested_at: string | null; last_cli_scan_at: string | null } | undefined;
   const currentStatus = current?.status;
   const newStatus = currentStatus === 'busy' ? 'busy' : 'online';
+  const now = utcNow();
 
   // Build the UPDATE dynamically — only include optional columns when provided
   const sets = [
     'status = ?',
-    "last_heartbeat = datetime('now')",
-    "updated_at = datetime('now')",
+    'last_heartbeat = ?',
+    'updated_at = ?',
   ];
-  const params: unknown[] = [newStatus];
+  const params: unknown[] = [newStatus, now, now];
   if (aiProviders) { sets.push('ai_providers = ?'); params.push(JSON.stringify(aiProviders)); }
   if (lastCliScanAt) { sets.push('last_cli_scan_at = ?'); params.push(lastCliScanAt); }
   if (cliVersions) { sets.push('cli_versions = ?'); params.push(JSON.stringify(cliVersions)); }
@@ -218,7 +223,7 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   db.prepare(`UPDATE runners SET ${sets.join(', ')} WHERE id = ?`).run(...params);
 
   const isNewerThanScan = (ts: string | null | undefined): boolean => Boolean(
-    ts && (!lastCliScanAt || new Date(ts).getTime() > new Date(lastCliScanAt).getTime())
+    ts && (!lastCliScanAt || parseUtcTimestamp(ts) > parseUtcTimestamp(lastCliScanAt))
   );
 
   const refreshCli = isNewerThanScan(current?.cli_refresh_requested_at);
@@ -227,17 +232,17 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   if (!refreshCli && current?.cli_refresh_requested_at) {
     db.prepare(`
       UPDATE runners
-      SET cli_refresh_requested_at = NULL, updated_at = datetime('now')
+      SET cli_refresh_requested_at = NULL, updated_at = ?
       WHERE id = ?
-    `).run(runner.id);
+    `).run(now, runner.id);
   }
 
   if (!updateCli && current?.cli_update_requested_at) {
     db.prepare(`
       UPDATE runners
-      SET cli_update_requested_at = NULL, updated_at = datetime('now')
+      SET cli_update_requested_at = NULL, updated_at = ?
       WHERE id = ?
-    `).run(runner.id);
+    `).run(now, runner.id);
   }
 
   res.json({ ok: true, status: newStatus, refreshCli, updateCli });
@@ -345,17 +350,18 @@ router.post('/tasks/:taskId/pick', authenticateRunner, (req: Request, res: Respo
   if (!task) { res.status(404).json({ error: 'Task not found or not assigned to this runner' }); return; }
   if (task.status !== 'todo') { res.status(409).json({ error: `Task status is "${task.status}", expected "todo"` }); return; }
   if (!isTaskDue(task)) { res.status(409).json({ error: 'Task is scheduled for a future time' }); return; }
+  const now = utcNow();
 
   db.transaction(() => {
     db.prepare(`
-      UPDATE tasks SET status = 'in_progress', started_at = datetime('now'), output = '', updated_at = datetime('now')
+      UPDATE tasks SET status = 'in_progress', started_at = ?, output = '', updated_at = ?
       WHERE id = ?
-    `).run(task.id);
+    `).run(now, now, task.id);
 
-    db.prepare('UPDATE runners SET status = \'busy\', updated_at = datetime(\'now\') WHERE id = ?').run(runner.id);
+    db.prepare('UPDATE runners SET status = \'busy\', updated_at = ? WHERE id = ?').run(now, runner.id);
 
-    db.prepare('INSERT INTO task_logs (id, task_id, runner_id, event, data) VALUES (?, ?, ?, ?, ?)').run(
-      uuid(), task.id, runner.id, 'picked_up', '',
+    db.prepare('INSERT INTO task_logs (id, task_id, runner_id, event, data, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+      uuid(), task.id, runner.id, 'picked_up', '', now,
     );
   })();
 
@@ -372,10 +378,11 @@ router.post('/tasks/:taskId/output', authenticateRunner, (req: Request, res: Res
 
   const task = db.prepare('SELECT * FROM tasks WHERE id = ? AND runner_id = ?').get(req.params.taskId, runner.id) as Task | undefined;
   if (!task) { res.status(404).json({ error: 'Task not found or not assigned to this runner' }); return; }
+  const now = utcNow();
 
-  db.prepare(`UPDATE tasks SET output = COALESCE(output, '') || ?, updated_at = datetime('now') WHERE id = ?`).run(data, task.id);
-  db.prepare('INSERT INTO task_logs (id, task_id, runner_id, event, data) VALUES (?, ?, ?, ?, ?)').run(
-    uuid(), task.id, runner.id, 'output', data,
+  db.prepare(`UPDATE tasks SET output = COALESCE(output, '') || ?, updated_at = ? WHERE id = ?`).run(data, now, task.id);
+  db.prepare('INSERT INTO task_logs (id, task_id, runner_id, event, data, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+    uuid(), task.id, runner.id, 'output', data, now,
   );
 
   res.json({ ok: true });
@@ -392,20 +399,21 @@ router.post('/tasks/:taskId/complete', authenticateRunner, (req: Request, res: R
 
   const newStatus = success ? 'done' : 'failed';
   const event = success ? 'completed' : 'failed';
+  const now = utcNow();
 
   db.transaction(() => {
     if (data) {
       db.prepare(`UPDATE tasks SET output = COALESCE(output, '') || ? WHERE id = ?`).run(data, task.id);
     }
     db.prepare(`
-      UPDATE tasks SET status = ?, completed_at = datetime('now'), updated_at = datetime('now')
+      UPDATE tasks SET status = ?, completed_at = ?, updated_at = ?
       WHERE id = ?
-    `).run(newStatus, task.id);
+    `).run(newStatus, now, now, task.id);
 
-    db.prepare('UPDATE runners SET status = \'online\', updated_at = datetime(\'now\') WHERE id = ?').run(runner.id);
+    db.prepare('UPDATE runners SET status = \'online\', updated_at = ? WHERE id = ?').run(now, runner.id);
 
-    db.prepare('INSERT INTO task_logs (id, task_id, runner_id, event, data) VALUES (?, ?, ?, ?, ?)').run(
-      uuid(), task.id, runner.id, event, data ?? '',
+    db.prepare('INSERT INTO task_logs (id, task_id, runner_id, event, data, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+      uuid(), task.id, runner.id, event, data ?? '', now,
     );
   })();
 
@@ -449,8 +457,8 @@ router.post('/sessions/:sessionId/output', authenticateRunner, (req: Request, re
     "UPDATE session_messages SET content = content || ? WHERE id = ?",
   ).run(data, messageId);
   db.prepare(
-    "UPDATE sessions SET updated_at = datetime('now') WHERE id = ?",
-  ).run(session.id);
+    'UPDATE sessions SET updated_at = ? WHERE id = ?',
+  ).run(utcNow(), session.id);
 
   res.json({ ok: true });
 });
@@ -468,6 +476,7 @@ router.post('/sessions/:sessionId/complete', authenticateRunner, (req: Request, 
     .get(req.params.sessionId, runner.id) as { id: string; status: string } | undefined;
   if (!session) { res.status(404).json({ error: 'Session not found for this runner' }); return; }
 
+  const now = utcNow();
   db.transaction(() => {
     if (messageId && data) {
       db.prepare(
@@ -476,13 +485,13 @@ router.post('/sessions/:sessionId/complete', authenticateRunner, (req: Request, 
     }
     if (session.status !== 'stopped') {
       db.prepare(
-        "UPDATE sessions SET status = 'idle', updated_at = datetime('now') WHERE id = ?",
-      ).run(session.id);
+        "UPDATE sessions SET status = 'idle', updated_at = ? WHERE id = ?",
+      ).run(now, session.id);
     }
     if (success === false) {
       db.prepare(
-        "INSERT INTO session_messages (id, session_id, role, content) VALUES (?, ?, ?, ?)",
-      ).run(uuid(), session.id, 'system', '[Turn failed]');
+        'INSERT INTO session_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
+      ).run(uuid(), session.id, 'system', '[Turn failed]', now);
     }
   })();
 

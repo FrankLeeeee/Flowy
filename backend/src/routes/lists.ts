@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { getDb } from '../db';
 import { List } from '../types';
 import { formatTaskKey, normalizeListName } from '../listIdentity';
+import { utcNow } from '../time';
 
 const router = Router();
 
@@ -31,9 +32,10 @@ router.post('/', (req: Request, res: Response) => {
 
   const id = uuid();
   const maxPos = (getDb().prepare('SELECT COALESCE(MAX(position), 0) AS m FROM lists').get() as { m: number }).m;
+  const now = utcNow();
   getDb().prepare(`
-    INSERT INTO lists (id, name, icon, description, position) VALUES (?, ?, ?, ?, ?)
-  `).run(id, normalizedName, normalizeIcon(icon), description ?? '', maxPos + 1);
+    INSERT INTO lists (id, name, icon, description, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, normalizedName, normalizeIcon(icon), description ?? '', maxPos + 1, now, now);
 
   const list = getDb().prepare('SELECT * FROM lists WHERE id = ?').get(id) as List;
   res.status(201).json(list);
@@ -48,9 +50,10 @@ router.put('/reorder', (req: Request, res: Response) => {
   }
 
   const db = getDb();
-  const update = db.prepare('UPDATE lists SET position = ?, updated_at = datetime(\'now\') WHERE id = ?');
+  const update = db.prepare('UPDATE lists SET position = ?, updated_at = ? WHERE id = ?');
   const reorder = db.transaction(() => {
-    ids.forEach((id, i) => update.run(i + 1, id));
+    const now = utcNow();
+    ids.forEach((id, i) => update.run(i + 1, now, id));
   });
   reorder();
 
@@ -89,8 +92,8 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const updateList = db.transaction(() => {
     db.prepare(`
-      UPDATE lists SET name = ?, description = ?, icon = ?, updated_at = datetime('now') WHERE id = ?
-    `).run(normalizedName, nextDescription, nextIcon, req.params.id);
+      UPDATE lists SET name = ?, description = ?, icon = ?, updated_at = ? WHERE id = ?
+    `).run(normalizedName, nextDescription, nextIcon, utcNow(), req.params.id);
 
     if (normalizedName !== list.name) {
       const updateTaskKey = db.prepare('UPDATE tasks SET task_key = ? WHERE id = ?');

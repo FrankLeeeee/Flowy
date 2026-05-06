@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatTaskKey, normalizeListName } from './listIdentity';
 import { DATA_DIR, ensureDataDir } from './dataDir';
+import { utcNow } from './time';
 
 const DB_DIR = DATA_DIR;
 const DB_FILE = path.join(DB_DIR, 'hub.db');
@@ -56,8 +57,8 @@ function migrate(): void {
       icon          TEXT,
       description   TEXT NOT NULL DEFAULT '',
       next_task_num INTEGER NOT NULL DEFAULT 1,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE TABLE IF NOT EXISTS runners (
@@ -69,8 +70,8 @@ function migrate(): void {
       ai_providers   TEXT NOT NULL DEFAULT '[]',
       last_heartbeat TEXT,
       device_info    TEXT NOT NULL DEFAULT '',
-      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE TABLE IF NOT EXISTS tasks (
@@ -93,8 +94,8 @@ function migrate(): void {
       scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE INDEX IF NOT EXISTS idx_tasks_list_id ON tasks(list_id);
@@ -107,7 +108,7 @@ function migrate(): void {
       runner_id  TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
       event      TEXT NOT NULL CHECK (event IN ('picked_up','output','completed','failed','cancelled')),
       data       TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
   `);
 
@@ -120,8 +121,8 @@ function migrate(): void {
       harness_config TEXT NOT NULL DEFAULT '{}',
       status         TEXT NOT NULL DEFAULT 'idle'
                      CHECK (status IN ('idle','busy','stopped')),
-      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE INDEX IF NOT EXISTS idx_sessions_runner_id ON sessions(runner_id);
@@ -132,7 +133,7 @@ function migrate(): void {
       session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
       role       TEXT NOT NULL CHECK (role IN ('user','assistant','system')),
       content    TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE INDEX IF NOT EXISTS idx_session_messages_session_id ON session_messages(session_id);
@@ -141,8 +142,8 @@ function migrate(): void {
       id         TEXT PRIMARY KEY,
       name       TEXT NOT NULL UNIQUE,
       color      TEXT NOT NULL DEFAULT 'blue',
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     CREATE TABLE IF NOT EXISTS settings (
@@ -152,7 +153,7 @@ function migrate(): void {
 
     CREATE TABLE IF NOT EXISTS user_sessions (
       token      TEXT PRIMARY KEY,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       expires_at TEXT NOT NULL
     );
   `);
@@ -203,8 +204,8 @@ function migrateProjectsToLists(): void {
       icon          TEXT,
       description   TEXT NOT NULL DEFAULT '',
       next_task_num INTEGER NOT NULL DEFAULT 1,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     INSERT INTO lists (id, name, description, next_task_num, created_at, updated_at)
@@ -232,8 +233,8 @@ function migrateProjectsToLists(): void {
       scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     INSERT INTO tasks_new (
@@ -326,13 +327,13 @@ const EMOJI_LABEL_MAP: Record<string, string> = {
 function migrateDefaultLabelEmoji(): void {
   if (getDbSetting('migrated_label_emoji') === '1') return;
 
-  const updateLabel = db.prepare('UPDATE labels SET name = ?, updated_at = datetime(\'now\') WHERE name = ?');
+  const updateLabel = db.prepare('UPDATE labels SET name = ?, updated_at = ? WHERE name = ?');
   const getAllTasks = db.prepare('SELECT id, labels FROM tasks WHERE labels != \'[]\'');
   const updateTaskLabels = db.prepare('UPDATE tasks SET labels = ? WHERE id = ?');
 
   const migration = db.transaction(() => {
     for (const [oldName, newName] of Object.entries(EMOJI_LABEL_MAP)) {
-      updateLabel.run(newName, oldName);
+      updateLabel.run(newName, utcNow(), oldName);
     }
 
     const tasks = getAllTasks.all() as Array<{ id: string; labels: string }>;
@@ -369,10 +370,11 @@ function seedDefaultLabels(): void {
   const count = (db.prepare('SELECT COUNT(*) AS cnt FROM labels').get() as { cnt: number }).cnt;
   if (count > 0) return;
 
-  const insert = db.prepare('INSERT INTO labels (id, name, color) VALUES (?, ?, ?)');
+  const insert = db.prepare('INSERT INTO labels (id, name, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?)');
   const seed = db.transaction(() => {
     for (const label of DEFAULT_LABELS) {
-      insert.run(uuid(), label.name, label.color);
+      const now = utcNow();
+      insert.run(uuid(), label.name, label.color, now, now);
     }
   });
   seed();
@@ -408,8 +410,8 @@ function migrateTaskStatuses(): void {
       scheduled_time TEXT,
       started_at    TEXT,
       completed_at  TEXT,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     INSERT INTO tasks_new (
@@ -462,8 +464,8 @@ function migrateAddGeminiProvider(): void {
       output        TEXT,
       started_at    TEXT,
       completed_at  TEXT,
-      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     INSERT INTO tasks_new (
@@ -505,8 +507,8 @@ function migrateAddGeminiProviderToSessions(): void {
       harness_config TEXT NOT NULL DEFAULT '{}',
       status         TEXT NOT NULL DEFAULT 'idle'
                      CHECK (status IN ('idle','busy','stopped')),
-      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
     INSERT INTO sessions_new (id, title, runner_id, ai_provider, harness_config, status, created_at, updated_at)
@@ -636,10 +638,10 @@ function purgeExpiredUserSessions(): void {
 function startOfflineChecker(): void {
   setInterval(() => {
     db.prepare(`
-      UPDATE runners SET status = 'offline', updated_at = datetime('now')
+      UPDATE runners SET status = 'offline', updated_at = ?
       WHERE status != 'offline'
         AND last_heartbeat IS NOT NULL
         AND (julianday('now') - julianday(last_heartbeat)) * 86400 > 90
-    `).run();
+    `).run(utcNow());
   }, 60_000);
 }

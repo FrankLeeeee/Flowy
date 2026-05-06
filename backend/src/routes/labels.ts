@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
 import { getDb } from '../db';
 import { Label } from '../types';
+import { utcNow } from '../time';
 
 const router = Router();
 
@@ -21,7 +22,8 @@ router.post('/', (req: Request, res: Response) => {
   if (existing) { res.status(409).json({ error: 'A label with that name already exists' }); return; }
 
   const id = uuid();
-  db.prepare('INSERT INTO labels (id, name, color) VALUES (?, ?, ?)').run(id, name.trim(), color ?? 'blue');
+  const now = utcNow();
+  db.prepare('INSERT INTO labels (id, name, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run(id, name.trim(), color ?? 'blue', now, now);
   const label = db.prepare('SELECT * FROM labels WHERE id = ?').get(id) as Label;
   res.status(201).json(label);
 });
@@ -41,9 +43,10 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const oldName = label.name;
   const newName = name?.trim() ?? label.name;
+  const now = utcNow();
 
-  db.prepare("UPDATE labels SET name = ?, color = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(newName, color ?? label.color, req.params.id);
+  db.prepare('UPDATE labels SET name = ?, color = ?, updated_at = ? WHERE id = ?')
+    .run(newName, color ?? label.color, now, req.params.id);
 
   // Update label name in all tasks that reference it
   if (newName !== oldName) {
@@ -53,8 +56,8 @@ router.put('/:id', (req: Request, res: Response) => {
       const idx = taskLabels.findIndex((l) => l.toLowerCase() === oldName.toLowerCase());
       if (idx !== -1) {
         taskLabels[idx] = newName;
-        db.prepare("UPDATE tasks SET labels = ?, updated_at = datetime('now') WHERE id = ?")
-          .run(JSON.stringify(taskLabels), task.id);
+        db.prepare('UPDATE tasks SET labels = ?, updated_at = ? WHERE id = ?')
+          .run(JSON.stringify(taskLabels), now, task.id);
       }
     }
   }
@@ -68,6 +71,7 @@ router.delete('/:id', (req: Request, res: Response) => {
   const db = getDb();
   const label = db.prepare('SELECT * FROM labels WHERE id = ?').get(req.params.id) as Label | undefined;
   if (!label) { res.status(404).json({ error: 'Label not found' }); return; }
+  const now = utcNow();
 
   // Remove this label from all tasks
   const tasks = db.prepare('SELECT id, labels FROM tasks').all() as Array<{ id: string; labels: string }>;
@@ -75,8 +79,8 @@ router.delete('/:id', (req: Request, res: Response) => {
     const taskLabels: string[] = JSON.parse(task.labels || '[]');
     const filtered = taskLabels.filter((l) => l.toLowerCase() !== label.name.toLowerCase());
     if (filtered.length !== taskLabels.length) {
-      db.prepare("UPDATE tasks SET labels = ?, updated_at = datetime('now') WHERE id = ?")
-        .run(JSON.stringify(filtered), task.id);
+      db.prepare('UPDATE tasks SET labels = ?, updated_at = ? WHERE id = ?')
+        .run(JSON.stringify(filtered), now, task.id);
     }
   }
 
