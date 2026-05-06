@@ -5,15 +5,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const TIMEZONE_SUFFIX_RE = /(?:[zZ]|[+-]\d{2}:?\d{2})$/;
+
+function normalizeUtcTimestamp(value: string): string {
+  const timestamp = value.trim();
+  const withTimezone = TIMEZONE_SUFFIX_RE.test(timestamp) ? timestamp : `${timestamp}Z`;
+  return withTimezone.replace(' ', 'T');
+}
+
 /**
  * Returns a human-readable relative time string for a UTC ISO timestamp.
- * Normalizes timestamps that lack a timezone suffix before parsing.
+ * Legacy SQLite timestamps are UTC but may lack a timezone suffix.
  */
 export function timeAgo(iso: string | null): string {
   if (!iso) return 'never';
-  // Append 'Z' if no timezone indicator is present (SQLite stores UTC without 'Z')
-  const normalized = /[zZ]$|[+-]\d{2}:\d{2}$/.test(iso) ? iso : `${iso}Z`;
-  const timestamp = new Date(normalized).getTime();
+  const timestamp = parseUtcTimestamp(iso);
   if (Number.isNaN(timestamp)) return 'unknown';
   const ms = Date.now() - timestamp;
   if (ms < 60_000) return 'just now';
@@ -22,8 +28,15 @@ export function timeAgo(iso: string | null): string {
   return `${Math.floor(ms / 86_400_000)}d ago`;
 }
 
-function parseUtcTimestamp(iso: string): number {
-  return new Date(iso.endsWith('Z') ? iso : `${iso}Z`).getTime();
+export function parseUtcTimestamp(iso: string): number {
+  return new Date(normalizeUtcTimestamp(iso)).getTime();
+}
+
+export function formatLocalDateTime(iso: string | null): string {
+  if (!iso) return '-';
+  const timestamp = parseUtcTimestamp(iso);
+  if (Number.isNaN(timestamp)) return 'Invalid date';
+  return new Date(timestamp).toLocaleString();
 }
 
 export function formatElapsedTime(startedAt: string | null, completedAt: string | null): string | null {

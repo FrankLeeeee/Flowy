@@ -4,6 +4,7 @@ import { getDb } from '../db';
 import { Session, SessionMessage } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
 import { enqueueSessionCommand } from './sessionCommandQueue';
+import { utcNow } from '../time';
 
 const router = Router();
 
@@ -110,8 +111,8 @@ router.post('/:id/input', (req: Request, res: Response) => {
     ).run(assistantMessageId, session.id, 'assistant', '');
 
     db.prepare(
-      "UPDATE sessions SET status = 'busy', updated_at = datetime('now') WHERE id = ?",
-    ).run(session.id);
+      "UPDATE sessions SET status = 'busy', updated_at = ? WHERE id = ?",
+    ).run(utcNow(), session.id);
   })();
 
   const history = messages.map((m) => ({ role: m.role, content: m.content }));
@@ -140,8 +141,8 @@ router.post('/:id/stop', (req: Request, res: Response) => {
   if (!session) { res.status(404).json({ error: 'Session not found' }); return; }
 
   db.prepare(
-    "UPDATE sessions SET status = 'stopped', updated_at = datetime('now') WHERE id = ?",
-  ).run(session.id);
+    "UPDATE sessions SET status = 'stopped', updated_at = ? WHERE id = ?",
+  ).run(utcNow(), session.id);
 
   enqueueSessionCommand(session.runner_id, {
     sessionId: session.id,

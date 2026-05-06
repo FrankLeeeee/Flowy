@@ -4,6 +4,7 @@ import { getDb, nextInboxTaskNumber } from '../db';
 import { Task, List, TaskLog } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
 import { formatTaskKey } from '../listIdentity';
+import { utcNow } from '../time';
 
 const router = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -105,18 +106,19 @@ router.post('/', (req: Request, res: Response) => {
   const initialStatus = shouldAutoQueue(schedule.scheduledTime, resolvedRunnerId, resolvedAiProvider) ? 'todo' : 'backlog';
   const normalizedHarness = harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : '{}';
 
+  const now = utcNow();
   const insertTask = db.transaction(() => {
     db.prepare(`
-      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_date, scheduled_time, status, runner_id, ai_provider, harness_config)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_date, scheduled_time, status, runner_id, ai_provider, harness_config, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, resolvedListId, taskNumber, taskKey, title, description ?? '', priority ?? 'none',
       JSON.stringify(labels ?? []), schedule.scheduledDate, schedule.scheduledTime, initialStatus,
-      resolvedRunnerId, resolvedAiProvider, normalizedHarness,
+      resolvedRunnerId, resolvedAiProvider, normalizedHarness, now, now,
     );
 
     if (resolvedListId) {
-      db.prepare('UPDATE lists SET next_task_num = next_task_num + 1, updated_at = datetime(\'now\') WHERE id = ?').run(resolvedListId);
+      db.prepare('UPDATE lists SET next_task_num = next_task_num + 1, updated_at = ? WHERE id = ?').run(now, resolvedListId);
     }
   });
 
@@ -160,7 +162,7 @@ router.put('/:id', (req: Request, res: Response) => {
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
       labels = ?, scheduled_date = ?, scheduled_time = ?,
-      runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = datetime('now')
+      runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = ?
     WHERE id = ?
   `).run(
     title ?? task.title,
@@ -173,6 +175,7 @@ router.put('/:id', (req: Request, res: Response) => {
     resolvedRunnerId,
     resolvedAiProvider,
     harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config,
+    utcNow(),
     req.params.id,
   );
 
@@ -210,9 +213,9 @@ router.post('/:id/assign', (req: Request, res: Response) => {
       : task.status;
 
   db.prepare(`
-    UPDATE tasks SET runner_id = ?, ai_provider = ?, harness_config = ?, status = ?, updated_at = datetime('now')
+    UPDATE tasks SET runner_id = ?, ai_provider = ?, harness_config = ?, status = ?, updated_at = ?
     WHERE id = ?
-  `).run(runnerId, aiProvider, harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config, nextStatus, req.params.id);
+  `).run(runnerId, aiProvider, harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config, nextStatus, utcNow(), req.params.id);
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
   res.json(updated);
@@ -235,9 +238,9 @@ router.post('/:id/run', (req: Request, res: Response) => {
 
   db.prepare(`
     UPDATE tasks SET status = 'todo', output = '', started_at = NULL, completed_at = NULL,
-      scheduled_date = ?, scheduled_time = ?, updated_at = datetime('now')
+      scheduled_date = ?, scheduled_time = ?, updated_at = ?
     WHERE id = ?
-  `).run(todayDate(), currentTime(), req.params.id);
+  `).run(todayDate(), currentTime(), utcNow(), req.params.id);
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
   res.json(updated);
