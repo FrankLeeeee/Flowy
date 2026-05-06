@@ -143,7 +143,7 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
       )}
 
       {/* Task list */}
-      <TaskTodoView tasks={tasks} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+      <TaskTodoView tasks={tasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
 
       {/* Modals */}
       <CreateTaskModal
