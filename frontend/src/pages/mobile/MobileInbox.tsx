@@ -59,8 +59,8 @@ export default function MobileInbox() {
 
   useEffect(() => {
     const handler = () => setShowCreate(true);
-    window.addEventListener('flowy:mobile-create-task', handler);
-    return () => window.removeEventListener('flowy:mobile-create-task', handler);
+    window.addEventListener('flowy:mobile-create', handler);
+    return () => window.removeEventListener('flowy:mobile-create', handler);
   }, []);
 
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => {
@@ -97,7 +97,7 @@ export default function MobileInbox() {
   return (
     <div className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
+      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-[18px] font-bold tracking-tight text-foreground">Inbox</h1>
