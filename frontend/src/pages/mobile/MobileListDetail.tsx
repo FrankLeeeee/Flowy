@@ -79,6 +79,12 @@ export default function MobileListDetail() {
   useEffect(() => { setLoading(true); loadData(); }, [loadData]);
   useEffect(() => { const iv = setInterval(loadData, 10_000); return () => clearInterval(iv); }, [loadData]);
 
+  useEffect(() => {
+    const handler = () => setShowCreate(true);
+    window.addEventListener('flowy:mobile-create-task', handler);
+    return () => window.removeEventListener('flowy:mobile-create-task', handler);
+  }, []);
+
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => { await createTask(data); setShowCreate(false); loadData(); };
   const confirmDeleteTask = async () => {
     if (!deleteTaskTarget) return;

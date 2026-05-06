@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
-import { Plus, SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 
 export default function MobileInbox() {
   const successTone = getToneStyles('success');
@@ -56,6 +56,12 @@ export default function MobileInbox() {
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { const iv = setInterval(loadData, 10_000); return () => clearInterval(iv); }, [loadData]);
+
+  useEffect(() => {
+    const handler = () => setShowCreate(true);
+    window.addEventListener('flowy:mobile-create-task', handler);
+    return () => window.removeEventListener('flowy:mobile-create-task', handler);
+  }, []);
 
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => {
     await createTask(data); setShowCreate(false); loadData();
@@ -104,28 +110,19 @@ export default function MobileInbox() {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className={cn(
-                'relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 transition-colors active:bg-muted/50',
-                hasActiveFilters && 'border-primary/40 bg-primary/5',
-              )}
-            >
-              <SlidersHorizontal className={cn('h-4 w-4', hasActiveFilters ? 'text-primary' : 'text-muted-foreground')} />
-              {hasActiveFilters && (
-                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft active:opacity-90"
-            >
-              <Plus className="h-4.5 w-4.5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters(true)}
+            className={cn(
+              'relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 transition-colors active:bg-muted/50',
+              hasActiveFilters && 'border-primary/40 bg-primary/5',
+            )}
+          >
+            <SlidersHorizontal className={cn('h-4 w-4', hasActiveFilters ? 'text-primary' : 'text-muted-foreground')} />
+            {hasActiveFilters && (
+              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+            )}
+          </button>
         </div>
       </div>
 
