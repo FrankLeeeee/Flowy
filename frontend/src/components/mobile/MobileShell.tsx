@@ -49,7 +49,6 @@ export default function MobileShell({ children }: MobileShellProps) {
       ) : (
         <div
           className="flex-none bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="grid grid-cols-[auto_1fr_auto] items-center px-3 h-14">
             <button
