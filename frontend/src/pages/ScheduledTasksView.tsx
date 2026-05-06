@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, List, Runner, TaskStatus } from '../types';
+import { Task, List, Runner, Label, TaskStatus } from '../types';
 import {
-  fetchTasks, fetchRunners, fetchLists, createTask, deleteTask, getTask, updateTask,
+  fetchTasks, fetchRunners, fetchLists, fetchLabels, createTask, deleteTask, getTask, updateTask,
 } from '../api/client';
 import TaskTodoView from '../components/tasks/TaskTodoView';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
@@ -32,6 +32,7 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [allLists, setAllLists] = useState<List[]>([]);
+  const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -56,9 +57,10 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
 
   const loadData = useCallback(async () => {
     try {
-      const [allTasks, ls, r] = await Promise.all([fetchTasks(), fetchLists(), fetchRunners()]);
+      const [allTasks, ls, labels, r] = await Promise.all([fetchTasks(), fetchLists(), fetchLabels(), fetchRunners()]);
       setTasks(filterTasks(allTasks));
       setAllLists(ls);
+      setAllLabels(labels);
       setRunners(r);
       setError('');
     } catch (e) {
@@ -168,7 +170,7 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
         className="motion-section"
         style={{ '--motion-delay': '200ms' } as React.CSSProperties}
       >
-        <TaskTodoView tasks={tasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+        <TaskTodoView tasks={tasks} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
       </div>
 
       <CreateTaskModal

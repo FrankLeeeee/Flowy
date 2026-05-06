@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, List, Runner, TaskStatus } from '../../types';
-import { fetchTasks, fetchRunners, fetchLists, createTask, deleteTask, getTask, updateTask } from '../../api/client';
+import { Task, List, Runner, Label, TaskStatus } from '../../types';
+import { fetchTasks, fetchRunners, fetchLists, fetchLabels, createTask, deleteTask, getTask, updateTask } from '../../api/client';
 import TaskTodoView from '../../components/tasks/TaskTodoView';
 import CreateTaskModal from '../../components/tasks/CreateTaskModal';
 import TaskDetailModal from '../../components/tasks/TaskDetailModal';
@@ -22,6 +22,7 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [allLists, setAllLists] = useState<List[]>([]);
+  const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,12 +33,13 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
 
   const loadData = useCallback(async () => {
     try {
-      const [allTasks, ls, r] = await Promise.all([fetchTasks(), fetchLists(), fetchRunners()]);
+      const [allTasks, ls, labels, r] = await Promise.all([fetchTasks(), fetchLists(), fetchLabels(), fetchRunners()]);
       const filtered = allTasks.filter(
         (t) => t.status !== 'cancelled' && t.scheduled_date === selectedDate,
       );
       setTasks(filtered);
       setAllLists(ls);
+      setAllLabels(labels);
       setRunners(r);
       setError('');
     } catch (e) {
@@ -141,7 +143,7 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
       )}
 
       {/* Task list */}
-      <TaskTodoView tasks={tasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+      <TaskTodoView tasks={tasks} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
 
       {/* Modals */}
       <CreateTaskModal
