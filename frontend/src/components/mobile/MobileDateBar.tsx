@@ -98,7 +98,7 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
         }}
         onMouseUp={handleTouchEnd}
         onMouseLeave={() => { if (dragging) handleTouchEnd(); }}
-        className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] touch-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Drag handle — affordance for pull-up gesture */}
@@ -106,7 +106,7 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
           <div className="h-1 w-10 rounded-full bg-foreground/20" />
         </div>
 
-        <div className="relative grid grid-cols-[auto_1fr_auto] items-center px-3 h-14 select-none touch-pan-y">
+        <div className="relative grid grid-cols-[auto_1fr_auto] items-center px-3 h-14 select-none">
           {/* Left: menu */}
           <button
             type="button"
@@ -175,18 +175,6 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
           >
             <Plus className="h-5 w-5" />
           </button>
-        </div>
-
-        {/* Caption hint — visible by default, hidden while swiping */}
-        <div className="flex justify-center pb-1.5">
-          <span
-            className={cn(
-              'text-[10px] text-muted-foreground/50 transition-opacity pointer-events-none',
-              dragging ? 'opacity-0' : 'opacity-100',
-            )}
-          >
-            swipe to change date · pull up for calendar
-          </span>
         </div>
       </div>
 

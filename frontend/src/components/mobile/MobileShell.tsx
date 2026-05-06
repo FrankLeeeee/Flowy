@@ -31,7 +31,7 @@ export default function MobileShell({ children }: MobileShellProps) {
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))',
+          paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom))',
         }}
       >
         <div key={location.pathname} className="motion-page">
