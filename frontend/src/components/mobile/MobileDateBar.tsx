@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addDays, formatDateLabel } from '@/lib/mobileDateBar';
 
@@ -99,12 +99,26 @@ export default function MobileDateBar({ currentDate, onDateChange }: MobileDateB
         className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {/* Drag handle */}
+        {/* Drag handle — affordance for pull-up gesture */}
         <div className="flex justify-center pt-1.5 pb-0.5">
           <div className="h-1 w-10 rounded-full bg-foreground/20" />
         </div>
 
-        <div className="relative flex items-center justify-center h-14 select-none touch-pan-y cursor-grab active:cursor-grabbing">
+        <div className="relative flex flex-col items-center justify-center h-14 select-none touch-pan-y cursor-grab active:cursor-grabbing">
+          {/* Static side-arrow hints — fade out while actively swiping */}
+          <ChevronLeft
+            className={cn(
+              'absolute left-6 h-4 w-4 text-muted-foreground/35 transition-opacity pointer-events-none',
+              dragging ? 'opacity-0' : 'opacity-100',
+            )}
+          />
+          <ChevronRight
+            className={cn(
+              'absolute right-6 h-4 w-4 text-muted-foreground/35 transition-opacity pointer-events-none',
+              dragging ? 'opacity-0' : 'opacity-100',
+            )}
+          />
+
           <div
             className="flex items-center gap-1.5"
             style={{
@@ -123,7 +137,17 @@ export default function MobileDateBar({ currentDate, onDateChange }: MobileDateB
             </span>
           </div>
 
-          {/* Swipe hint indicators */}
+          {/* Caption hint — visible by default, hidden while swiping */}
+          <span
+            className={cn(
+              'mt-0.5 text-[10px] text-muted-foreground/50 transition-opacity pointer-events-none',
+              dragging ? 'opacity-0' : 'opacity-100',
+            )}
+          >
+            swipe to change date · pull up for calendar
+          </span>
+
+          {/* Active-swipe neighbor-date indicator */}
           <div className="absolute inset-x-0 flex items-center justify-between px-6 pointer-events-none">
             <span
               className={cn(
