@@ -75,7 +75,7 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
         onMouseMove={(e) => dragging && dragMove(e.clientX, e.clientY)}
         onMouseUp={dragEnd}
         onMouseLeave={() => { if (dragging) dragEnd(); }}
-        className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] touch-none"
+        className="flex-none bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] touch-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="relative grid grid-cols-[auto_1fr_auto] items-center px-3 h-14 select-none">

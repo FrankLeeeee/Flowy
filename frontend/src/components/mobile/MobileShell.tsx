@@ -31,7 +31,6 @@ export default function MobileShell({ children }: MobileShellProps) {
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom))',
         }}
       >
         <div key={location.pathname} className="motion-page">
@@ -49,7 +48,7 @@ export default function MobileShell({ children }: MobileShellProps) {
         />
       ) : (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
+          className="flex-none bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="grid grid-cols-[auto_1fr_auto] items-center px-3 h-14">
