@@ -1,14 +1,16 @@
 import { useRef, useState, useCallback } from 'react';
-import { ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addDays, formatDateLabel } from '@/lib/mobileDateBar';
 
 interface MobileDateBarProps {
   currentDate: string;
   onDateChange: (date: string) => void;
+  onMenuClick: () => void;
+  onCreate: () => void;
 }
 
-export default function MobileDateBar({ currentDate, onDateChange }: MobileDateBarProps) {
+export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, onCreate }: MobileDateBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -104,54 +106,49 @@ export default function MobileDateBar({ currentDate, onDateChange }: MobileDateB
           <div className="h-1 w-10 rounded-full bg-foreground/20" />
         </div>
 
-        <div className="relative flex flex-col items-center justify-center h-14 select-none touch-pan-y cursor-grab active:cursor-grabbing">
-          {/* Static side-arrow hints — fade out while actively swiping */}
-          <ChevronLeft
-            className={cn(
-              'absolute left-6 h-4 w-4 text-muted-foreground/35 transition-opacity pointer-events-none',
-              dragging ? 'opacity-0' : 'opacity-100',
-            )}
-          />
-          <ChevronRight
-            className={cn(
-              'absolute right-6 h-4 w-4 text-muted-foreground/35 transition-opacity pointer-events-none',
-              dragging ? 'opacity-0' : 'opacity-100',
-            )}
-          />
-
-          <div
-            className="flex items-center gap-1.5"
-            style={{
-              transform: dragging ? `translateX(${translateX}px)` : undefined,
-              transition: dragging ? 'none' : 'transform 0.2s ease-out',
-            }}
+        <div className="relative grid grid-cols-[auto_1fr_auto] items-center px-3 h-14 select-none touch-pan-y">
+          {/* Left: menu */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onMenuClick(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-foreground active:bg-muted/50 cursor-pointer"
+            aria-label="Open menu"
           >
-            <ChevronUp
-              className={cn(
-                'h-4 w-4 text-muted-foreground transition-transform',
-                calendarDragY > 20 && '-translate-y-1',
-              )}
-            />
-            <span className="text-[15px] font-semibold text-foreground">
-              {formatDateLabel(currentDate)}
-            </span>
-          </div>
+            <Menu className="h-5 w-5" />
+          </button>
 
-          {/* Caption hint — visible by default, hidden while swiping */}
-          <span
-            className={cn(
-              'mt-0.5 text-[10px] text-muted-foreground/50 transition-opacity pointer-events-none',
-              dragging ? 'opacity-0' : 'opacity-100',
-            )}
-          >
-            swipe to change date · pull up for calendar
-          </span>
+          {/* Center: date with grey chevron hints close on either side */}
+          <div className="relative flex items-center justify-center cursor-grab active:cursor-grabbing">
+            <div
+              className="flex items-center gap-2.5"
+              style={{
+                transform: dragging ? `translateX(${translateX}px)` : undefined,
+                transition: dragging ? 'none' : 'transform 0.2s ease-out',
+              }}
+            >
+              <ChevronLeft
+                className={cn(
+                  'h-4 w-4 text-muted-foreground/40 transition-opacity',
+                  Math.abs(translateX) > 30 ? 'opacity-0' : 'opacity-100',
+                )}
+              />
+              <span className="text-[15px] font-semibold text-foreground">
+                {formatDateLabel(currentDate)}
+              </span>
+              <ChevronRight
+                className={cn(
+                  'h-4 w-4 text-muted-foreground/40 transition-opacity',
+                  Math.abs(translateX) > 30 ? 'opacity-0' : 'opacity-100',
+                )}
+              />
+            </div>
 
-          {/* Active-swipe neighbor-date indicator */}
-          <div className="absolute inset-x-0 flex items-center justify-between px-6 pointer-events-none">
+            {/* Active-swipe neighbor-date indicator */}
             <span
               className={cn(
-                'text-[12px] text-muted-foreground/60 transition-opacity',
+                'absolute left-0 text-[12px] text-muted-foreground/60 transition-opacity pointer-events-none',
                 translateX > 30 ? 'opacity-100' : 'opacity-0',
               )}
             >
@@ -159,13 +156,37 @@ export default function MobileDateBar({ currentDate, onDateChange }: MobileDateB
             </span>
             <span
               className={cn(
-                'text-[12px] text-muted-foreground/60 transition-opacity',
+                'absolute right-0 text-[12px] text-muted-foreground/60 transition-opacity pointer-events-none',
                 translateX < -30 ? 'opacity-100' : 'opacity-0',
               )}
             >
               {formatDateLabel(addDays(currentDate, 1))} →
             </span>
           </div>
+
+          {/* Right: create */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onCreate(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft active:opacity-90 cursor-pointer"
+            aria-label="Create task"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Caption hint — visible by default, hidden while swiping */}
+        <div className="flex justify-center pb-1.5">
+          <span
+            className={cn(
+              'text-[10px] text-muted-foreground/50 transition-opacity pointer-events-none',
+              dragging ? 'opacity-0' : 'opacity-100',
+            )}
+          >
+            swipe to change date · pull up for calendar
+          </span>
         </div>
       </div>
 
