@@ -2,6 +2,11 @@ import { useRef, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Menu, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addDays, formatDateLabel } from '@/lib/mobileDateBar';
+import { getTodayDateString } from '@/lib/dateFilter';
+
+const SWIPE_THRESHOLD = 50;
+const PULL_THRESHOLD = 60;
+const PULL_VERTICAL_DEADZONE = 20;
 
 interface MobileDateBarProps {
   currentDate: string;
@@ -11,58 +16,48 @@ interface MobileDateBarProps {
 }
 
 export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, onCreate }: MobileDateBarProps) {
-  const barRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const isDraggingUp = useRef(false);
+  const pullY = useRef(0);
   const [dragging, setDragging] = useState(false);
   const [translateX, setTranslateX] = useState(0);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [calendarDragY, setCalendarDragY] = useState(0);
-  const isDraggingUp = useRef(false);
-  const SWIPE_THRESHOLD = 50;
-  const PULL_THRESHOLD = 60;
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
+  const dragStart = useCallback((x: number, y: number) => {
+    startX.current = x;
+    startY.current = y;
     isDraggingUp.current = false;
+    pullY.current = 0;
     setDragging(true);
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!dragging) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
-    const dy = touchStartY.current - e.touches[0].clientY;
-
-    if (dy > 20 && Math.abs(dy) > Math.abs(dx)) {
+  const dragMove = useCallback((x: number, y: number) => {
+    const dx = x - startX.current;
+    const dy = startY.current - y;
+    if (dy > PULL_VERTICAL_DEADZONE && Math.abs(dy) > Math.abs(dx)) {
       isDraggingUp.current = true;
-      setCalendarDragY(Math.min(dy, PULL_THRESHOLD * 1.5));
+      pullY.current = dy;
       setTranslateX(0);
     } else if (!isDraggingUp.current) {
       setTranslateX(dx);
-      setCalendarDragY(0);
+      pullY.current = 0;
     }
-  }, [dragging]);
+  }, []);
 
-  const handleTouchEnd = useCallback(() => {
+  const dragEnd = useCallback(() => {
     setDragging(false);
-
-    if (isDraggingUp.current && calendarDragY > PULL_THRESHOLD) {
-      setShowCalendar(true);
+    if (isDraggingUp.current) {
+      if (pullY.current > PULL_THRESHOLD) setShowCalendar(true);
+    } else if (translateX < -SWIPE_THRESHOLD) {
+      onDateChange(addDays(currentDate, 1));
+    } else if (translateX > SWIPE_THRESHOLD) {
+      onDateChange(addDays(currentDate, -1));
     }
-
-    if (!isDraggingUp.current) {
-      if (translateX < -SWIPE_THRESHOLD) {
-        onDateChange(addDays(currentDate, 1));
-      } else if (translateX > SWIPE_THRESHOLD) {
-        onDateChange(addDays(currentDate, -1));
-      }
-    }
-
     setTranslateX(0);
-    setCalendarDragY(0);
+    pullY.current = 0;
     isDraggingUp.current = false;
-  }, [translateX, calendarDragY, currentDate, onDateChange]);
+  }, [translateX, currentDate, onDateChange]);
 
   const handleCalendarSelect = (date: string) => {
     onDateChange(date);
@@ -73,31 +68,13 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
     <>
       {/* Date bar */}
       <div
-        ref={barRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={(e) => {
-          touchStartX.current = e.clientX;
-          touchStartY.current = e.clientY;
-          isDraggingUp.current = false;
-          setDragging(true);
-        }}
-        onMouseMove={(e) => {
-          if (!dragging) return;
-          const dx = e.clientX - touchStartX.current;
-          const dy = touchStartY.current - e.clientY;
-          if (dy > 20 && Math.abs(dy) > Math.abs(dx)) {
-            isDraggingUp.current = true;
-            setCalendarDragY(Math.min(dy, PULL_THRESHOLD * 1.5));
-            setTranslateX(0);
-          } else if (!isDraggingUp.current) {
-            setTranslateX(dx);
-            setCalendarDragY(0);
-          }
-        }}
-        onMouseUp={handleTouchEnd}
-        onMouseLeave={() => { if (dragging) handleTouchEnd(); }}
+        onTouchStart={(e) => dragStart(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchMove={(e) => dragging && dragMove(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchEnd={dragEnd}
+        onMouseDown={(e) => dragStart(e.clientX, e.clientY)}
+        onMouseMove={(e) => dragging && dragMove(e.clientX, e.clientY)}
+        onMouseUp={dragEnd}
+        onMouseLeave={() => { if (dragging) dragEnd(); }}
         className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] touch-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
@@ -213,10 +190,7 @@ function MiniCalendar({
     weeks.push(week);
   }
 
-  const todayStr = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
+  const todayStr = getTodayDateString();
 
   const goMonth = (offset: number) => {
     let nm = viewMonth + offset;
@@ -310,4 +284,3 @@ function MiniCalendar({
     </>
   );
 }
-
