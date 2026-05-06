@@ -25,10 +25,10 @@ export default function MobileShell({ children }: MobileShellProps) {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-background">
+    <div className="relative flex h-[100dvh] flex-col bg-background">
       <OfflineBanner />
       <main
-        className="flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))',
