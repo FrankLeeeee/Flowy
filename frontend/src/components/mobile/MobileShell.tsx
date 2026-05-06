@@ -34,7 +34,9 @@ export default function MobileShell({ children }: MobileShellProps) {
           paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))',
         }}
       >
-        {children({ selectedDate, onDateChange: handleDateChange })}
+        <div key={location.pathname} className="motion-page">
+          {children({ selectedDate, onDateChange: handleDateChange })}
+        </div>
       </main>
 
       {/* Date bar - only on home */}
