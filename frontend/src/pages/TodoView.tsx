@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task } from '../types';
-import { fetchTasks, updateTask } from '../api/client';
+import { Label, Task } from '../types';
+import { fetchLabels, fetchTasks, updateTask } from '../api/client';
 import { STATUS_CONFIG, PRIORITY_ICON } from '@/lib/taskConstants';
-import { getTaskStatusStyles, getTaskPriorityStyles, getToneStyles } from '@/lib/semanticColors';
+import { getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles, getToneStyles } from '@/lib/semanticColors';
 import { cn } from '@/lib/utils';
 import { ListTodo, ChevronDown, Check, Circle } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
@@ -11,15 +11,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 function TodoRow({
   task,
   onCheck,
+  allLabels,
   checked = false,
 }: {
   task: Task;
   onCheck?: () => void;
+  allLabels: Label[];
   checked?: boolean;
 }) {
   const statusStyles = getTaskStatusStyles(task.status);
   const showPriority = !checked && (task.priority === 'urgent' || task.priority === 'high');
   const priorityStyles = getTaskPriorityStyles(task.priority);
+  const labels: string[] = JSON.parse(task.labels || '[]');
   const [optimistic, setOptimistic] = useState(false);
 
   const handleClick = () => {
@@ -60,14 +63,29 @@ function TodoRow({
         </span>
       )}
 
-      <span
-        className={cn(
-          'flex-1 min-w-0 text-[13px] font-medium leading-snug truncate',
-          isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
+      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+        <span
+          className={cn(
+            'min-w-0 text-[13px] font-medium leading-snug truncate',
+            isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
+          )}
+        >
+          {task.title}
+        </span>
+
+        {labels.length > 0 && (
+          <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
+            {labels.map((label) => {
+              const colorStyles = getLabelColorStyles(label, allLabels);
+              return (
+                <span key={label} className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1', colorStyles.pill)}>
+                  {label}
+                </span>
+              );
+            })}
+          </div>
         )}
-      >
-        {task.title}
-      </span>
+      </div>
 
       <span
         className={cn(
@@ -93,14 +111,16 @@ export default function TodoView() {
   const dangerTone = getToneStyles('danger');
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [completedOpen, setCompletedOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const all = await fetchTasks();
+      const [all, labels] = await Promise.all([fetchTasks(), fetchLabels()]);
       setTasks(all.filter((t) => t.status !== 'cancelled'));
+      setAllLabels(labels);
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load tasks');
@@ -202,7 +222,7 @@ export default function TodoView() {
           ) : (
             <div className="space-y-1.5">
               {uncompleted.map((task) => (
-                <TodoRow key={task.id} task={task} onCheck={() => handleCheck(task)} />
+                <TodoRow key={task.id} task={task} allLabels={allLabels} onCheck={() => handleCheck(task)} />
               ))}
             </div>
           )}
@@ -238,7 +258,7 @@ export default function TodoView() {
               <div className="min-h-0 overflow-hidden">
                 <div className="space-y-1">
                   {completed.map((task) => (
-                    <TodoRow key={task.id} task={task} checked />
+                    <TodoRow key={task.id} task={task} allLabels={allLabels} checked />
                   ))}
                 </div>
               </div>

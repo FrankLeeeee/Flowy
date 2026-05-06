@@ -1,24 +1,27 @@
 import { useState } from 'react';
-import { Task, TaskStatus } from '@/types';
+import { Label, Task, TaskStatus } from '@/types';
 import { ChevronDown, Check, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_CONFIG, PRIORITY_ICON } from '@/lib/taskConstants';
-import { getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
+import { getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 
 function TodoRow({
   task,
   onCheck,
   onRowClick,
+  allLabels,
   checked = false,
 }: {
   task: Task;
   onCheck?: () => void;
   onRowClick?: () => void;
+  allLabels: Label[];
   checked?: boolean;
 }) {
   const statusStyles = getTaskStatusStyles(task.status);
   const showPriority = !checked && (task.priority === 'urgent' || task.priority === 'high');
   const priorityStyles = getTaskPriorityStyles(task.priority);
+  const labels: string[] = JSON.parse(task.labels || '[]');
   const [optimistic, setOptimistic] = useState(false);
 
   const handleCheck = (e: React.MouseEvent) => {
@@ -61,14 +64,29 @@ function TodoRow({
         </span>
       )}
 
-      <span
-        className={cn(
-          'flex-1 min-w-0 text-[13px] font-medium leading-snug truncate',
-          isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
+      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+        <span
+          className={cn(
+            'min-w-0 text-[13px] font-medium leading-snug truncate',
+            isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
+          )}
+        >
+          {task.title}
+        </span>
+
+        {labels.length > 0 && (
+          <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
+            {labels.map((label) => {
+              const colorStyles = getLabelColorStyles(label, allLabels);
+              return (
+                <span key={label} className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1', colorStyles.pill)}>
+                  {label}
+                </span>
+              );
+            })}
+          </div>
         )}
-      >
-        {task.title}
-      </span>
+      </div>
 
       <span
         className={cn(
@@ -89,11 +107,12 @@ function TodoRow({
 
 interface TaskTodoViewProps {
   tasks: Task[];
+  allLabels?: Label[];
   onTaskClick: (task: Task) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
 }
 
-export default function TaskTodoView({ tasks, onTaskClick, onStatusChange }: TaskTodoViewProps) {
+export default function TaskTodoView({ tasks, allLabels = [], onTaskClick, onStatusChange }: TaskTodoViewProps) {
   const [completedOpen, setCompletedOpen] = useState(false);
 
   const uncompleted = tasks.filter((t) => t.status !== 'done' && t.status !== 'cancelled');
@@ -123,6 +142,7 @@ export default function TaskTodoView({ tasks, onTaskClick, onStatusChange }: Tas
               <TodoRow
                 key={task.id}
                 task={task}
+                allLabels={allLabels}
                 onCheck={() => onStatusChange(task.id, 'done')}
                 onRowClick={() => onTaskClick(task)}
               />
@@ -164,6 +184,7 @@ export default function TaskTodoView({ tasks, onTaskClick, onStatusChange }: Tas
                   <TodoRow
                     key={task.id}
                     task={task}
+                    allLabels={allLabels}
                     checked
                     onRowClick={() => onTaskClick(task)}
                   />
