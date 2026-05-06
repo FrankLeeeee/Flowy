@@ -21,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
-import { ArrowLeft, Plus, SlidersHorizontal, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, SlidersHorizontal, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 
@@ -81,8 +81,8 @@ export default function MobileListDetail() {
 
   useEffect(() => {
     const handler = () => setShowCreate(true);
-    window.addEventListener('flowy:mobile-create-task', handler);
-    return () => window.removeEventListener('flowy:mobile-create-task', handler);
+    window.addEventListener('flowy:mobile-create', handler);
+    return () => window.removeEventListener('flowy:mobile-create', handler);
   }, []);
 
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => { await createTask(data); setShowCreate(false); loadData(); };
@@ -148,7 +148,7 @@ export default function MobileListDetail() {
   return (
     <div className="motion-drilldown flex flex-col min-h-full">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
+      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <button
@@ -179,13 +179,6 @@ export default function MobileListDetail() {
             >
               <SlidersHorizontal className={cn('h-4 w-4', hasActiveFilters ? 'text-primary' : 'text-muted-foreground')} />
               {hasActiveFilters && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft active:opacity-90"
-            >
-              <Plus className="h-4.5 w-4.5" />
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

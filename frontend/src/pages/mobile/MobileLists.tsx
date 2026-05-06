@@ -37,6 +37,12 @@ export default function MobileLists() {
 
   useEffect(() => { loadLists(); }, []);
 
+  useEffect(() => {
+    const handler = () => setShowNewList(true);
+    window.addEventListener('flowy:mobile-create', handler);
+    return () => window.removeEventListener('flowy:mobile-create', handler);
+  }, []);
+
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = newListName.trim();
@@ -81,21 +87,12 @@ export default function MobileLists() {
   return (
     <div className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-[18px] font-bold tracking-tight text-foreground">Lists</h1>
-            <span className={cn('mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1', neutralTone.pill)}>
-              {lists.length} lists
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowNewList(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft active:opacity-90"
-          >
-            <Plus className="h-4.5 w-4.5" />
-          </button>
+      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
+        <div>
+          <h1 className="text-[18px] font-bold tracking-tight text-foreground">Lists</h1>
+          <span className={cn('mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1', neutralTone.pill)}>
+            {lists.length} lists
+          </span>
         </div>
       </div>
 

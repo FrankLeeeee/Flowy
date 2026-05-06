@@ -55,8 +55,8 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
 
   useEffect(() => {
     const handler = () => setShowCreate(true);
-    window.addEventListener('flowy:mobile-create-task', handler);
-    return () => window.removeEventListener('flowy:mobile-create-task', handler);
+    window.addEventListener('flowy:mobile-create', handler);
+    return () => window.removeEventListener('flowy:mobile-create', handler);
   }, []);
 
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => {

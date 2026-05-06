@@ -15,13 +15,14 @@ export default function MobileShell({ children }: MobileShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getTodayDateString);
   const isHomePage = location.pathname === '/' || location.pathname === '/today';
+  const hasCreateAction = !location.pathname.startsWith('/stats');
 
   const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);
   }, []);
 
   const handleCreate = () => {
-    window.dispatchEvent(new CustomEvent('flowy:mobile-create-task'));
+    window.dispatchEvent(new CustomEvent('flowy:mobile-create'));
   };
 
   return (
@@ -61,14 +62,18 @@ export default function MobileShell({ children }: MobileShellProps) {
               <Menu className="h-5 w-5" />
             </button>
             <div />
-            <button
-              type="button"
-              onClick={handleCreate}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft active:opacity-90"
-              aria-label="Create task"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
+            {hasCreateAction ? (
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft active:opacity-90"
+                aria-label="Create"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            ) : (
+              <div />
+            )}
           </div>
         </div>
       )}
