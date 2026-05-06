@@ -101,11 +101,6 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
         className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] touch-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {/* Drag handle — affordance for pull-up gesture */}
-        <div className="flex justify-center pt-1.5 pb-0.5">
-          <div className="h-1 w-10 rounded-full bg-foreground/20" />
-        </div>
-
         <div className="relative grid grid-cols-[auto_1fr_auto] items-center px-3 h-14 select-none">
           {/* Left: menu */}
           <button
@@ -119,7 +114,7 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Center: date with grey chevron hints close on either side */}
+          {/* Center: drag pill flanked by chevron hints, all on the same row */}
           <div className="relative flex items-center justify-center cursor-grab active:cursor-grabbing">
             <div
               className="flex items-center gap-2.5"
@@ -134,9 +129,7 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
                   Math.abs(translateX) > 30 ? 'opacity-0' : 'opacity-100',
                 )}
               />
-              <span className="text-[15px] font-semibold text-foreground">
-                {formatDateLabel(currentDate)}
-              </span>
+              <div className="h-1 w-10 rounded-full bg-foreground/20" />
               <ChevronRight
                 className={cn(
                   'h-4 w-4 text-muted-foreground/40 transition-opacity',
