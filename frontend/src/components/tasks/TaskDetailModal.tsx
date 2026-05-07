@@ -19,7 +19,7 @@ import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessCon
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { CalendarDays, Clock3, Pencil, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw } from 'lucide-react';
+import { CalendarDays, Clock3, Pencil, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -64,6 +64,7 @@ export default function TaskDetailModal({
 
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [editing, setEditing] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState(task.status);
@@ -71,9 +72,10 @@ export default function TaskDetailModal({
   const [scheduledDate, setScheduledDate] = useState(task.scheduled_date);
   const [scheduledTime, setScheduledTime] = useState(normalizeScheduledTime(task.scheduled_time));
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
-  const [editRunnerId, setEditRunnerId] = useState(task.runner_id ?? '');
-  const [editAiProvider, setEditAiProvider] = useState<AiProvider | ''>((task.ai_provider as AiProvider | null) ?? '');
-  const [editHarnessConfig, setEditHarnessConfig] = useState<HarnessConfig>(parseHarnessConfig(task.harness_config));
+  const [assignRunnerId, setAssignRunnerId] = useState(task.runner_id ?? '');
+  const [assignAiProvider, setAssignAiProvider] = useState<AiProvider | ''>((task.ai_provider as AiProvider | null) ?? '');
+  const [assignHarnessConfig, setAssignHarnessConfig] = useState<HarnessConfig>(parseHarnessConfig(task.harness_config));
+  const [savingAssignment, setSavingAssignment] = useState(false);
   const [outputFullscreenOpen, setOutputFullscreenOpen] = useState(false);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [running, setRunning] = useState(false);
@@ -102,39 +104,53 @@ export default function TaskDetailModal({
     setLabelsText(JSON.parse(task.labels || '[]').join(', '));
     setScheduledDate(task.scheduled_date);
     setScheduledTime(normalizeScheduledTime(task.scheduled_time));
-    setEditRunnerId(task.runner_id ?? '');
-    setEditAiProvider((task.ai_provider as AiProvider | null) ?? '');
-    setEditHarnessConfig(parseHarnessConfig(task.harness_config));
     setEditing(true);
+  };
+
+  const enterAssignMode = () => {
+    setAssignRunnerId(task.runner_id ?? '');
+    setAssignAiProvider((task.ai_provider as AiProvider | null) ?? '');
+    setAssignHarnessConfig(parseHarnessConfig(task.harness_config));
+    setAssigning(true);
   };
 
   const handleSave = async () => {
     if (!scheduledDate) return;
     const nextLabels = labelsText.split(',').map((label: string) => label.trim()).filter(Boolean);
-    let updated = await updateTask(task.id, {
+    const updated = await updateTask(task.id, {
       title, description, status, priority, labels: nextLabels,
       scheduledDate,
       scheduledTime: scheduledTime || null,
     });
-
-    // Handle runner assignment changes separately so we go through the assign endpoint,
-    // which validates the runner exists and applies the harness config consistently.
-    const runnerChanged = (editRunnerId || null) !== (task.runner_id ?? null);
-    const providerChanged = (editAiProvider || null) !== (task.ai_provider ?? null);
-    const harnessChanged = JSON.stringify(editHarnessConfig) !== JSON.stringify(parseHarnessConfig(task.harness_config));
-    if (editRunnerId && editAiProvider && (runnerChanged || providerChanged || harnessChanged)) {
-      updated = await assignTask(task.id, {
-        runnerId: editRunnerId,
-        aiProvider: editAiProvider,
-        harnessConfig: editHarnessConfig,
-      });
-    } else if (!editRunnerId && task.runner_id) {
-      // Runner cleared — null it via the update endpoint.
-      updated = await updateTask(task.id, { runnerId: null, aiProvider: null });
-    }
-
     onUpdate(updated);
     setEditing(false);
+  };
+
+  const handleSaveAssignment = async () => {
+    if (!assignRunnerId || !assignAiProvider) return;
+    setSavingAssignment(true);
+    try {
+      const updated = await assignTask(task.id, {
+        runnerId: assignRunnerId,
+        aiProvider: assignAiProvider,
+        harnessConfig: assignHarnessConfig,
+      });
+      onUpdate(updated);
+      setAssigning(false);
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+
+  const handleClearAssignment = async () => {
+    setSavingAssignment(true);
+    try {
+      const updated = await updateTask(task.id, { runnerId: null, aiProvider: null });
+      onUpdate(updated);
+      setAssigning(false);
+    } finally {
+      setSavingAssignment(false);
+    }
   };
 
   const handleRun = async () => {
@@ -182,7 +198,7 @@ export default function TaskDetailModal({
         <AppDialogHeader className="shrink-0">
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
           <DialogDescription className="sr-only">View and edit task details</DialogDescription>
-          <AppDialogEyebrow>{editing ? 'Edit task' : 'Task details'}</AppDialogEyebrow>
+          <AppDialogEyebrow>{editing ? 'Edit task' : assigning ? (task.runner_id ? 'Re-assign runner' : 'Assign runner') : 'Task details'}</AppDialogEyebrow>
           <div className="flex items-center gap-2.5 flex-wrap text-[11px] font-medium">
             <span className="text-[11px] font-mono tracking-wide text-muted-foreground/75">{task.task_key}</span>
             <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium', statusStyles.icon)}>
@@ -313,29 +329,26 @@ export default function TaskDetailModal({
                   onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
                 />
               </div>
-
-              {/* Runner assignment */}
-              <div className="border-t border-border/40 pt-4">
-                <h3 className="mb-3 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Runner Assignment</h3>
-                <RunnerAssignmentFields
-                  runners={runners}
-                  runnerId={editRunnerId}
-                  aiProvider={editAiProvider}
-                  harnessConfig={editHarnessConfig}
-                  onRunnerIdChange={setEditRunnerId}
-                  onAiProviderChange={setEditAiProvider}
-                  onHarnessConfigChange={setEditHarnessConfig}
-                />
-                {editRunnerId && (
-                  <button
-                    type="button"
-                    onClick={() => { setEditRunnerId(''); setEditAiProvider(''); }}
-                    className="mt-2 text-[11px] text-muted-foreground/70 transition-colors hover:text-foreground"
-                  >
-                    Clear runner assignment
-                  </button>
-                )}
+            </div>
+          ) : assigning ? (
+            <div className="flex flex-col gap-5">
+              <div>
+                <h2 className="text-[15px] font-semibold text-foreground leading-snug">{task.title}</h2>
+                <p className="mt-1 text-[12px] text-muted-foreground/85">
+                  {task.runner_id
+                    ? 'Choose a different runner or update the harness configuration. Saving moves the task to todo when ready to run.'
+                    : 'Pick a runner and AI provider so this task can be picked up when due.'}
+                </p>
               </div>
+              <RunnerAssignmentFields
+                runners={runners}
+                runnerId={assignRunnerId}
+                aiProvider={assignAiProvider}
+                harnessConfig={assignHarnessConfig}
+                onRunnerIdChange={setAssignRunnerId}
+                onAiProviderChange={setAssignAiProvider}
+                onHarnessConfigChange={setAssignHarnessConfig}
+              />
             </div>
           ) : (
             <>
@@ -393,7 +406,7 @@ export default function TaskDetailModal({
                   </div>
                 ) : (
                   <p className="text-[13px] text-muted-foreground/75">
-                    Not assigned. Click <span className="font-medium text-foreground/80">Edit</span> to assign a runner.
+                    Not assigned. Click <span className="font-medium text-foreground/80">Assign</span> below to choose a runner.
                   </p>
                 )}
               </AppDialogSection>
@@ -493,6 +506,40 @@ export default function TaskDetailModal({
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </div>
+          ) : assigning ? (
+            <div className="flex w-full flex-wrap items-center gap-2">
+              {task.runner_id && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleClearAssignment}
+                  disabled={savingAssignment}
+                  className="h-8 rounded-full px-3.5 text-[11px] text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  Clear assignment
+                </Button>
+              )}
+              <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setAssigning(false)}
+                  disabled={savingAssignment}
+                  className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveAssignment}
+                  disabled={savingAssignment || !assignRunnerId || !assignAiProvider}
+                  className="h-8 rounded-full px-4 text-[11px]"
+                >
+                  Save assignment
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               {canRun && (
@@ -515,6 +562,24 @@ export default function TaskDetailModal({
                   )}
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={enterAssignMode}
+                className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground"
+              >
+                {task.runner_id ? (
+                  <>
+                    <UserCog className="mr-1.5 h-3 w-3" />
+                    Re-Assign
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-1.5 h-3 w-3" />
+                    Assign
+                  </>
+                )}
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { List, TaskPriority, Label, Runner, AiProvider, HarnessConfig } from '../../types';
+import { List, TaskPriority, Label } from '../../types';
 import { fetchLabels } from '../../api/client';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import LabelPicker from '@/components/LabelPicker';
-import RunnerAssignmentFields from './RunnerAssignmentFields';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
 import { getTodayDateInputValue } from '@/lib/taskSchedule';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles, ChevronRight, UserPlus } from 'lucide-react';
+import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles } from 'lucide-react';
 
 const INBOX_VALUE = '_inbox';
 
@@ -27,13 +26,12 @@ const PRIORITIES: { value: TaskPriority; label: string }[] = [
 ];
 
 export default function CreateTaskModal({
-  open, lists, runners = [], defaultListId, onSubmit, onClose,
+  open, lists, defaultListId, onSubmit, onClose,
 }: {
   open: boolean;
   lists: List[];
-  runners?: Runner[];
   defaultListId?: string;
-  onSubmit: (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledDate: string; scheduledTime: string | null; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null }) => void;
+  onSubmit: (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledDate: string; scheduledTime: string | null }) => void;
   onClose: () => void;
 }) {
   const [listSelection, setListSelection] = useState(defaultListId ?? INBOX_VALUE);
@@ -44,10 +42,6 @@ export default function CreateTaskModal({
   const [scheduledDate, setScheduledDate] = useState(getTodayDateInputValue());
   const [scheduledTime, setScheduledTime] = useState('');
   const [allLabels, setAllLabels] = useState<Label[]>([]);
-  const [showRunnerAssign, setShowRunnerAssign] = useState(false);
-  const [runnerId, setRunnerId] = useState('');
-  const [aiProvider, setAiProvider] = useState<AiProvider | ''>('');
-  const [harnessConfig, setHarnessConfig] = useState<HarnessConfig>({});
   const isMobile = useIsMobile();
 
   const selectedList = lists.find((list) => list.id === listSelection);
@@ -62,10 +56,6 @@ export default function CreateTaskModal({
       setLabels([]);
       setScheduledDate(getTodayDateInputValue());
       setScheduledTime('');
-      setShowRunnerAssign(false);
-      setRunnerId('');
-      setAiProvider('');
-      setHarnessConfig({});
     }
   }, [open]);
 
@@ -86,7 +76,6 @@ export default function CreateTaskModal({
     e.preventDefault();
     if (!title.trim() || !scheduledDate) return;
     const listId = listSelection === INBOX_VALUE ? null : listSelection;
-    const includeRunner = showRunnerAssign && runnerId && aiProvider;
     onSubmit({
       listId,
       title: title.trim(),
@@ -95,9 +84,6 @@ export default function CreateTaskModal({
       labels,
       scheduledDate,
       scheduledTime: scheduledTime || null,
-      runnerId: includeRunner ? runnerId : null,
-      aiProvider: includeRunner ? aiProvider : null,
-      harnessConfig: includeRunner ? harnessConfig : null,
     });
   };
 
@@ -250,41 +236,6 @@ export default function CreateTaskModal({
                 </div>
               </div>
 
-              {/* Runner assignment (collapsible) */}
-              <div className="border-t border-border/40 px-4 py-3 sm:px-6">
-                <button
-                  type="button"
-                  onClick={() => setShowRunnerAssign((v) => !v)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground/85 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-                  aria-expanded={showRunnerAssign}
-                >
-                  <ChevronRight className={cn('h-3.5 w-3.5 transition-transform duration-300 ease-[var(--ease-out-quart)] motion-reduce:transition-none', showRunnerAssign && 'rotate-90')} />
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Assign runner now
-                  <span className="ml-auto text-[10px] text-muted-foreground/60">Optional</span>
-                </button>
-                <div
-                  className={cn(
-                    'grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out-quart)] motion-reduce:transition-none',
-                    showRunnerAssign ? 'visible grid-rows-[1fr] opacity-100' : 'invisible grid-rows-[0fr] opacity-0'
-                  )}
-                  aria-hidden={!showRunnerAssign}
-                >
-                  <div className="min-h-0 overflow-hidden">
-                    <div className="mt-3">
-                      <RunnerAssignmentFields
-                        runners={runners}
-                        runnerId={runnerId}
-                        aiProvider={aiProvider}
-                        harnessConfig={harnessConfig}
-                        onRunnerIdChange={setRunnerId}
-                        onAiProviderChange={setAiProvider}
-                        onHarnessConfigChange={setHarnessConfig}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

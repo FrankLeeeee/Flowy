@@ -145,7 +145,7 @@ export default function MobileInbox() {
       />
 
       {/* Modals */}
-      <CreateTaskModal open={showCreate} lists={lists} runners={runners} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal open={showCreate} lists={lists} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && (
         <TaskDetailModal
           open={!!detailTask}

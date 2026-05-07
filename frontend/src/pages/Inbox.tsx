@@ -182,7 +182,7 @@ export default function Inbox() {
         )}
       </div>
 
-      <CreateTaskModal open={showCreate} lists={lists} runners={runners} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal open={showCreate} lists={lists} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runners={runners} onUpdate={handleTaskUpdate} onDelete={() => setDeleteTarget(detailTask)} onClose={() => setDetailTask(null)} />}
       <ConfirmDialog
         open={!!deleteTarget}

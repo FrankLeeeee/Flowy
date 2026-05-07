@@ -176,7 +176,6 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
       <CreateTaskModal
         open={showCreate}
         lists={allLists}
-        runners={runners}
         onSubmit={handleCreateTask}
         onClose={() => setShowCreate(false)}
       />
