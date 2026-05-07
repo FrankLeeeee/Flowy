@@ -507,7 +507,7 @@ export default function TaskDetailModal({
               </Button>
             </div>
           ) : assigning ? (
-            <div className="flex w-full flex-wrap items-center gap-2">
+            <div className="flex w-full flex-wrap items-center justify-center gap-2">
               {task.runner_id && (
                 <Button
                   size="sm"
@@ -519,26 +519,24 @@ export default function TaskDetailModal({
                   Clear assignment
                 </Button>
               )}
-              <div className="flex items-center gap-2 ml-auto">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setAssigning(false)}
-                  disabled={savingAssignment}
-                  className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSaveAssignment}
-                  disabled={savingAssignment || !assignRunnerId || !assignAiProvider}
-                  className="h-8 rounded-full px-4 text-[11px]"
-                >
-                  Save assignment
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setAssigning(false)}
+                disabled={savingAssignment}
+                className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveAssignment}
+                disabled={savingAssignment || !assignRunnerId || !assignAiProvider}
+                className="h-8 rounded-full px-4 text-[11px]"
+              >
+                Save assignment
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
