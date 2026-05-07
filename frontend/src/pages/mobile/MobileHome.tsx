@@ -149,7 +149,6 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
       <CreateTaskModal
         open={showCreate}
         lists={allLists}
-        runners={runners}
         onSubmit={handleCreateTask}
         onClose={() => setShowCreate(false)}
       />

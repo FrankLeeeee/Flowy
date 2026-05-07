@@ -224,7 +224,7 @@ export default function MobileListDetail() {
       />
 
       {/* Modals */}
-      <CreateTaskModal open={showCreate} lists={allLists} runners={runners} defaultListId={list.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal open={showCreate} lists={allLists} defaultListId={list.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
       {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runners={runners} onUpdate={handleTaskUpdate} onDelete={() => setDeleteTaskTarget(detailTask)} onClose={() => setDetailTask(null)} />}
       <ConfirmDialog
         open={!!deleteTaskTarget}
