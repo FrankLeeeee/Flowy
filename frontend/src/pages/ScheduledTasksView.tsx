@@ -14,6 +14,7 @@ import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTodayDateString, getWeekRange } from '@/lib/dateFilter';
+import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
 
 type ViewMode = 'today' | 'week' | 'all';
 
@@ -123,7 +124,7 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
   }
 
   return (
-    <div className="flex flex-col p-6 min-h-screen pb-10">
+    <div className={getDesktopPageContainerClassName()}>
       <div
         className="motion-section mb-6 flex shrink-0 flex-wrap items-start justify-between gap-3"
         style={{ '--motion-delay': '80ms' } as React.CSSProperties}

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { ListTodo, ChevronDown, Check, Circle } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
 
 function TodoRow({
   task,
@@ -161,7 +162,7 @@ export default function TodoView() {
   }
 
   return (
-    <div className="flex flex-col p-6 min-h-screen">
+    <div className={getDesktopPageContainerClassName()}>
       {/* Header */}
       <div
         className="motion-section mb-6 flex shrink-0 flex-wrap items-start justify-between gap-3"
