@@ -16,11 +16,17 @@ export function getTodayDateString(): string {
 }
 
 export function getWeekRange(): { start: string; end: string } {
+  // "This week" is the current calendar week, Monday → Sunday (ISO 8601).
+  // The previous implementation returned a rolling 7-day window from today,
+  // which silently hid tasks scheduled earlier in the same week.
   const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const start = new Date(today);
+  start.setDate(today.getDate() + offsetToMonday);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(today);
-  end.setDate(end.getDate() + 6);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
