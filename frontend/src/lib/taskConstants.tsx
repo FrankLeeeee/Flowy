@@ -24,6 +24,15 @@ export const PRIORITY_ICON: Record<TaskPriority, React.ReactNode> = {
   none:   <Minus className="h-3.5 w-3.5" />,
 };
 
+/** Human-readable label for each priority level. */
+export const PRIORITY_LABEL: Record<TaskPriority, string> = {
+  urgent: 'Urgent',
+  high:   'High',
+  medium: 'Medium',
+  low:    'Low',
+  none:   'None',
+};
+
 /** Human-readable display names for AI providers. */
 export const AI_LABELS: Record<AiProvider, string> = {
   'claude-code':  'Claude Code',

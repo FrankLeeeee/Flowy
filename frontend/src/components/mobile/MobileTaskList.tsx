@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Task, Runner, Label, TaskStatus } from '../../types';
-import { STATUS_CONFIG, PRIORITY_ICON, TASK_STATUSES } from '@/lib/taskConstants';
+import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL, TASK_STATUSES } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
@@ -28,13 +28,18 @@ function MobileTaskCard({
 
       <div className="flex items-center justify-between gap-2 mb-1 pl-1.5">
         <span className="text-[11px] font-mono tracking-wide text-muted-foreground/80">{task.task_key}</span>
-        <span className={cn(priorityStyles.icon)}>{PRIORITY_ICON[task.priority]}</span>
       </div>
 
       <p className="pl-1.5 text-[14px] font-medium text-foreground leading-snug line-clamp-2">{task.title}</p>
 
-      {(labels.length > 0 || runner || task.ai_provider || elapsed) && (
+      {(labels.length > 0 || runner || task.ai_provider || elapsed || task.priority !== 'none') && (
         <div className="flex items-center gap-1.5 mt-2.5 flex-wrap pl-1.5">
+          {task.priority !== 'none' && (
+            <span className={cn('inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 [&>svg]:h-2.5 [&>svg]:w-2.5', priorityStyles.pill)}>
+              {PRIORITY_ICON[task.priority]}
+              {PRIORITY_LABEL[task.priority]}
+            </span>
+          )}
           {labels.map((label) => {
             const colorStyles = getLabelColorStyles(label, allLabels);
             return (
