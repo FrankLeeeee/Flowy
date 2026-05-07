@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Label, Runner, Task, TaskStatus } from '@/types';
 import { ChevronDown, Check, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { STATUS_CONFIG, PRIORITY_ICON } from '@/lib/taskConstants';
+import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL } from '@/lib/taskConstants';
 import { getAiProviderStyles, getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 
 function TodoRow({
@@ -21,8 +21,8 @@ function TodoRow({
   checked?: boolean;
 }) {
   const statusStyles = getTaskStatusStyles(task.status);
-  const showPriority = !checked && (task.priority === 'urgent' || task.priority === 'high');
   const priorityStyles = getTaskPriorityStyles(task.priority);
+  const showPriority = !checked && task.priority !== 'none';
   const labels: string[] = JSON.parse(task.labels || '[]');
   const [optimistic, setOptimistic] = useState(false);
 
@@ -34,7 +34,7 @@ function TodoRow({
   };
 
   const isChecked = checked || optimistic;
-  const hasMetadata = labels.length > 0 || runner || task.ai_provider;
+  const hasMetadata = labels.length > 0 || runner || task.ai_provider || showPriority;
 
   return (
     <div
@@ -61,12 +61,6 @@ function TodoRow({
         {isChecked && <Check className="h-2.5 w-2.5 stroke-[2.5]" />}
       </button>
 
-      {showPriority && (
-        <span className={cn('shrink-0 mt-0.5 [&>svg]:h-3 [&>svg]:w-3', priorityStyles.icon)}>
-          {PRIORITY_ICON[task.priority]}
-        </span>
-      )}
-
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
           <span
@@ -81,6 +75,12 @@ function TodoRow({
 
         {hasMetadata && (
           <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
+            {showPriority && (
+              <span className={cn('inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 [&>svg]:h-2.5 [&>svg]:w-2.5', priorityStyles.pill)}>
+                {PRIORITY_ICON[task.priority]}
+                {PRIORITY_LABEL[task.priority]}
+              </span>
+            )}
             {labels.map((label) => {
               const colorStyles = getLabelColorStyles(label, allLabels);
               return (
