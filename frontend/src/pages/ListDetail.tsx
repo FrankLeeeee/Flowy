@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import DateFilter from '@/components/DateFilter';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
+import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
 
 export default function ListDetail() {
   const neutralTone = getToneStyles('neutral');
@@ -151,7 +152,7 @@ export default function ListDetail() {
   }
 
   return (
-    <div className={cn('flex flex-col p-6', viewMode === 'kanban' ? 'h-screen min-h-0 overflow-hidden' : 'min-h-screen pb-10')}>
+    <div className={getDesktopPageContainerClassName({ lockToViewport: viewMode === 'kanban' })}>
       {/* Header */}
       <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center justify-between gap-3" style={{ '--motion-delay': '80ms' } as React.CSSProperties}>
         <div>
