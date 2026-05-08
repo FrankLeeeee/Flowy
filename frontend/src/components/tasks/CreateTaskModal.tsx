@@ -4,7 +4,7 @@ import { fetchLabels } from '../../api/client';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
@@ -130,14 +130,15 @@ export default function CreateTaskModal({
                 <AppDialogSection>
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
-                    <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars</span>
+                    <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars · Markdown</span>
                   </div>
-                  <Textarea
+                  <MarkdownEditor
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={setDescription}
                     rows={4}
                     placeholder="Add supporting context, expected outcome, or constraints..."
-                    className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    textareaClassName="min-h-[92px]"
+                    ariaLabel="Task description"
                   />
                 </AppDialogSection>
 

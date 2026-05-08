@@ -4,7 +4,7 @@ import { fetchTaskLogs, updateTask, fetchLabels, runTask, assignTask } from '../
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { MarkdownEditor, MARKDOWN_PROSE_CLASSNAME } from '@/components/ui/markdown-editor';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -230,12 +230,13 @@ export default function TaskDetailModal({
 
               {/* Description */}
               <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
-                <Textarea
+                <MarkdownEditor
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   rows={5}
                   placeholder="Add description..."
-                  className="min-h-[108px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  textareaClassName="min-h-[108px]"
+                  ariaLabel="Task description"
                 />
               </div>
 
@@ -356,7 +357,9 @@ export default function TaskDetailModal({
               <div>
                 <h2 className="text-[15px] font-semibold text-foreground leading-snug">{task.title}</h2>
                 {task.description && (
-                  <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground/90">{task.description}</p>
+                  <div className={cn(MARKDOWN_PROSE_CLASSNAME, 'mt-2')}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{task.description}</ReactMarkdown>
+                  </div>
                 )}
               </div>
 
