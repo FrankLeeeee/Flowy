@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { List, TaskPriority, Label, RecurrenceRule } from '../../types';
 import { fetchLabels } from '../../api/client';
-import RecurrenceEditor from '@/components/RecurrenceEditor';
+import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -216,7 +216,7 @@ export default function CreateTaskModal({
                   />
                 </div>
 
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium shadow-soft">
                     <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
                     <Input
@@ -238,9 +238,17 @@ export default function CreateTaskModal({
                       className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
+
+                  <RecurrenceTrigger
+                    active={!!recurrenceRule}
+                    onEnable={() => { if (!recurrenceRule) setRecurrenceRule(defaultRecurrenceRule()); }}
+                    onDisable={() => setRecurrenceRule(null)}
+                  />
                 </div>
 
-                <RecurrenceEditor value={recurrenceRule} onChange={setRecurrenceRule} />
+                {recurrenceRule && (
+                  <RecurrencePanel value={recurrenceRule} onChange={(rule) => setRecurrenceRule(rule)} />
+                )}
               </div>
 
             </div>

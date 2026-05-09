@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule } from '../../types';
 import { fetchTaskLogs, updateTask, fetchLabels, runTask, assignTask } from '../../api/client';
-import RecurrenceEditor from '@/components/RecurrenceEditor';
+import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -267,77 +267,88 @@ export default function TaskDetailModal({
                 </div>
               )}
 
-              {/* Status / Priority / Labels picker */}
-              <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
-                <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
-                  <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
-                    <span className={cn('h-2 w-2 rounded-full', editingStatusStyles.dot)} />
-                    <SelectValue>
-                      {STATUS_OPTIONS.find((item) => item.value === status)?.label}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                    {STATUS_OPTIONS.map((item) => (
-                      <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                        <span className={cn('inline-flex items-center gap-2', getTaskStatusStyles(item.value).text)}>
-                          <span className={cn('h-2 w-2 rounded-full', getTaskStatusStyles(item.value).dot)} />
-                          {item.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
+                    <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
+                      <span className={cn('h-2 w-2 rounded-full', editingStatusStyles.dot)} />
+                      <SelectValue>
+                        {STATUS_OPTIONS.find((item) => item.value === status)?.label}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                      {STATUS_OPTIONS.map((item) => (
+                        <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
+                          <span className={cn('inline-flex items-center gap-2', getTaskStatusStyles(item.value).text)}>
+                            <span className={cn('h-2 w-2 rounded-full', getTaskStatusStyles(item.value).dot)} />
+                            {item.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-                  <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
-                    <span className={cn('h-2 w-2 rounded-full', editingPriorityStyles.dot)} />
-                    <SelectValue>
-                      {PRIORITY_OPTIONS.find((item) => item.value === priority)?.label}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                    {PRIORITY_OPTIONS.map((item) => (
-                      <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                        <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
-                          <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
-                          {item.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                    <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
+                      <span className={cn('h-2 w-2 rounded-full', editingPriorityStyles.dot)} />
+                      <SelectValue>
+                        {PRIORITY_OPTIONS.find((item) => item.value === priority)?.label}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                      {PRIORITY_OPTIONS.map((item) => (
+                        <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
+                          <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
+                            <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
+                            {item.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
-                  <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                    required
-                    className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  <LabelPicker
+                    selectedLabels={labels}
+                    allLabels={allLabels}
+                    onToggle={toggleLabel}
+                    onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
                   />
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
-                  <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    type="time"
-                    step={60}
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
+                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      required
+                      className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
+                    <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      type="time"
+                      step={60}
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+
+                  <RecurrenceTrigger
+                    active={!!recurrenceRule}
+                    onEnable={() => { if (!recurrenceRule) setRecurrenceRule(defaultRecurrenceRule()); }}
+                    onDisable={() => setRecurrenceRule(null)}
                   />
                 </div>
 
-                <LabelPicker
-                  selectedLabels={labels}
-                  allLabels={allLabels}
-                  onToggle={toggleLabel}
-                  onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
-                />
+                {recurrenceRule && (
+                  <RecurrencePanel value={recurrenceRule} onChange={(rule) => setRecurrenceRule(rule)} />
+                )}
               </div>
-
-              <RecurrenceEditor value={recurrenceRule} onChange={setRecurrenceRule} />
             </div>
           ) : assigning ? (
             <div className="flex flex-col gap-5">
