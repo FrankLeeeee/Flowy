@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { Task, RegisterResponse, HeartbeatResponse, SkillCommand, SkillInventoryEntry } from './types';
+import { AiProvider, Task, RegisterResponse, HeartbeatResponse, SkillCommand, SkillInventoryEntry } from './types';
 
 export class RunnerApi {
   private client: AxiosInstance;
@@ -14,14 +14,14 @@ export class RunnerApi {
     this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
 
-  async register(name: string, aiProviders: string[], deviceInfo: string, secret?: string): Promise<RegisterResponse> {
+  async register(name: string, aiProviders: AiProvider[], deviceInfo: string, secret?: string): Promise<RegisterResponse> {
     const { data } = await this.client.post<RegisterResponse>('/runners/register', {
       name, aiProviders, deviceInfo, secret,
     });
     return data;
   }
 
-  async heartbeat(aiProviders: string[], lastCliScanAt?: string, cliVersions?: Record<string, string>): Promise<HeartbeatResponse> {
+  async heartbeat(aiProviders: AiProvider[], lastCliScanAt?: string, cliVersions?: Record<string, string>): Promise<HeartbeatResponse> {
     const { data } = await this.client.post<HeartbeatResponse>('/runners/heartbeat', { aiProviders, lastCliScanAt, cliVersions });
     return data;
   }
@@ -102,7 +102,7 @@ export interface SessionCommand {
   sessionId: string;
   kind: 'send-prompt' | 'stop' | 'generate-title';
   payload: {
-    aiProvider?: string;
+    aiProvider?: AiProvider;
     harnessConfig?: string;
     history?: { role: 'user' | 'assistant' | 'system'; content: string }[];
     prompt?: string;

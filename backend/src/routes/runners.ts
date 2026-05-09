@@ -155,45 +155,33 @@ router.get('/:id/browse', requireUserAuth, (req: Request, res: Response) => {
   enqueueBrowse(id, requestId);
 });
 
+function handleProviderAction(
+  column: 'cli_update_requested_at' | 'cli_refresh_requested_at',
+  offlineMsg: string,
+) {
+  return (req: Request, res: Response) => {
+    const db = getDb();
+    const runner = db.prepare('SELECT id, status FROM runners WHERE id = ?').get(req.params.id) as { id: string; status: string } | undefined;
+    if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+    if (runner.status === 'offline') { res.status(409).json({ error: offlineMsg }); return; }
+
+    const now = utcNow();
+    db.prepare(`UPDATE runners SET ${column} = ?, updated_at = ? WHERE id = ?`).run(now, now, runner.id);
+    res.json({ ok: true });
+  };
+}
+
 // POST /api/runners/:id/update-providers — ask a live runner to update all installed CLIs to latest
-router.post('/:id/update-providers', requireUserAuth, (req: Request, res: Response) => {
-  const db = getDb();
-  const runner = db.prepare('SELECT id, status FROM runners WHERE id = ?').get(req.params.id) as { id: string; status: string } | undefined;
-  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
-  if (runner.status === 'offline') {
-    res.status(409).json({ error: 'Runner is offline and cannot update CLIs right now' });
-    return;
-  }
-
-  const now = utcNow();
-  db.prepare(`
-    UPDATE runners
-    SET cli_update_requested_at = ?, updated_at = ?
-    WHERE id = ?
-  `).run(now, now, runner.id);
-
-  res.json({ ok: true });
-});
+router.post('/:id/update-providers', requireUserAuth, handleProviderAction(
+  'cli_update_requested_at',
+  'Runner is offline and cannot update CLIs right now',
+));
 
 // POST /api/runners/:id/refresh-providers — ask a live runner to rescan installed CLIs
-router.post('/:id/refresh-providers', requireUserAuth, (req: Request, res: Response) => {
-  const db = getDb();
-  const runner = db.prepare('SELECT id, status FROM runners WHERE id = ?').get(req.params.id) as { id: string; status: string } | undefined;
-  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
-  if (runner.status === 'offline') {
-    res.status(409).json({ error: 'Runner is offline and cannot refresh CLI availability right now' });
-    return;
-  }
-
-  const now = utcNow();
-  db.prepare(`
-    UPDATE runners
-    SET cli_refresh_requested_at = ?, updated_at = ?
-    WHERE id = ?
-  `).run(now, now, runner.id);
-
-  res.json({ ok: true });
-});
+router.post('/:id/refresh-providers', requireUserAuth, handleProviderAction(
+  'cli_refresh_requested_at',
+  'Runner is offline and cannot refresh CLI availability right now',
+));
 
 // ── Authenticated runner endpoints ────────────────────────────────────────
 

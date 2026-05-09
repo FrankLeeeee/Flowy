@@ -10,10 +10,19 @@ export interface DateFilterState {
   endDate: string;
 }
 
-export function getTodayDateString(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/**
+ * Format a Date as a local-time YYYY-MM-DD string.
+ * This is the single canonical helper – every place in the app that needs a
+ * YYYY-MM-DD string should call this rather than rolling its own formatting
+ * or using `toISOString().slice(0, 10)` (which returns UTC and can flip the
+ * date near midnight in western time zones).
+ */
+export function formatDateYMD(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
+
+/** Convenience alias – returns today's date as YYYY-MM-DD. */
+export const getTodayDateString = (): string => formatDateYMD();
 
 export function getWeekRange(): { start: string; end: string } {
   // "This week" is the current calendar week, Monday → Sunday (ISO 8601).
@@ -28,9 +37,7 @@ export function getWeekRange(): { start: string; end: string } {
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return { start: fmt(start), end: fmt(end) };
+  return { start: formatDateYMD(start), end: formatDateYMD(end) };
 }
 
 export function defaultDateFilter(): DateFilterState {

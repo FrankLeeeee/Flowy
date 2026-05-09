@@ -1,7 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { RegisterResponse, RunnerConfig } from './types';
+import { AiProvider, RegisterResponse, RunnerConfig } from './types';
 import { RunnerApi, SessionCommand } from './api';
 import { deleteToken, detectAvailableProvidersWithVersions, saveToken, updateInstalledClis } from './config';
 import { executeTask } from './executor';
@@ -16,7 +16,7 @@ import {
 
 export async function startDaemon(config: RunnerConfig): Promise<void> {
   const api = new RunnerApi(config.url);
-  let availableProviders = [...config.providers];
+  let availableProviders: AiProvider[] = [...config.providers];
   let cliVersions = { ...config.cliVersions };
   let lastCliScanAt = config.lastCliScanAt;
 

@@ -1,9 +1,10 @@
-export function getTodayDateInputValue(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+import { formatDateYMD } from './dateFilter';
+
+/**
+ * @deprecated Use `formatDateYMD` from `@/lib/dateFilter` directly.
+ * Kept as a re-export so existing callers continue to work.
+ */
+export const getTodayDateInputValue = formatDateYMD;
 
 // Coerce backend / browser-supplied time values to HH:MM so <input type="time">
 // renders only an hour and minute slot. Browsers fall back to an HH:MM:SS UI

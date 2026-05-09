@@ -1,4 +1,4 @@
-export interface QueuedMutation {
+interface QueuedMutation {
   id: string;
   url: string;
   method: string;

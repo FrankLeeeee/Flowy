@@ -7,6 +7,7 @@ export default defineConfig({
       'backend/tests/**/*.test.ts',
       'runner/tests/**/*.test.ts',
       'frontend/tests/**/*.test.ts',
+      'shared/tests/**/*.test.ts',
     ],
   },
 });

@@ -45,22 +45,25 @@ router.put('/:id', (req: Request, res: Response) => {
   const newName = name?.trim() ?? label.name;
   const now = utcNow();
 
-  db.prepare('UPDATE labels SET name = ?, color = ?, updated_at = ? WHERE id = ?')
-    .run(newName, color ?? label.color, now, req.params.id);
+  db.transaction(() => {
+    db.prepare('UPDATE labels SET name = ?, color = ?, updated_at = ? WHERE id = ?')
+      .run(newName, color ?? label.color, now, req.params.id);
 
-  // Update label name in all tasks that reference it
-  if (newName !== oldName) {
-    const tasks = db.prepare('SELECT id, labels FROM tasks').all() as Array<{ id: string; labels: string }>;
-    for (const task of tasks) {
-      const taskLabels: string[] = JSON.parse(task.labels || '[]');
-      const idx = taskLabels.findIndex((l) => l.toLowerCase() === oldName.toLowerCase());
-      if (idx !== -1) {
-        taskLabels[idx] = newName;
-        db.prepare('UPDATE tasks SET labels = ?, updated_at = ? WHERE id = ?')
-          .run(JSON.stringify(taskLabels), now, task.id);
+    if (newName !== oldName) {
+      const tasks = db.prepare(
+        "SELECT id, labels FROM tasks WHERE labels LIKE '%' || ? || '%'",
+      ).all(oldName) as Array<{ id: string; labels: string }>;
+      for (const task of tasks) {
+        const taskLabels: string[] = JSON.parse(task.labels || '[]');
+        const idx = taskLabels.findIndex((l) => l.toLowerCase() === oldName.toLowerCase());
+        if (idx !== -1) {
+          taskLabels[idx] = newName;
+          db.prepare('UPDATE tasks SET labels = ?, updated_at = ? WHERE id = ?')
+            .run(JSON.stringify(taskLabels), now, task.id);
+        }
       }
     }
-  }
+  })();
 
   const updated = db.prepare('SELECT * FROM labels WHERE id = ?').get(req.params.id) as Label;
   res.json(updated);
@@ -73,18 +76,22 @@ router.delete('/:id', (req: Request, res: Response) => {
   if (!label) { res.status(404).json({ error: 'Label not found' }); return; }
   const now = utcNow();
 
-  // Remove this label from all tasks
-  const tasks = db.prepare('SELECT id, labels FROM tasks').all() as Array<{ id: string; labels: string }>;
-  for (const task of tasks) {
-    const taskLabels: string[] = JSON.parse(task.labels || '[]');
-    const filtered = taskLabels.filter((l) => l.toLowerCase() !== label.name.toLowerCase());
-    if (filtered.length !== taskLabels.length) {
-      db.prepare('UPDATE tasks SET labels = ?, updated_at = ? WHERE id = ?')
-        .run(JSON.stringify(filtered), now, task.id);
+  db.transaction(() => {
+    const tasks = db.prepare(
+      "SELECT id, labels FROM tasks WHERE labels LIKE '%' || ? || '%'",
+    ).all(label.name) as Array<{ id: string; labels: string }>;
+    for (const task of tasks) {
+      const taskLabels: string[] = JSON.parse(task.labels || '[]');
+      const filtered = taskLabels.filter((l) => l.toLowerCase() !== label.name.toLowerCase());
+      if (filtered.length !== taskLabels.length) {
+        db.prepare('UPDATE tasks SET labels = ?, updated_at = ? WHERE id = ?')
+          .run(JSON.stringify(filtered), now, task.id);
+      }
     }
-  }
 
-  db.prepare('DELETE FROM labels WHERE id = ?').run(req.params.id);
+    db.prepare('DELETE FROM labels WHERE id = ?').run(req.params.id);
+  })();
+
   res.json({ ok: true });
 });
 

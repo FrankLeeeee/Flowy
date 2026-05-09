@@ -3,6 +3,7 @@ import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, Harnes
 import { getCached, setCached } from '../lib/offlineStore';
 import { isOnline, queueMutation } from '../lib/syncQueue';
 import { patchSwCache, patchSwCacheByPathname, removeById, tempId, upsertById } from '../lib/optimisticCache';
+import { formatDateYMD } from '../lib/dateFilter';
 
 const api = axios.create({ baseURL: '/api', withCredentials: true });
 
@@ -193,7 +194,7 @@ export async function createTask(body: {
     harness_config: JSON.stringify(body.harnessConfig ?? {}),
     labels: JSON.stringify(body.labels ?? []),
     output: null,
-    scheduled_date: body.scheduledDate ?? new Date().toISOString().slice(0, 10),
+    scheduled_date: body.scheduledDate ?? formatDateYMD(),
     scheduled_time: body.scheduledTime ?? null,
     recurrence_rule: body.recurrenceRule ? JSON.stringify(body.recurrenceRule) : null,
     started_at: null,

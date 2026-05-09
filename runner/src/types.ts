@@ -1,10 +1,15 @@
+export type AiProvider = 'claude-code' | 'codex' | 'cursor-agent' | 'gemini-cli';
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'failed' | 'done' | 'cancelled';
+export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
+export type RunnerStatus = 'online' | 'offline' | 'busy';
+
 export interface RunnerConfig {
   name: string;
   url: string;
-  providers: string[];
+  providers: AiProvider[];
   cliVersions: Record<string, string>;
   lastCliScanAt: string;
-  pollInterval: number;  // seconds
+  pollInterval: number;
   token?: string;
   secret?: string;
   device: string;
@@ -17,10 +22,10 @@ export interface Task {
   task_key: string;
   title: string;
   description: string;
-  status: string;
-  priority: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   runner_id: string | null;
-  ai_provider: string | null;
+  ai_provider: AiProvider | null;
   harness_config: string;
   labels: string;
   output: string | null;
@@ -39,12 +44,12 @@ export interface RegisterResponse {
 
 export interface HeartbeatResponse {
   ok: boolean;
-  status: string;
+  status: RunnerStatus;
   refreshCli?: boolean;
   updateCli?: boolean;
 }
 
-export type SkillCli = 'claude-code' | 'codex' | 'cursor-agent' | 'gemini-cli';
+export type SkillCli = AiProvider;
 export type SkillAction = 'write' | 'delete' | 'install';
 
 export interface SkillCommand {

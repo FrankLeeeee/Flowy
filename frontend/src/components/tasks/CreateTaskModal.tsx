@@ -12,7 +12,7 @@ import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, App
 import LabelPicker from '@/components/LabelPicker';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
-import { getTodayDateInputValue } from '@/lib/taskSchedule';
+import { formatDateYMD } from '@/lib/dateFilter';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles } from 'lucide-react';
 
@@ -40,7 +40,7 @@ export default function CreateTaskModal({
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('none');
   const [labels, setLabels] = useState<string[]>([]);
-  const [scheduledDate, setScheduledDate] = useState(getTodayDateInputValue());
+  const [scheduledDate, setScheduledDate] = useState(formatDateYMD());
   const [scheduledTime, setScheduledTime] = useState('');
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(null);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
@@ -56,7 +56,7 @@ export default function CreateTaskModal({
       setDescription('');
       setPriority('none');
       setLabels([]);
-      setScheduledDate(getTodayDateInputValue());
+      setScheduledDate(formatDateYMD());
       setScheduledTime('');
       setRecurrenceRule(null);
     }

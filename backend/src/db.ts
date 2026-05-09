@@ -147,11 +147,6 @@ function migrate(): void {
       updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
 
-    CREATE TABLE IF NOT EXISTS settings (
-      key   TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS user_sessions (
       token      TEXT PRIMARY KEY,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -286,6 +281,8 @@ function migrateProjectsToLists(): void {
 
 function normalizeListNames(): void {
   if (!tableExists('lists')) return;
+  if (getDbSetting('migrated_list_names_normalized') === '1') return;
+
   const lists = db.prepare('SELECT id, name FROM lists').all() as Array<{ id: string; name: string }>;
   const updateName = db.prepare('UPDATE lists SET name = ? WHERE id = ?');
   const tx = db.transaction(() => {
@@ -297,6 +294,7 @@ function normalizeListNames(): void {
     }
   });
   tx();
+  setDbSettingDirect('migrated_list_names_normalized', '1');
 }
 
 function ensureUniqueListNamesIndex(): void {
@@ -543,7 +541,7 @@ function backfillListPositions(): void {
 function ensureTaskScheduleColumns(): void {
   ensureColumn('tasks', 'scheduled_date', 'TEXT');
   ensureColumn('tasks', 'scheduled_time', 'TEXT');
-  const hasScheduledAt = (db.prepare(`PRAGMA table_info(tasks)`).all() as Array<{ name: string }>).some((entry) => entry.name === 'scheduled_at');
+  const hasScheduledAt = getTableColumns('tasks').has('scheduled_at');
   if (hasScheduledAt) {
     db.prepare(`
       UPDATE tasks
@@ -566,14 +564,29 @@ function ensureTaskScheduleColumns(): void {
   }
 }
 
+const columnCache = new Map<string, Set<string>>();
+
+function getTableColumns(table: string): Set<string> {
+  let cached = columnCache.get(table);
+  if (!cached) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    cached = new Set(columns.map((c) => c.name));
+    columnCache.set(table, cached);
+  }
+  return cached;
+}
+
 function ensureColumn(table: string, column: string, definition: string): void {
-  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-  if (!columns.some((entry) => entry.name === column)) {
+  const columns = getTableColumns(table);
+  if (!columns.has(column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    columns.add(column);
   }
 }
 
 function migrateTaskKeysToListNames(): void {
+  if (getDbSetting('migrated_task_keys_to_list_names') === '1') return;
+
   const listed = db.prepare(`
     SELECT t.id, t.task_number, l.name AS list_name
     FROM tasks t
@@ -599,6 +612,7 @@ function migrateTaskKeysToListNames(): void {
 
   try {
     tx();
+    setDbSettingDirect('migrated_task_keys_to_list_names', '1');
   } catch {
     // Preserve existing task keys if generated names would collide.
   }

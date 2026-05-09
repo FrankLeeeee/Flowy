@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchStats } from '../api/client';
 import { Stats } from '../types';
 import { cn } from '@/lib/utils';
+import { formatDateYMD } from '@/lib/dateFilter';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageTitle from '@/components/PageTitle';
 import { AI_LABELS, STATUS_CONFIG } from '@/lib/taskConstants';
@@ -225,7 +226,7 @@ function ActivityChart({ days }: { days: Array<{ date: string; count: number }> 
   for (let i = 29; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const dateStr = formatDateYMD(d);
     const found = days.find((r) => r.date === dateStr);
     grid.push({ date: dateStr, count: found?.count ?? 0 });
   }

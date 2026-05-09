@@ -1,0 +1,13 @@
+{
+  "name": "@frankleeeee/flowy-shared",
+  "version": "1.0.7",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.3"
+  }
+}

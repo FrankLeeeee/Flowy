@@ -1,17 +1,6 @@
+import { asRecord, getString } from '@frankleeeee/flowy-shared';
+
 type RecordLike = Record<string, unknown>;
-
-function asRecord(value: unknown): RecordLike | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
-  return value as RecordLike;
-}
-
-function getString(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
-  }
-  return undefined;
-}
 
 function pruneObject<T extends Record<string, unknown>>(value: T): T | undefined {
   const entries = Object.entries(value).filter(([, entry]) => entry !== undefined);

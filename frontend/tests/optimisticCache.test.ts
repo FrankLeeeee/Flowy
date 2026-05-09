@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  isTempId,
   removeById,
   TEMP_ID_PREFIX,
   tempId,
@@ -21,14 +20,7 @@ describe('optimisticCache pure helpers', () => {
       expect(a).not.toBe(b);
     });
 
-    it('isTempId only matches the temp prefix', () => {
-      expect(isTempId(tempId())).toBe(true);
-      expect(isTempId('real-uuid-1234')).toBe(false);
-      expect(isTempId(null)).toBe(false);
-      expect(isTempId(undefined)).toBe(false);
-      expect(isTempId('')).toBe(false);
-    });
-  });
+});
 
   describe('upsertById', () => {
     type Item = { id: string; name: string };

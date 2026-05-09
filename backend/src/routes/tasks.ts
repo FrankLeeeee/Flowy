@@ -4,22 +4,12 @@ import { getDb, nextInboxTaskNumber } from '../db';
 import { Task, List, TaskLog, RecurrenceRule } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
 import { formatTaskKey } from '../listIdentity';
-import { utcNow } from '../time';
+import { utcNow, todayDateISO, currentTimeHHMM } from '../time';
 import { spawnNextRecurrence } from '../recurrence';
 
 const router = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-function todayDate(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
-
-function currentTime(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-}
 
 function isValidDateInput(value: string): boolean {
   if (!DATE_RE.test(value)) return false;
@@ -28,7 +18,7 @@ function isValidDateInput(value: string): boolean {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
-function parseSchedule(body: { scheduledDate?: string; scheduledTime?: string | null }, fallbackDate = todayDate(), fallbackTime: string | null = null): { scheduledDate: string; scheduledTime: string | null; error?: string } {
+function parseSchedule(body: { scheduledDate?: string; scheduledTime?: string | null }, fallbackDate = todayDateISO(), fallbackTime: string | null = null): { scheduledDate: string; scheduledTime: string | null; error?: string } {
   const scheduledDate = (body.scheduledDate ?? fallbackDate).trim();
   const scheduledTime = body.scheduledTime === undefined ? fallbackTime : (body.scheduledTime?.trim() || null);
 
@@ -255,7 +245,7 @@ router.post('/:id/run', (req: Request, res: Response) => {
     UPDATE tasks SET status = 'todo', output = '', started_at = NULL, completed_at = NULL,
       scheduled_date = ?, scheduled_time = ?, updated_at = ?
     WHERE id = ?
-  `).run(todayDate(), currentTime(), utcNow(), req.params.id);
+  `).run(todayDateISO(), currentTimeHHMM(), utcNow(), req.params.id);
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
   res.json(updated);

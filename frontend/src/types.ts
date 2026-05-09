@@ -186,11 +186,11 @@ export interface Stats {
     busy: number;
     offline: number;
   };
-  tasksByStatus: Array<{ status: string; count: number }>;
+  tasksByStatus: Array<{ status: TaskStatus; count: number }>;
   tasksByList: Array<{ list_name: string; total: number; done: number }>;
-  tasksByProvider: Array<{ ai_provider: string; count: number; total_minutes: number | null }>;
-  tasksByPriority: Array<{ priority: string; count: number }>;
-  tasksByRunner: Array<{ runner_name: string; count: number; runner_status: string; total_minutes: number | null }>;
+  tasksByProvider: Array<{ ai_provider: AiProvider; count: number; total_minutes: number | null }>;
+  tasksByPriority: Array<{ priority: TaskPriority; count: number }>;
+  tasksByRunner: Array<{ runner_name: string; count: number; runner_status: RunnerStatus; total_minutes: number | null }>;
   avgCompletionMinutes: number | null;
   dailyCompleted: Array<{ date: string; count: number }>;
   topLabels: Array<{ name: string; color: string; count: number }>;

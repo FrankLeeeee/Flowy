@@ -1,16 +1,16 @@
 import os from 'os';
 import fs from 'fs';
 import { spawnSync } from 'child_process';
-import { RunnerConfig } from './types';
+import { AiProvider, RunnerConfig } from './types';
 import { ensureConfigDir, getRunnerTokenPath } from './configDir';
 
 export const childProcess = { spawnSync };
-const SUPPORTED_PROVIDERS = [
+const SUPPORTED_PROVIDERS: ReadonlyArray<{ id: AiProvider; command: string }> = [
   { id: 'claude-code', command: 'claude' },
   { id: 'codex', command: 'codex' },
   { id: 'cursor-agent', command: 'agent' },
   { id: 'gemini-cli', command: 'gemini' },
-] as const;
+];
 
 const CLI_UPDATE_COMMANDS: Record<string, { cmd: string; args: string[] }> = {
   'claude-code':  { cmd: 'claude', args: ['update'] },
@@ -85,7 +85,7 @@ export function parseArgs(argv: string[]): RunnerConfig {
   };
 }
 
-export function updateInstalledClis(providers: string[]): void {
+export function updateInstalledClis(providers: AiProvider[]): void {
   for (const provider of providers) {
     const entry = CLI_UPDATE_COMMANDS[provider];
     if (!entry) continue;
@@ -105,8 +105,8 @@ export function updateInstalledClis(providers: string[]): void {
   }
 }
 
-export function detectAvailableProvidersWithVersions(): { providers: string[]; versions: Record<string, string> } {
-  const providers: string[] = [];
+export function detectAvailableProvidersWithVersions(): { providers: AiProvider[]; versions: Record<string, string> } {
+  const providers: AiProvider[] = [];
   const versions: Record<string, string> = {};
   for (const p of SUPPORTED_PROVIDERS) {
     if (!isCommandAvailable(p.command)) continue;
@@ -115,10 +115,6 @@ export function detectAvailableProvidersWithVersions(): { providers: string[]; v
     if (v) versions[p.id] = v;
   }
   return { providers, versions };
-}
-
-export function detectAvailableProviders(): string[] {
-  return detectAvailableProvidersWithVersions().providers;
 }
 
 function detectCliVersion(command: string): string {

@@ -15,10 +15,6 @@ export function tempId(): string {
   return `${TEMP_ID_PREFIX}${crypto.randomUUID()}`;
 }
 
-export function isTempId(id: string | null | undefined): boolean {
-  return typeof id === 'string' && id.startsWith(TEMP_ID_PREFIX);
-}
-
 async function getCache(): Promise<Cache | null> {
   if (typeof caches === 'undefined') return null;
   try {

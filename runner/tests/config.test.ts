@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as config from '../src/config';
 
-describe('detectAvailableProviders', () => {
+describe('detectAvailableProvidersWithVersions', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -17,7 +17,9 @@ describe('detectAvailableProviders', () => {
       .mockReturnValueOnce({ status: 1 } as ReturnType<typeof config.childProcess.spawnSync>)                              // which agent → not found
       .mockReturnValueOnce({ status: 1 } as ReturnType<typeof config.childProcess.spawnSync>);                             // which gemini → not found
 
-    expect(config.detectAvailableProviders()).toEqual(['claude-code']);
+    const result = config.detectAvailableProvidersWithVersions();
+    expect(result.providers).toEqual(['claude-code']);
+    expect(result.versions).toEqual({ 'claude-code': '1.2.3' });
     expect(spawnSyncMock).toHaveBeenNthCalledWith(1, 'which', ['claude'], { stdio: 'ignore' });
     expect(spawnSyncMock).toHaveBeenNthCalledWith(2, 'claude', ['--version'], { encoding: 'utf-8', timeout: 5_000 });
     expect(spawnSyncMock).toHaveBeenNthCalledWith(3, 'which', ['codex'], { stdio: 'ignore' });
@@ -31,7 +33,7 @@ describe('detectAvailableProviders', () => {
       .spyOn(config.childProcess, 'spawnSync')
       .mockReturnValue({ status: 0 } as ReturnType<typeof config.childProcess.spawnSync>);
 
-    config.detectAvailableProviders();
+    config.detectAvailableProvidersWithVersions();
 
     expect(spawnSyncMock).toHaveBeenCalledWith('where', ['claude'], { stdio: 'ignore' });
   });

@@ -15,7 +15,7 @@ type ToneStyles = {
   emphasis: string;
 };
 
-export const SEMANTIC_TONES: Record<SemanticTone, ToneStyles> = {
+const SEMANTIC_TONES: Record<SemanticTone, ToneStyles> = {
   neutral: {
     dot: 'bg-foreground/20 dark:bg-foreground/28',
     icon: 'text-muted-foreground',
@@ -111,7 +111,7 @@ export function getAiHarnessPillStyle(provider: AiProvider | string): CSSPropert
   return { ['--harness-color' as string]: hex };
 }
 
-export type LabelColorStyles = {
+type LabelColorStyles = {
   dot: string;
   pill: string;
   text: string;

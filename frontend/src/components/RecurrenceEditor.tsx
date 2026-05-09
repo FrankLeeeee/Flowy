@@ -3,6 +3,7 @@ import { RecurrenceRule, RecurrenceFrequency } from '../types';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { formatDateYMD } from '@/lib/dateFilter';
 import { Repeat, X } from 'lucide-react';
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -157,7 +158,7 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
             else {
               const d = new Date();
               d.setMonth(d.getMonth() + 3);
-              update({ endDate: d.toISOString().slice(0, 10) });
+              update({ endDate: formatDateYMD(d) });
             }
           }}
         >

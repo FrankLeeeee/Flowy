@@ -61,7 +61,3 @@ export function getProvider(id: string): CLIProvider {
   return provider;
 }
 
-/** Return the ids of every registered provider (useful for heartbeats, tests, etc.). */
-export function listProviderIds(): string[] {
-  return [...registry.keys()];
-}
