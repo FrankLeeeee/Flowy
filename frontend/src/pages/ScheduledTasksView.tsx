@@ -49,11 +49,16 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
 
     if (mode === 'today') {
       const today = getTodayDateString();
-      return nonCancelled.filter((t) => t.scheduled_date === today);
+      return nonCancelled.filter((t) =>
+        t.scheduled_date === today || (t.scheduled_date < today && t.status !== 'done'),
+      );
     }
 
     const { start, end } = getWeekRange();
-    return nonCancelled.filter((t) => t.scheduled_date >= start && t.scheduled_date <= end);
+    return nonCancelled.filter((t) =>
+      (t.scheduled_date >= start && t.scheduled_date <= end) ||
+      (t.scheduled_date < start && t.status !== 'done'),
+    );
   }, [mode]);
 
   const loadData = useCallback(async () => {

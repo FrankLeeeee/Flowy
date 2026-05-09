@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig } from '../../types';
+import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule } from '../../types';
 import { fetchTaskLogs, updateTask, fetchLabels, runTask, assignTask } from '../../api/client';
+import RecurrenceEditor from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessCon
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { CalendarDays, Clock3, Pencil, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog } from 'lucide-react';
+import { CalendarDays, Clock3, Pencil, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog, Repeat } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -76,6 +77,9 @@ export default function TaskDetailModal({
   const [assignAiProvider, setAssignAiProvider] = useState<AiProvider | ''>((task.ai_provider as AiProvider | null) ?? '');
   const [assignHarnessConfig, setAssignHarnessConfig] = useState<HarnessConfig>(parseHarnessConfig(task.harness_config));
   const [savingAssignment, setSavingAssignment] = useState(false);
+  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(
+    task.recurrence_rule ? JSON.parse(task.recurrence_rule) : null,
+  );
   const [outputFullscreenOpen, setOutputFullscreenOpen] = useState(false);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [running, setRunning] = useState(false);
@@ -104,6 +108,7 @@ export default function TaskDetailModal({
     setLabelsText(JSON.parse(task.labels || '[]').join(', '));
     setScheduledDate(task.scheduled_date);
     setScheduledTime(normalizeScheduledTime(task.scheduled_time));
+    setRecurrenceRule(task.recurrence_rule ? JSON.parse(task.recurrence_rule) : null);
     setEditing(true);
   };
 
@@ -121,6 +126,7 @@ export default function TaskDetailModal({
       title, description, status, priority, labels: nextLabels,
       scheduledDate,
       scheduledTime: scheduledTime || null,
+      recurrenceRule,
     });
     onUpdate(updated);
     setEditing(false);
@@ -329,6 +335,8 @@ export default function TaskDetailModal({
                   onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
                 />
               </div>
+
+              <RecurrenceEditor value={recurrenceRule} onChange={setRecurrenceRule} />
             </div>
           ) : assigning ? (
             <div className="flex flex-col gap-5">
@@ -378,6 +386,24 @@ export default function TaskDetailModal({
                   <CalendarDays className="h-4 w-4 text-muted-foreground" />
                   <span>{formatTaskSchedule(task.scheduled_date, task.scheduled_time)}</span>
                 </div>
+                {task.recurrence_rule && (() => {
+                  const rule: RecurrenceRule = JSON.parse(task.recurrence_rule!);
+                  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                  const freqLabel = rule.interval === 1
+                    ? (rule.frequency === 'day' ? 'Daily' : rule.frequency === 'week' ? 'Weekly' : 'Monthly')
+                    : `Every ${rule.interval} ${rule.frequency}s`;
+                  const daysLabel = rule.frequency === 'week' && rule.daysOfWeek?.length
+                    ? ` on ${rule.daysOfWeek.map((d) => dayNames[d]).join(', ')}`
+                    : '';
+                  const timeLabel = rule.time ? ` at ${rule.time}` : '';
+                  const endLabel = rule.endDate ? ` until ${rule.endDate}` : '';
+                  return (
+                    <div className="mt-2 flex items-center gap-2 text-[12px] text-primary/80">
+                      <Repeat className="h-3.5 w-3.5" />
+                      <span>{freqLabel}{daysLabel}{timeLabel}{endLabel}</span>
+                    </div>
+                  );
+                })()}
               </AppDialogSection>
 
               {/* Runner Info */}

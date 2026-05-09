@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { List, TaskPriority, Label } from '../../types';
+import { List, TaskPriority, Label, RecurrenceRule } from '../../types';
 import { fetchLabels } from '../../api/client';
+import RecurrenceEditor from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,7 @@ export default function CreateTaskModal({
   open: boolean;
   lists: List[];
   defaultListId?: string;
-  onSubmit: (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledDate: string; scheduledTime: string | null }) => void;
+  onSubmit: (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledDate: string; scheduledTime: string | null; recurrenceRule: RecurrenceRule | null }) => void;
   onClose: () => void;
 }) {
   const [listSelection, setListSelection] = useState(defaultListId ?? INBOX_VALUE);
@@ -41,6 +42,7 @@ export default function CreateTaskModal({
   const [labels, setLabels] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState(getTodayDateInputValue());
   const [scheduledTime, setScheduledTime] = useState('');
+  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(null);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const isMobile = useIsMobile();
 
@@ -56,6 +58,7 @@ export default function CreateTaskModal({
       setLabels([]);
       setScheduledDate(getTodayDateInputValue());
       setScheduledTime('');
+      setRecurrenceRule(null);
     }
   }, [open]);
 
@@ -84,6 +87,7 @@ export default function CreateTaskModal({
       labels,
       scheduledDate,
       scheduledTime: scheduledTime || null,
+      recurrenceRule,
     });
   };
 
@@ -234,6 +238,8 @@ export default function CreateTaskModal({
                     />
                   </div>
                 </div>
+
+                <RecurrenceEditor value={recurrenceRule} onChange={setRecurrenceRule} />
               </div>
 
             </div>

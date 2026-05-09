@@ -3,7 +3,7 @@ import { PRIORITY_ICON } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { CalendarDays, Clock3 } from 'lucide-react';
+import { CalendarDays, Clock3, Repeat } from 'lucide-react';
 
 export default function TaskCard({
   task, runner, allLabels = [], onClick,
@@ -43,7 +43,7 @@ export default function TaskCard({
       <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2">{task.title}</p>
 
       {/* Meta */}
-      {(labels.length > 0 || runner || task.ai_provider) && (
+      {(labels.length > 0 || runner || task.ai_provider || task.recurrence_rule) && (
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           {labels.map((label) => {
             const colorStyles = getLabelColorStyles(label, allLabels);
@@ -61,6 +61,11 @@ export default function TaskCard({
           {task.ai_provider && (
             <span className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', getAiProviderStyles(task.ai_provider).pill)}>
               {task.ai_provider}
+            </span>
+          )}
+          {task.recurrence_rule && (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/8 px-1.5 py-0.5 text-[10px] font-medium text-primary ring-1 ring-primary/15">
+              <Repeat className="h-2.5 w-2.5" />
             </span>
           )}
         </div>

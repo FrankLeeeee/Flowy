@@ -4,7 +4,7 @@ import { STATUS_CONFIG, PRIORITY_ICON, TASK_STATUSES } from '@/lib/taskConstants
 import { cn } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Repeat } from 'lucide-react';
 
 function StatusGroup({
   status, tasks, runnerMap, onTaskClick, onDrop,
@@ -88,6 +88,7 @@ function StatusGroup({
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="shrink-0 text-[11px] font-mono text-muted-foreground/75">{task.task_key}</span>
               <span className="text-[13px] font-medium text-foreground truncate">{task.title}</span>
+              {task.recurrence_rule && <Repeat className="h-3 w-3 shrink-0 text-primary/60" />}
             </div>
             <div className={cn('flex items-center', priorityTone.icon)}>
               {PRIORITY_ICON[task.priority]}

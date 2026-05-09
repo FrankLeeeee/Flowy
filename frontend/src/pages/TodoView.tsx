@@ -4,7 +4,7 @@ import { fetchLabels, fetchTasks, updateTask } from '../api/client';
 import { STATUS_CONFIG, PRIORITY_ICON } from '@/lib/taskConstants';
 import { getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles, getToneStyles } from '@/lib/semanticColors';
 import { cn } from '@/lib/utils';
-import { ListTodo, ChevronDown, Check, Circle } from 'lucide-react';
+import { ListTodo, ChevronDown, Check, Circle, Repeat } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
@@ -74,7 +74,7 @@ function TodoRow({
           {task.title}
         </span>
 
-        {labels.length > 0 && (
+        {(labels.length > 0 || task.recurrence_rule) && (
           <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
             {labels.map((label) => {
               const colorStyles = getLabelColorStyles(label, allLabels);
@@ -84,6 +84,12 @@ function TodoRow({
                 </span>
               );
             })}
+            {task.recurrence_rule && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/8 px-1.5 py-0.5 text-[10px] font-medium text-primary ring-1 ring-primary/15">
+                <Repeat className="h-2.5 w-2.5" />
+                Recurring
+              </span>
+            )}
           </div>
         )}
       </div>

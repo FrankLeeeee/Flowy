@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Label, Runner, Task, TaskStatus } from '@/types';
-import { ChevronDown, Check, Circle } from 'lucide-react';
+import { ChevronDown, Check, Circle, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL } from '@/lib/taskConstants';
 import { getAiProviderStyles, getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
@@ -34,7 +34,8 @@ function TodoRow({
   };
 
   const isChecked = checked || optimistic;
-  const hasMetadata = labels.length > 0 || runner || task.ai_provider || showPriority;
+  const isRecurring = !!task.recurrence_rule;
+  const hasMetadata = labels.length > 0 || runner || task.ai_provider || showPriority || isRecurring;
 
   return (
     <div
@@ -97,6 +98,12 @@ function TodoRow({
             {task.ai_provider && (
               <span className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', getAiProviderStyles(task.ai_provider).pill)}>
                 {task.ai_provider}
+              </span>
+            )}
+            {isRecurring && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/8 px-1.5 py-0.5 text-[10px] font-medium text-primary ring-1 ring-primary/15">
+                <Repeat className="h-2.5 w-2.5" />
+                Recurring
               </span>
             )}
           </div>

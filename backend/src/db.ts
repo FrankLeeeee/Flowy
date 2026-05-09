@@ -92,6 +92,7 @@ function migrate(): void {
       output        TEXT,
       scheduled_date TEXT NOT NULL DEFAULT (date('now')),
       scheduled_time TEXT,
+      recurrence_rule TEXT,
       started_at    TEXT,
       completed_at  TEXT,
       created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -167,6 +168,7 @@ function migrate(): void {
   ensureColumn('runners', 'cli_versions', 'TEXT');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
   ensureTaskScheduleColumns();
+  ensureColumn('tasks', 'recurrence_rule', 'TEXT');
   ensureColumn('lists', 'icon', 'TEXT');
   ensureColumn('lists', 'position', 'INTEGER NOT NULL DEFAULT 0');
   backfillListPositions();
