@@ -5,6 +5,7 @@ import { Session, SessionMessage } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
 import { enqueueSessionCommand } from './sessionCommandQueue';
 import { utcNow } from '../time';
+import { broadcastSessionEvent } from '../sessionWs';
 
 const router = Router();
 
@@ -100,19 +101,21 @@ router.post('/:id/input', (req: Request, res: Response) => {
 
   const userMessageId = uuid();
   const assistantMessageId = uuid();
+  const now = utcNow();
+  const assistantTime = new Date(new Date(now).getTime() + 1).toISOString();
 
   db.transaction(() => {
     db.prepare(
-      'INSERT INTO session_messages (id, session_id, role, content) VALUES (?, ?, ?, ?)',
-    ).run(userMessageId, session.id, 'user', content);
+      'INSERT INTO session_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
+    ).run(userMessageId, session.id, 'user', content, now);
 
     db.prepare(
-      'INSERT INTO session_messages (id, session_id, role, content) VALUES (?, ?, ?, ?)',
-    ).run(assistantMessageId, session.id, 'assistant', '');
+      'INSERT INTO session_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
+    ).run(assistantMessageId, session.id, 'assistant', '', assistantTime);
 
     db.prepare(
       "UPDATE sessions SET status = 'busy', updated_at = ? WHERE id = ?",
-    ).run(utcNow(), session.id);
+    ).run(now, session.id);
   })();
 
   const history = messages.map((m) => ({ role: m.role, content: m.content }));
@@ -129,6 +132,8 @@ router.post('/:id/input', (req: Request, res: Response) => {
       assistantMessageId,
     },
   });
+
+  broadcastSessionEvent(session.id, { type: 'status', status: 'busy' });
 
   const updated = db.prepare('SELECT * FROM sessions WHERE id = ?').get(session.id) as Session;
   res.json(updated);
@@ -149,6 +154,8 @@ router.post('/:id/stop', (req: Request, res: Response) => {
     kind: 'stop',
     payload: {},
   });
+
+  broadcastSessionEvent(session.id, { type: 'status', status: 'stopped' });
 
   const updated = db.prepare('SELECT * FROM sessions WHERE id = ?').get(session.id) as Session;
   res.json(updated);

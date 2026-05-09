@@ -313,6 +313,31 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
       return;
     }
 
+    if (cmd.kind === 'generate-title') {
+      const { aiProvider, userMessage } = cmd.payload;
+      if (!aiProvider || !userMessage) return;
+      console.log(`  [session ${cmd.sessionId.slice(0, 8)}] Generating title…`);
+      const titlePrompt = `Generate a short title (3-6 words, no quotes, no punctuation at the end) that summarizes this user message. Reply with ONLY the title, nothing else.\n\nUser message: ${userMessage.slice(0, 500)}`;
+      let output = '';
+      const { promise } = executeSessionTurn(
+        { aiProvider, history: [], prompt: titlePrompt },
+        (chunk) => { output += chunk; },
+      );
+      try {
+        const result = await promise;
+        if (result.success && output.trim()) {
+          const title = output.trim().split('\n')[0].replace(/^["']|["']$/g, '').trim().slice(0, 80);
+          if (title) {
+            await api.updateSessionTitle(cmd.sessionId, title);
+            console.log(`  [session ${cmd.sessionId.slice(0, 8)}] Title set: ${title}`);
+          }
+        }
+      } catch (error) {
+        console.warn('  [session] Title generation failed:', errorMessage(error));
+      }
+      return;
+    }
+
     if (cmd.kind !== 'send-prompt') return;
 
     const { aiProvider, harnessConfig, history, prompt, assistantMessageId } = cmd.payload;

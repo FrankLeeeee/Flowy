@@ -1,4 +1,5 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -17,6 +18,7 @@ import { DATA_DIR }    from './dataDir';
 import { loadSettings } from './storage';
 import { requireUserAuth } from './middleware/userAuth';
 import { initPush }    from './pushService';
+import { attachSessionWs } from './sessionWs';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -121,7 +123,10 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, () => {
+const server = createServer(app);
+attachSessionWs(server);
+
+server.listen(PORT, () => {
   console.log(`Flowy → http://localhost:${PORT}`);
   console.log(`Data  → ${DATA_DIR}`);
 });

@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 
-export type SessionCommandKind = 'send-prompt' | 'stop';
+export type SessionCommandKind = 'send-prompt' | 'stop' | 'generate-title';
 
 export interface SessionCommand {
   id: string;
