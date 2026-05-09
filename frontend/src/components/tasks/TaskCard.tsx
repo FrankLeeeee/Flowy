@@ -2,7 +2,7 @@ import { Task, Runner, Label } from '../../types';
 import { PRIORITY_ICON } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
-import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
+import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { CalendarDays, Clock3, Repeat } from 'lucide-react';
 
 export default function TaskCard({
@@ -59,7 +59,10 @@ export default function TaskCard({
             </span>
           )}
           {task.ai_provider && (
-            <span className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', getAiProviderStyles(task.ai_provider).pill)}>
+            <span
+              className="ai-harness-pill inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+              style={getAiHarnessPillStyle(task.ai_provider)}
+            >
               {task.ai_provider}
             </span>
           )}

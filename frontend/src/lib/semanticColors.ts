@@ -96,14 +96,7 @@ export const RUNNER_STATUS_TONES: Record<RunnerStatus, SemanticTone> = {
   offline: 'neutral',
 };
 
-export const AI_PROVIDER_TONES: Record<AiProvider, SemanticTone> = {
-  'claude-code': 'warning',
-  codex: 'brand',
-  'cursor-agent': 'neutral',
-  'gemini-cli': 'neutral',
-};
-
-/** Brand hex colors for AI harness badges, used in runner and skills pages. */
+/** Brand hex colors for AI harness badges. */
 export const AI_HARNESS_HEX: Record<AiProvider, string> = {
   'claude-code':  '#DE7356',
   codex:          '#3936d7',
@@ -228,9 +221,6 @@ export function getRunnerStatusStyles(status: RunnerStatus): ToneStyles {
   return getToneStyles(RUNNER_STATUS_TONES[status]);
 }
 
-export function getAiProviderStyles(provider: AiProvider | string): ToneStyles {
-  return getToneStyles(AI_PROVIDER_TONES[provider as AiProvider] ?? 'neutral');
-}
 
 /** Get styles for a label by looking up its color from a labels list, falling back to neutral tone. */
 export function getLabelColorStyles(labelName: string, labels: Array<{ name: string; color: LabelColor }>): LabelColorStyles {

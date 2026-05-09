@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AI_LABELS, STATUS_CONFIG } from '@/lib/taskConstants';
 import {
-  getToneStyles, getTaskStatusStyles, getAiProviderStyles,
+  getToneStyles, getTaskStatusStyles, AI_HARNESS_HEX,
   getRunnerStatusStyles, LABEL_COLORS,
 } from '@/lib/semanticColors';
 import { AiProvider, LabelColor, RunnerStatus, TaskStatus } from '../../types';
@@ -26,14 +26,22 @@ function StatPill({ label, value, tone }: { label: string; value: string | numbe
   );
 }
 
-function MiniBar({ label, count, max, dotClass }: { label: string; count: number; max: number; dotClass?: string }) {
+function MiniBar({ label, count, max, dotClass, dotColor }: { label: string; count: number; max: number; dotClass?: string; dotColor?: string }) {
   const pct = max > 0 ? Math.round((count / max) * 100) : 0;
   return (
     <div className="flex items-center gap-2.5">
-      {dotClass && <span className={cn('h-2 w-2 shrink-0 rounded-full', dotClass)} />}
+      {(dotClass || dotColor) && (
+        <span
+          className={cn('h-2 w-2 shrink-0 rounded-full', !dotColor && dotClass)}
+          style={dotColor ? { backgroundColor: dotColor } : undefined}
+        />
+      )}
       <span className="min-w-[90px] shrink-0 truncate text-[12px] text-muted-foreground/85">{label}</span>
       <div className="flex-1 h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
-        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: dotColor ?? 'var(--primary)' }}
+        />
       </div>
       <span className="w-6 shrink-0 text-right text-[11px] font-semibold tabular-nums text-foreground/80">{count}</span>
     </div>
@@ -252,10 +260,10 @@ return (
           ) : (
             <div className="space-y-2.5">
               {tasksByProvider.map(({ ai_provider, count }) => {
-                const styles = getAiProviderStyles(ai_provider as AiProvider);
+                const hex = AI_HARNESS_HEX[ai_provider as AiProvider];
                 const label = AI_LABELS[ai_provider as AiProvider] ?? ai_provider;
                 return (
-                  <MiniBar key={ai_provider} label={label} count={count} max={maxProviderCount} dotClass={styles.dot} />
+                  <MiniBar key={ai_provider} label={label} count={count} max={maxProviderCount} dotColor={hex} />
                 );
               })}
             </div>
