@@ -345,6 +345,20 @@
   }
 }
 
+/* Per-element color transition when toggling theme */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 400ms var(--ease-out-quart),
+              color 400ms var(--ease-out-quart),
+              border-color 400ms var(--ease-out-quart),
+              box-shadow 400ms var(--ease-out-quart),
+              fill 400ms var(--ease-out-quart),
+              stroke 400ms var(--ease-out-quart) !important;
+  transition-delay: 0s !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html:focus-within {
     scroll-behavior: auto;
