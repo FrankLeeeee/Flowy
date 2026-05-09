@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -13,6 +13,24 @@ const ThemeContext = createContext<ThemeCtx>({
   resolved: 'light',
   setTheme: () => {},
 });
+
+let themeTimer: ReturnType<typeof setTimeout> | undefined;
+
+function applyThemeClass(dark: boolean) {
+  const root = document.documentElement;
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    root.classList.toggle('dark', dark);
+    return;
+  }
+
+  clearTimeout(themeTimer);
+  root.classList.add('theme-transition');
+  requestAnimationFrame(() => {
+    root.classList.toggle('dark', dark);
+  });
+  themeTimer = setTimeout(() => root.classList.remove('theme-transition'), 450);
+}
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light';
@@ -30,25 +48,26 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   const resolved = resolve(theme);
+  const mounted = useRef(false);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
     localStorage.setItem('flowy-theme', t);
   };
 
-  // Apply class to <html>
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle('dark', resolved === 'dark');
+    if (!mounted.current) {
+      document.documentElement.classList.toggle('dark', resolved === 'dark');
+      mounted.current = true;
+      return;
+    }
+    applyThemeClass(resolved === 'dark');
   }, [resolved]);
 
-  // Listen for system theme changes when in "system" mode
   useEffect(() => {
     if (theme !== 'system') return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => {
-      document.documentElement.classList.toggle('dark', mq.matches);
-    };
+    const handler = () => applyThemeClass(mq.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, [theme]);
