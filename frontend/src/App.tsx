@@ -28,6 +28,7 @@ import Stats from "./pages/Stats";
 import MobileStats from "./pages/mobile/MobileStats";
 import TodoView from "./pages/TodoView";
 import ScheduledTasksView from "./pages/ScheduledTasksView";
+import Settings from "./pages/Settings";
 import { fetchLists, createTask } from "./api/client";
 import { List } from "./types";
 import OfflineBanner from "./components/OfflineBanner";
@@ -74,15 +75,12 @@ function DesktopShell() {
               <Route path="/stats" element={<Stats />} />
               <Route path="/sessions" element={<Sessions />} />
               <Route path="/todos" element={<TodoView />} />
+              <Route path="/settings" element={<Settings />} />
               <Route
                 path="/lists"
                 element={<Navigate to="/inbox" replace />}
               />
               <Route path="/usage" element={<Navigate to="/runners" replace />} />
-              <Route
-                path="/settings"
-                element={<Navigate to="/runners" replace />}
-              />
             </Routes>
           </div>
         </main>
