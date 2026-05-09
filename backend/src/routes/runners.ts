@@ -12,6 +12,7 @@ import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSki
 import { drainSessionCommands } from './sessionCommandQueue';
 import { sendPushToAll } from '../pushService';
 import { parseUtcTimestamp, utcNow } from '../time';
+import { spawnNextRecurrence } from '../recurrence';
 
 const router = Router();
 
@@ -418,6 +419,11 @@ router.post('/tasks/:taskId/complete', authenticateRunner, (req: Request, res: R
   })();
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(task.id) as Task;
+
+  if (success && updated.recurrence_rule) {
+    spawnNextRecurrence(updated);
+  }
+
   res.json(updated);
 
   // Send push notification to all subscribed clients

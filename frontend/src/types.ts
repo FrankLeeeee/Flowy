@@ -53,6 +53,16 @@ export interface List {
   updated_at: string;
 }
 
+export type RecurrenceFrequency = 'day' | 'week' | 'month';
+
+export interface RecurrenceRule {
+  frequency: RecurrenceFrequency;
+  interval: number;
+  daysOfWeek?: number[];
+  time?: string | null;
+  endDate?: string | null;
+}
+
 export interface Task {
   id: string;
   list_id: string | null;
@@ -69,6 +79,7 @@ export interface Task {
   output: string | null;
   scheduled_date: string;
   scheduled_time: string | null;
+  recurrence_rule: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;

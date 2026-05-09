@@ -53,18 +53,25 @@ export function getEffectiveDateRange(filter: DateFilterState): { start: string;
   return { start: filter.startDate, end: filter.endDate };
 }
 
+const DONE_STATUSES = new Set(['done', 'cancelled']);
+
 /**
  * Applies date filtering to a list of tasks.
  *
  * Rules:
  *  - Every task has a scheduled_date.
  *  - Tasks are shown when their date falls within the range.
+ *  - Overdue uncompleted tasks (scheduled before the range start) are
+ *    included in 'today' and 'week' modes so they aren't silently hidden.
  */
 export function filterTasksByDate(tasks: Task[], filter: DateFilterState): Task[] {
   const { start, end } = getEffectiveDateRange(filter);
+  const includeOverdue = filter.mode === 'today' || filter.mode === 'week';
 
   return tasks.filter((task) => {
-    return task.scheduled_date >= start && task.scheduled_date <= end;
+    if (task.scheduled_date >= start && task.scheduled_date <= end) return true;
+    if (includeOverdue && task.scheduled_date < start && !DONE_STATUSES.has(task.status)) return true;
+    return false;
   });
 }
 

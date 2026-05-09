@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage } from '../types';
+import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage, RecurrenceRule } from '../types';
 import { getCached, setCached } from '../lib/offlineStore';
 import { isOnline, queueMutation } from '../lib/syncQueue';
 import { patchSwCache, patchSwCacheByPathname, removeById, tempId, upsertById } from '../lib/optimisticCache';
@@ -171,6 +171,7 @@ export async function createTask(body: {
   listId?: string | null; title: string; description?: string; priority?: string; labels?: string[];
   scheduledDate?: string; scheduledTime?: string | null;
   runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
+  recurrenceRule?: RecurrenceRule | null;
 }): Promise<Task> {
   if (isOnline()) {
     const { data } = await api.post<Task>('/tasks', body);
@@ -194,6 +195,7 @@ export async function createTask(body: {
     output: null,
     scheduled_date: body.scheduledDate ?? new Date().toISOString().slice(0, 10),
     scheduled_time: body.scheduledTime ?? null,
+    recurrence_rule: body.recurrenceRule ? JSON.stringify(body.recurrenceRule) : null,
     started_at: null,
     completed_at: null,
     created_at: now,
@@ -212,6 +214,7 @@ export async function updateTask(id: string, body: {
   title?: string; description?: string; status?: string; priority?: string;
   labels?: string[]; scheduledDate?: string; scheduledTime?: string | null;
   runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
+  recurrenceRule?: RecurrenceRule | null;
 }): Promise<Task> {
   if (isOnline()) {
     const { data } = await api.put<Task>(`/tasks/${id}`, body);
@@ -232,6 +235,7 @@ export async function updateTask(id: string, body: {
       labels: body.labels !== undefined ? JSON.stringify(body.labels) : task.labels,
       scheduled_date: body.scheduledDate !== undefined ? body.scheduledDate : task.scheduled_date,
       scheduled_time: body.scheduledTime !== undefined ? body.scheduledTime : task.scheduled_time,
+      recurrence_rule: body.recurrenceRule !== undefined ? (body.recurrenceRule ? JSON.stringify(body.recurrenceRule) : null) : task.recurrence_rule,
       updated_at: nowIso(),
     };
     updated = next;

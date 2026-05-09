@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
 import { getDb, nextInboxTaskNumber } from '../db';
-import { Task, List, TaskLog } from '../types';
+import { Task, List, TaskLog, RecurrenceRule } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
 import { formatTaskKey } from '../listIdentity';
 import { utcNow } from '../time';
+import { spawnNextRecurrence } from '../recurrence';
 
 const router = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -69,10 +70,11 @@ router.get('/', (req: Request, res: Response) => {
 
 // POST /api/tasks
 router.post('/', (req: Request, res: Response) => {
-  const { listId, title, description, priority, labels, scheduledDate, scheduledTime, runnerId, aiProvider, harnessConfig } = req.body as {
+  const { listId, title, description, priority, labels, scheduledDate, scheduledTime, runnerId, aiProvider, harnessConfig, recurrenceRule } = req.body as {
     listId?: string | null; title?: string; description?: string; priority?: string; labels?: string[];
     scheduledDate?: string; scheduledTime?: string | null;
     runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown;
+    recurrenceRule?: RecurrenceRule | null;
   };
   if (!title) { res.status(400).json({ error: 'title is required' }); return; }
   const schedule = parseSchedule({ scheduledDate, scheduledTime });
@@ -105,15 +107,16 @@ router.post('/', (req: Request, res: Response) => {
   const resolvedAiProvider = aiProvider ?? null;
   const initialStatus = shouldAutoQueue(schedule.scheduledTime, resolvedRunnerId, resolvedAiProvider) ? 'todo' : 'backlog';
   const normalizedHarness = harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : '{}';
+  const serializedRecurrence = recurrenceRule ? JSON.stringify(recurrenceRule) : null;
 
   const now = utcNow();
   const insertTask = db.transaction(() => {
     db.prepare(`
-      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_date, scheduled_time, status, runner_id, ai_provider, harness_config, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_date, scheduled_time, recurrence_rule, status, runner_id, ai_provider, harness_config, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, resolvedListId, taskNumber, taskKey, title, description ?? '', priority ?? 'none',
-      JSON.stringify(labels ?? []), schedule.scheduledDate, schedule.scheduledTime, initialStatus,
+      JSON.stringify(labels ?? []), schedule.scheduledDate, schedule.scheduledTime, serializedRecurrence, initialStatus,
       resolvedRunnerId, resolvedAiProvider, normalizedHarness, now, now,
     );
 
@@ -140,10 +143,11 @@ router.put('/:id', (req: Request, res: Response) => {
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task | undefined;
   if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
 
-  const { title, description, status, priority, labels, runnerId, aiProvider, harnessConfig, scheduledDate, scheduledTime } = req.body as {
+  const { title, description, status, priority, labels, runnerId, aiProvider, harnessConfig, scheduledDate, scheduledTime, recurrenceRule } = req.body as {
     title?: string; description?: string; status?: string; priority?: string;
     labels?: string[]; runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown;
     scheduledDate?: string; scheduledTime?: string | null;
+    recurrenceRule?: RecurrenceRule | null;
   };
   const schedule = parseSchedule({ scheduledDate, scheduledTime }, task.scheduled_date, task.scheduled_time);
   if (schedule.error) { res.status(400).json({ error: schedule.error }); return; }
@@ -158,10 +162,15 @@ router.put('/:id', (req: Request, res: Response) => {
     resolvedStatus = shouldAutoQueue(schedule.scheduledTime, resolvedRunnerId, resolvedAiProvider) ? 'todo' : 'backlog';
   }
 
+  const resolvedRecurrence = recurrenceRule !== undefined
+    ? (recurrenceRule ? JSON.stringify(recurrenceRule) : null)
+    : task.recurrence_rule;
+
   db.prepare(`
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
       labels = ?, scheduled_date = ?, scheduled_time = ?,
+      recurrence_rule = ?,
       runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = ?
     WHERE id = ?
   `).run(
@@ -172,6 +181,7 @@ router.put('/:id', (req: Request, res: Response) => {
     labels ? JSON.stringify(labels) : task.labels,
     schedule.scheduledDate,
     schedule.scheduledTime,
+    resolvedRecurrence,
     resolvedRunnerId,
     resolvedAiProvider,
     harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config,
@@ -180,6 +190,11 @@ router.put('/:id', (req: Request, res: Response) => {
   );
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
+
+  if (resolvedStatus === 'done' && task.status !== 'done' && updated.recurrence_rule) {
+    spawnNextRecurrence(updated);
+  }
+
   res.json(updated);
 });
 
