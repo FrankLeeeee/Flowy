@@ -135,7 +135,7 @@ export default function Inbox() {
         runners={runners}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        availableViews={['todo', 'kanban', 'list']}
+        availableViews={['todo', 'list', 'kanban']}
         taskCount={visibleTasks.length}
         taskCountLabel="active"
       />
