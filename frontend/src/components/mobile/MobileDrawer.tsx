@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CalendarDays, Inbox, FolderKanban, Tags, BarChart2, X } from 'lucide-react';
+import { CalendarDays, Inbox, FolderKanban, Tags, BarChart2, Settings, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const MENU_ITEMS = [
@@ -8,6 +8,7 @@ const MENU_ITEMS = [
   { to: '/lists', icon: FolderKanban, label: 'Lists' },
   { to: '/labels', icon: Tags, label: 'Labels' },
   { to: '/stats', icon: BarChart2, label: 'Stats' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ] as const;
 
 interface MobileDrawerProps {
