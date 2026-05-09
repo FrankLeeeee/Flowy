@@ -3,7 +3,7 @@ import { Task, Runner, Label, TaskStatus } from '../../types';
 import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL, TASK_STATUSES } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
-import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
+import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { CalendarDays, ChevronRight, Clock3 } from 'lucide-react';
 
 function MobileTaskCard({
@@ -54,7 +54,10 @@ function MobileTaskCard({
             </span>
           )}
           {task.ai_provider && (
-            <span className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', getAiProviderStyles(task.ai_provider).pill)}>
+            <span
+              className="ai-harness-pill inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+              style={getAiHarnessPillStyle(task.ai_provider)}
+            >
               {task.ai_provider}
             </span>
           )}

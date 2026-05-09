@@ -15,7 +15,7 @@ import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import RunnerAssignmentFields from './RunnerAssignmentFields';
 import { cn, formatLocalDateTime } from '@/lib/utils';
 import { formatTaskSchedule, normalizeScheduledTime } from '@/lib/taskSchedule';
-import { getAiProviderStyles, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
+import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -418,7 +418,10 @@ export default function TaskDetailModal({
                       <span className="text-[13px] font-medium text-foreground">{runner.name}</span>
                       <RunnerStatusBadge status={runner.status} />
                       {task.ai_provider && (
-                        <span className={cn('rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1', getAiProviderStyles(task.ai_provider).pill)}>
+                        <span
+                          className="ai-harness-pill rounded-full px-1.5 py-0.5 text-[11px] font-medium"
+                          style={getAiHarnessPillStyle(task.ai_provider)}
+                        >
                           {AI_LABELS[task.ai_provider] ?? task.ai_provider}
                         </span>
                       )}

@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import PageTitle from '@/components/PageTitle';
 import { AI_LABELS, STATUS_CONFIG } from '@/lib/taskConstants';
 import {
-  AI_PROVIDER_TONES,
+  AI_HARNESS_HEX,
   LABEL_COLORS,
   RUNNER_STATUS_TONES,
   TASK_PRIORITY_TONES,
@@ -90,6 +90,8 @@ function WorkloadRow({
   minutes,
   tone,
   dotClassName,
+  barColor,
+  dotColor,
 }: {
   label: string;
   count: number;
@@ -97,6 +99,8 @@ function WorkloadRow({
   minutes: number | null | undefined;
   tone?: StatTone;
   dotClassName?: string;
+  barColor?: string;
+  dotColor?: string;
 }) {
   const styles = getToneStyles(tone ?? 'neutral');
   const pct = max > 0 ? Math.round((count / max) * 100) : 0;
@@ -105,7 +109,12 @@ function WorkloadRow({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1.5">
-          {dotClassName && <span className={cn('h-2 w-2 shrink-0 rounded-full', dotClassName)} />}
+          {(dotClassName || dotColor) && (
+            <span
+              className={cn('h-2 w-2 shrink-0 rounded-full', !dotColor && dotClassName)}
+              style={dotColor ? { backgroundColor: dotColor } : undefined}
+            />
+          )}
           <span className="truncate text-[12px] text-muted-foreground/85">{label}</span>
         </div>
         <div className="shrink-0 text-right text-[11px] text-muted-foreground/70">
@@ -117,8 +126,8 @@ function WorkloadRow({
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-foreground/[0.05]">
         <div
-          className={cn('h-full rounded-full transition-all duration-500', styles.bar)}
-          style={{ width: `${pct}%` }}
+          className={cn('h-full rounded-full transition-all duration-500', !barColor && styles.bar)}
+          style={{ width: `${pct}%`, ...(barColor ? { backgroundColor: barColor } : {}) }}
         />
       </div>
     </div>
@@ -551,6 +560,7 @@ export default function StatsPage() {
             <div className="space-y-3">
               {tasksByProvider.map(({ ai_provider, count, total_minutes }) => {
                 const label = AI_LABELS[ai_provider as AiProvider] ?? ai_provider;
+                const hex = AI_HARNESS_HEX[ai_provider as AiProvider];
                 return (
                   <WorkloadRow
                     key={ai_provider}
@@ -558,7 +568,8 @@ export default function StatsPage() {
                     count={count}
                     max={maxProviderCount}
                     minutes={total_minutes}
-                    tone={AI_PROVIDER_TONES[ai_provider as AiProvider] ?? 'neutral'}
+                    barColor={hex}
+                    dotColor={hex}
                   />
                 );
               })}

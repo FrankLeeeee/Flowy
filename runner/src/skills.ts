@@ -9,8 +9,7 @@ import { SkillCli, SkillCommand, SkillInventoryEntry } from './types';
  * Each individual skill is stored at `<root>/<name>/SKILL.md`.
  */
 export const SKILL_DIRS: Record<SkillCli, string> = {
-  'claude-code': path.join(os.homedir(), '.claude', 'skills'),
-  // Codex, Cursor, and Gemini CLI all share ~/.agents/skills as the standard global path
+  'claude-code': path.join(os.homedir(), '.claude', 'skills'),  // symlinks into ~/.agents/skills
   'codex': path.join(os.homedir(), '.agents', 'skills'),
   'cursor-agent': path.join(os.homedir(), '.agents', 'skills'),
   'gemini-cli': path.join(os.homedir(), '.agents', 'skills'),
@@ -67,7 +66,9 @@ export function listSkills(): SkillInventoryEntry[] {
 
     const entries = fs.readdirSync(root, { withFileTypes: true });
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+      if (entry.name.startsWith('.')) continue;
+      const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(path.join(root, entry.name)).isDirectory());
+      if (!isDir) continue;
       if (!SAFE_NAME.test(entry.name)) continue;
 
       const filePath = path.join(root, entry.name, 'SKILL.md');
