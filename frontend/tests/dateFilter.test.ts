@@ -9,7 +9,7 @@ import {
 } from '../src/lib/dateFilter';
 import { Task } from '../src/types';
 
-function makeTask(scheduled_date: string, id = scheduled_date): Task {
+function makeTask(scheduled_date: string, id = scheduled_date, status: Task['status'] = 'todo'): Task {
   return {
     id,
     list_id: 'list-1',
@@ -17,7 +17,7 @@ function makeTask(scheduled_date: string, id = scheduled_date): Task {
     task_key: id,
     title: id,
     description: '',
-    status: 'todo',
+    status,
     priority: 'none',
     runner_id: null,
     ai_provider: null,
@@ -26,6 +26,7 @@ function makeTask(scheduled_date: string, id = scheduled_date): Task {
     output: null,
     scheduled_date,
     scheduled_time: null,
+    recurrence_rule: null,
     started_at: null,
     completed_at: null,
     created_at: '2026-05-07T00:00:00Z',
@@ -124,20 +125,22 @@ describe('dateFilter', () => {
       makeTask('2026-05-11'), // Mon (next week)
     ];
 
-    it("includes only today's tasks for mode='today'", () => {
+    it("includes today's tasks and overdue uncompleted tasks for mode='today'", () => {
       const filter: DateFilterState = {
         mode: 'today',
         startDate: '2026-05-07',
         endDate: '2026-05-07',
       };
       const result = filterTasksByDate(tasks, filter);
-      expect(result.map((t) => t.scheduled_date)).toEqual(['2026-05-07']);
+      expect(result.map((t) => t.scheduled_date)).toEqual([
+        '2026-05-03',
+        '2026-05-04',
+        '2026-05-06',
+        '2026-05-07',
+      ]);
     });
 
-    it("includes the entire calendar week (Mon–Sun) for mode='week'", () => {
-      // Regression for the user-reported bug: switching from "Today" to
-      // "This week" must surface tasks scheduled earlier in the same week
-      // (e.g. Mon–Wed when today is Thursday), not just the next 7 days.
+    it("includes the entire calendar week plus overdue tasks for mode='week'", () => {
       const filter: DateFilterState = {
         mode: 'week',
         startDate: '2026-05-07',
@@ -145,6 +148,7 @@ describe('dateFilter', () => {
       };
       const result = filterTasksByDate(tasks, filter);
       expect(result.map((t) => t.scheduled_date)).toEqual([
+        '2026-05-03',
         '2026-05-04',
         '2026-05-06',
         '2026-05-07',
@@ -166,7 +170,8 @@ describe('dateFilter', () => {
       };
       const todayResult = filterTasksByDate(tasks, todayFilter);
       const weekResult = filterTasksByDate(tasks, weekFilter);
-      expect(todayResult.length).toBe(1);
+      // Today includes today + all overdue (4), week adds future this-week tasks (6).
+      expect(todayResult.length).toBe(4);
       expect(weekResult.length).toBeGreaterThan(todayResult.length);
       // Tasks scheduled earlier this week must be present in the "week" view.
       expect(weekResult.map((t) => t.scheduled_date)).toContain('2026-05-04');
@@ -181,6 +186,42 @@ describe('dateFilter', () => {
       };
       const result = filterTasksByDate(tasks, filter);
       expect(result.map((t) => t.scheduled_date)).toEqual(['2026-05-08', '2026-05-10', '2026-05-11']);
+    });
+
+    it("excludes done and cancelled overdue tasks from today/week rollover", () => {
+      const mixedTasks = [
+        makeTask('2026-05-03', 'overdue-todo', 'todo'),
+        makeTask('2026-05-04', 'overdue-done', 'done'),
+        makeTask('2026-05-05', 'overdue-cancelled', 'cancelled'),
+        makeTask('2026-05-06', 'overdue-failed', 'failed'),
+        makeTask('2026-05-07', 'today-task', 'todo'),
+      ];
+      const todayFilter: DateFilterState = {
+        mode: 'today',
+        startDate: '2026-05-07',
+        endDate: '2026-05-07',
+      };
+      const result = filterTasksByDate(mixedTasks, todayFilter);
+      const ids = result.map((t) => t.id);
+      expect(ids).toContain('overdue-todo');
+      expect(ids).toContain('overdue-failed');
+      expect(ids).toContain('today-task');
+      expect(ids).not.toContain('overdue-done');
+      expect(ids).not.toContain('overdue-cancelled');
+    });
+
+    it("does not include overdue tasks in custom mode", () => {
+      const mixedTasks = [
+        makeTask('2026-05-03', 'overdue-todo', 'todo'),
+        makeTask('2026-05-08', 'future-task', 'todo'),
+      ];
+      const filter: DateFilterState = {
+        mode: 'custom',
+        startDate: '2026-05-08',
+        endDate: '2026-05-10',
+      };
+      const result = filterTasksByDate(mixedTasks, filter);
+      expect(result.map((t) => t.id)).toEqual(['future-task']);
     });
   });
 });
