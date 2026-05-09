@@ -91,17 +91,22 @@ export class RunnerApi {
   async completeSessionTurn(sessionId: string, messageId: string, success: boolean, data?: string): Promise<void> {
     await this.client.post(`/runners/sessions/${sessionId}/complete`, { messageId, success, data });
   }
+
+  async updateSessionTitle(sessionId: string, title: string): Promise<void> {
+    await this.client.post(`/runners/sessions/${sessionId}/title`, { title });
+  }
 }
 
 export interface SessionCommand {
   id: string;
   sessionId: string;
-  kind: 'send-prompt' | 'stop';
+  kind: 'send-prompt' | 'stop' | 'generate-title';
   payload: {
     aiProvider?: string;
     harnessConfig?: string;
     history?: { role: 'user' | 'assistant' | 'system'; content: string }[];
     prompt?: string;
     assistantMessageId?: string;
+    userMessage?: string;
   };
 }

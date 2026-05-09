@@ -9,7 +9,8 @@ import { requireUserAuth } from '../middleware/userAuth';
 import { loadSettings } from '../storage';
 import { drainSkillCommandsFor } from '../skillQueue';
 import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSkillEntry } from '../skillInventory';
-import { drainSessionCommands } from './sessionCommandQueue';
+import { drainSessionCommands, enqueueSessionCommand } from './sessionCommandQueue';
+import { broadcastSessionEvent } from '../sessionWs';
 import { sendPushToAll } from '../pushService';
 import { parseUtcTimestamp, utcNow } from '../time';
 import { spawnNextRecurrence } from '../recurrence';
@@ -466,6 +467,8 @@ router.post('/sessions/:sessionId/output', authenticateRunner, (req: Request, re
     'UPDATE sessions SET updated_at = ? WHERE id = ?',
   ).run(utcNow(), session.id);
 
+  broadcastSessionEvent(session.id, { type: 'chunk', messageId, data });
+
   res.json({ ok: true });
 });
 
@@ -479,7 +482,9 @@ router.post('/sessions/:sessionId/complete', authenticateRunner, (req: Request, 
   const runner = req.runner!;
   const session = db
     .prepare('SELECT * FROM sessions WHERE id = ? AND runner_id = ?')
-    .get(req.params.sessionId, runner.id) as { id: string; status: string } | undefined;
+    .get(req.params.sessionId, runner.id) as {
+      id: string; status: string; title: string; runner_id: string; ai_provider: string;
+    } | undefined;
   if (!session) { res.status(404).json({ error: 'Session not found for this runner' }); return; }
 
   const now = utcNow();
@@ -500,6 +505,49 @@ router.post('/sessions/:sessionId/complete', authenticateRunner, (req: Request, 
       ).run(uuid(), session.id, 'system', '[Turn failed]', now);
     }
   })();
+
+  if (messageId && data) {
+    broadcastSessionEvent(session.id, { type: 'chunk', messageId, data });
+  }
+  const finalStatus = session.status === 'stopped' ? 'stopped' : 'idle';
+  broadcastSessionEvent(session.id, { type: 'status', status: finalStatus });
+
+  if (success !== false && session.title === 'New session') {
+    const firstUserMsg = db
+      .prepare("SELECT content FROM session_messages WHERE session_id = ? AND role = 'user' ORDER BY created_at ASC LIMIT 1")
+      .get(session.id) as { content: string } | undefined;
+    if (firstUserMsg?.content) {
+      enqueueSessionCommand(session.runner_id, {
+        sessionId: session.id,
+        kind: 'generate-title',
+        payload: {
+          aiProvider: session.ai_provider,
+          userMessage: firstUserMsg.content,
+        },
+      });
+    }
+  }
+
+  res.json({ ok: true });
+});
+
+// POST /api/runners/sessions/:sessionId/title — runner sets auto-generated session title
+router.post('/sessions/:sessionId/title', authenticateRunner, (req: Request, res: Response) => {
+  const { title } = req.body as { title?: string };
+  if (!title?.trim()) { res.status(400).json({ error: 'title is required' }); return; }
+
+  const db = getDb();
+  const runner = req.runner!;
+  const session = db
+    .prepare('SELECT id FROM sessions WHERE id = ? AND runner_id = ?')
+    .get(req.params.sessionId, runner.id) as { id: string } | undefined;
+  if (!session) { res.status(404).json({ error: 'Session not found for this runner' }); return; }
+
+  const trimmed = title.trim();
+  db.prepare('UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?')
+    .run(trimmed, utcNow(), session.id);
+
+  broadcastSessionEvent(session.id, { type: 'title', title: trimmed });
 
   res.json({ ok: true });
 });
