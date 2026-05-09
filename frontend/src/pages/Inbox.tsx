@@ -7,16 +7,15 @@ import {
 import { TaskStatus } from '../types';
 import TaskListView from '../components/tasks/TaskListView';
 import KanbanBoard from '../components/tasks/KanbanBoard';
+import TaskTodoView from '../components/tasks/TaskTodoView';
+import TaskFilterBar, { ViewMode } from '../components/tasks/TaskFilterBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../components/ConfirmDialog';
-import DateFilter from '@/components/DateFilter';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Inbox as InboxIcon, Plus, LayoutGrid, List as ListIcon, Search } from 'lucide-react';
+import { Inbox as InboxIcon, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
@@ -31,7 +30,7 @@ export default function Inbox() {
   const [lists, setLists] = useState<List[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
-  const [viewMode, setViewMode] = useState('kanban');
+  const [viewMode, setViewMode] = useState<ViewMode>('todo');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -124,48 +123,22 @@ export default function Inbox() {
         <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>{error}</div>
       )}
 
-      {/* Filters + View toggle */}
-      <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Priority" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">All Priorities</SelectItem>
-            <SelectItem value="urgent">Urgent</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="none">None</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={runnerFilter} onValueChange={setRunnerFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Runner" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">All Runners</SelectItem>
-            {runners.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1 min-w-[120px]">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65" />
-          <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-8 text-[13px] border-border/60" />
-        </div>
-
-        {/* View toggle */}
-        <div className="flex items-center border border-border/60 bg-card rounded-md overflow-hidden ml-auto shrink-0 shadow-soft">
-          <button type="button" onClick={() => setViewMode('kanban')} aria-label="Kanban view"
-            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'kanban' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <LayoutGrid className="h-3.5 w-3.5" />
-          </button>
-          <button type="button" onClick={() => setViewMode('list')} aria-label="List view"
-            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'list' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <ListIcon className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        <DateFilter value={dateFilter} onChange={setDateFilter} />
-
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{visibleTasks.length} active</span>
-      </div>
+      <TaskFilterBar
+        priorityFilter={priorityFilter}
+        onPriorityFilterChange={setPriorityFilter}
+        runnerFilter={runnerFilter}
+        onRunnerFilterChange={setRunnerFilter}
+        search={search}
+        onSearchChange={setSearch}
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
+        runners={runners}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        availableViews={['todo', 'list', 'kanban']}
+        taskCount={visibleTasks.length}
+        taskCountLabel="active"
+      />
 
       {/* Content */}
       <div
@@ -178,8 +151,10 @@ export default function Inbox() {
       >
         {viewMode === 'kanban' ? (
           <KanbanBoard tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
-        ) : (
+        ) : viewMode === 'list' ? (
           <TaskListView tasks={visibleTasks} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+        ) : (
+          <TaskTodoView tasks={visibleTasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
         )}
       </div>
 

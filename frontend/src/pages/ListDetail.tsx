@@ -9,6 +9,7 @@ import {
 import TaskListView from '../components/tasks/TaskListView';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTodoView from '../components/tasks/TaskTodoView';
+import TaskFilterBar, { ViewMode } from '../components/tasks/TaskFilterBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -19,14 +20,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, LayoutGrid, List as ListIcon, ListTodo, Search } from 'lucide-react';
+import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
-import DateFilter from '@/components/DateFilter';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
 
@@ -42,7 +41,7 @@ export default function ListDetail() {
   const [allLists, setAllLists] = useState<List[]>([]);
   const [runners, setRunners] = useState<Runner[]>([]);
   const [allLabels, setAllLabels] = useState<LabelType[]>([]);
-  const [viewMode, setViewMode] = useState('todo');
+  const [viewMode, setViewMode] = useState<ViewMode>('todo');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -191,62 +190,23 @@ export default function ListDetail() {
 
       {error && <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>{error}</div>}
 
-      {/* Filters */}
-      <div className="motion-section mb-6 flex shrink-0 flex-wrap items-center gap-2" style={{ '--motion-delay': '140ms' } as React.CSSProperties}>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">All Statuses</SelectItem>
-            <SelectItem value="backlog">Backlog</SelectItem>
-            <SelectItem value="todo">Todo</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-            <SelectItem value="done">Done</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Priority" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">All Priorities</SelectItem>
-            <SelectItem value="urgent">Urgent</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="none">None</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={runnerFilter} onValueChange={setRunnerFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-[13px] border-border/60"><SelectValue placeholder="Runner" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">All Runners</SelectItem>
-            {runners.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1 min-w-[120px]">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65" />
-          <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-[13px] border-border/60" />
-        </div>
-
-        <div className="flex items-center border border-border/60 bg-card rounded-md overflow-hidden ml-auto shrink-0 shadow-soft">
-          <button type="button" onClick={() => setViewMode('todo')} aria-label="Todo view"
-            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'todo' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <ListTodo className="h-3.5 w-3.5" />
-          </button>
-          <button type="button" onClick={() => setViewMode('list')} aria-label="List view"
-            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'list' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <ListIcon className="h-3.5 w-3.5" />
-          </button>
-          <button type="button" onClick={() => setViewMode('kanban')} aria-label="Kanban view"
-            className={cn('interactive-lift px-2.5 py-1.5 transition-colors duration-100', viewMode === 'kanban' ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground/75 hover:text-foreground')}>
-            <LayoutGrid className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        <DateFilter value={dateFilter} onChange={setDateFilter} />
-
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground/70">{visibleTasks.length} tasks</span>
-      </div>
+      <TaskFilterBar
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        priorityFilter={priorityFilter}
+        onPriorityFilterChange={setPriorityFilter}
+        runnerFilter={runnerFilter}
+        onRunnerFilterChange={setRunnerFilter}
+        search={search}
+        onSearchChange={setSearch}
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
+        runners={runners}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        availableViews={['todo', 'list', 'kanban']}
+        taskCount={visibleTasks.length}
+      />
 
       <div
         key={viewMode}
