@@ -43,7 +43,7 @@ export default function KanbanColumn({
   return (
     <div
       className={cn(
-        'surface-tint flex h-full min-h-0 flex-col w-[300px] shrink-0 rounded-[20px] border border-border/40 dark:border-border/60 interactive-lift overflow-hidden',
+        'surface-tint flex min-h-0 flex-col w-[300px] shrink-0 rounded-[20px] border border-border/40 dark:border-border/60 interactive-lift overflow-hidden',
         tone.border,
         dragOver && 'bg-primary/[0.04] ring-1 ring-primary/20 motion-safe:-translate-y-0.5',
       )}

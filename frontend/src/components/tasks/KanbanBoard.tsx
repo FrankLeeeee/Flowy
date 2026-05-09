@@ -31,7 +31,7 @@ export default function KanbanBoard({
         {TASK_STATUSES.map((status) => (
           <div
             key={status}
-            className="motion-section flex h-full min-h-0 shrink-0"
+            className="motion-section flex min-h-0 shrink-0"
             style={{ '--motion-delay': `${TASK_STATUSES.indexOf(status) * 45 + 40}ms` } as CSSProperties}
           >
             <KanbanColumn

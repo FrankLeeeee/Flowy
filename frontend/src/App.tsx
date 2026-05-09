@@ -60,7 +60,7 @@ function DesktopShell() {
       <div className="flex min-h-0 min-w-0 flex-1">
         <Sidebar />
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-          <div key={location.pathname} className="motion-page min-h-full">
+          <div key={location.pathname} className="motion-page h-full">
             <Routes>
               <Route path="/" element={<Navigate to="/today" replace />} />
               <Route path="/today" element={<ScheduledTasksView mode="today" />} />
