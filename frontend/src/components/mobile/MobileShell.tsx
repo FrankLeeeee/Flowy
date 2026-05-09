@@ -15,7 +15,7 @@ export default function MobileShell({ children }: MobileShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getTodayDateString);
   const isHomePage = location.pathname === '/' || location.pathname === '/today';
-  const hasCreateAction = !location.pathname.startsWith('/stats');
+  const hasCreateAction = !location.pathname.startsWith('/stats') && !location.pathname.startsWith('/settings');
 
   const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);

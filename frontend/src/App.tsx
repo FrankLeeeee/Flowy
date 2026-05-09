@@ -26,6 +26,7 @@ import MobileListDetail from "./pages/mobile/MobileListDetail";
 import MobileLabels from "./pages/mobile/MobileLabels";
 import Stats from "./pages/Stats";
 import MobileStats from "./pages/mobile/MobileStats";
+import MobileSettings from "./pages/mobile/MobileSettings";
 import TodoView from "./pages/TodoView";
 import ScheduledTasksView from "./pages/ScheduledTasksView";
 import Settings from "./pages/Settings";
@@ -108,6 +109,7 @@ function MobileApp() {
           <Route path="/list/:id" element={<MobileListDetail />} />
           <Route path="/labels" element={<MobileLabels />} />
           <Route path="/stats" element={<MobileStats />} />
+          <Route path="/settings" element={<MobileSettings />} />
           <Route path="*" element={<Navigate to="/today" replace />} />
         </Routes>
       )}
