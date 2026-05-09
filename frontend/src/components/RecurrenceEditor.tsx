@@ -7,47 +7,23 @@ import { Repeat, X } from 'lucide-react';
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-interface RecurrenceEditorProps {
-  value: RecurrenceRule | null;
-  onChange: (rule: RecurrenceRule | null) => void;
-}
-
-function defaultRule(): RecurrenceRule {
+export function defaultRecurrenceRule(): RecurrenceRule {
   const today = new Date().getDay();
   return { frequency: 'week', interval: 1, daysOfWeek: [today], time: null, endDate: null };
 }
 
-export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
-  const [expanded, setExpanded] = useState(!!value);
+interface RecurrenceTriggerProps {
+  active: boolean;
+  onEnable: () => void;
+  onDisable: () => void;
+}
 
-  const handleEnable = () => {
-    setExpanded(true);
-    if (!value) onChange(defaultRule());
-  };
-
-  const handleDisable = () => {
-    setExpanded(false);
-    onChange(null);
-  };
-
-  const update = (patch: Partial<RecurrenceRule>) => {
-    onChange({ ...(value ?? defaultRule()), ...patch });
-  };
-
-  const toggleDay = (day: number) => {
-    const current = value?.daysOfWeek ?? [];
-    const next = current.includes(day)
-      ? current.filter((d) => d !== day)
-      : [...current, day].sort((a, b) => a - b);
-    if (next.length === 0) return;
-    update({ daysOfWeek: next });
-  };
-
-  if (!expanded) {
+export function RecurrenceTrigger({ active, onEnable, onDisable }: RecurrenceTriggerProps) {
+  if (!active) {
     return (
       <button
         type="button"
-        onClick={handleEnable}
+        onClick={onEnable}
         className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-soft transition-colors hover:text-foreground hover:border-border"
       >
         <Repeat className="h-3.5 w-3.5" />
@@ -56,25 +32,42 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
     );
   }
 
-  const rule = value ?? defaultRule();
+  return (
+    <button
+      type="button"
+      onClick={onDisable}
+      className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/[0.06] px-3 py-1.5 text-[11px] font-semibold text-primary shadow-soft transition-colors hover:bg-primary/[0.1]"
+    >
+      <Repeat className="h-3.5 w-3.5" />
+      Recurring
+      <X className="h-3 w-3 opacity-60" />
+    </button>
+  );
+}
+
+interface RecurrencePanelProps {
+  value: RecurrenceRule;
+  onChange: (rule: RecurrenceRule) => void;
+}
+
+export function RecurrencePanel({ value, onChange }: RecurrencePanelProps) {
+  const rule = value;
+
+  const update = (patch: Partial<RecurrenceRule>) => {
+    onChange({ ...rule, ...patch });
+  };
+
+  const toggleDay = (day: number) => {
+    const current = rule.daysOfWeek ?? [];
+    const next = current.includes(day)
+      ? current.filter((d) => d !== day)
+      : [...current, day].sort((a, b) => a - b);
+    if (next.length === 0) return;
+    update({ daysOfWeek: next });
+  };
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/[0.03] px-4 py-3 space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-primary/80">
-          <Repeat className="h-3 w-3" />
-          Recurring
-        </span>
-        <button
-          type="button"
-          onClick={handleDisable}
-          className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Every N frequency */}
       <div className="flex items-center gap-2 text-[12px] font-medium text-foreground">
         <span className="text-muted-foreground">Every:</span>
         <Input
@@ -97,7 +90,6 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
         </Select>
       </div>
 
-      {/* Days of week (only for weekly) */}
       {rule.frequency === 'week' && (
         <div className="flex items-center gap-2 text-[12px]">
           <span className="text-muted-foreground font-medium">On:</span>
@@ -124,7 +116,6 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
         </div>
       )}
 
-      {/* Time */}
       <div className="flex items-center gap-2 text-[12px]">
         <span className="text-muted-foreground font-medium">Time:</span>
         <label className="relative inline-flex cursor-pointer items-center">
@@ -147,7 +138,6 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
         )}
       </div>
 
-      {/* End date */}
       <div className="flex items-center gap-2 text-[12px]">
         <span className="text-muted-foreground font-medium">End:</span>
         <Select
@@ -179,5 +169,33 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
         )}
       </div>
     </div>
+  );
+}
+
+interface RecurrenceEditorProps {
+  value: RecurrenceRule | null;
+  onChange: (rule: RecurrenceRule | null) => void;
+}
+
+export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
+  const [expanded, setExpanded] = useState(!!value);
+
+  const handleEnable = () => {
+    setExpanded(true);
+    if (!value) onChange(defaultRecurrenceRule());
+  };
+
+  const handleDisable = () => {
+    setExpanded(false);
+    onChange(null);
+  };
+
+  return (
+    <>
+      <RecurrenceTrigger active={expanded} onEnable={handleEnable} onDisable={handleDisable} />
+      {expanded && value && (
+        <RecurrencePanel value={value} onChange={(rule) => onChange(rule)} />
+      )}
+    </>
   );
 }
