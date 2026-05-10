@@ -1,22 +1,14 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { parseUtcTimestamp } from 'flowy-shared';
 
-export function cn(...inputs: ClassValue[]) {
+export { parseUtcTimestamp } from 'flowy-shared';
+
+export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-const TIMEZONE_SUFFIX_RE = /(?:[zZ]|[+-]\d{2}:?\d{2})$/;
-
-function normalizeUtcTimestamp(value: string): string {
-  const timestamp = value.trim();
-  const withTimezone = TIMEZONE_SUFFIX_RE.test(timestamp) ? timestamp : `${timestamp}Z`;
-  return withTimezone.replace(' ', 'T');
-}
-
-/**
- * Returns a human-readable relative time string for a UTC ISO timestamp.
- * Legacy SQLite timestamps are UTC but may lack a timezone suffix.
- */
+/** Human-readable relative time string for a UTC ISO timestamp. */
 export function timeAgo(iso: string | null): string {
   if (!iso) return 'never';
   const timestamp = parseUtcTimestamp(iso);
@@ -26,10 +18,6 @@ export function timeAgo(iso: string | null): string {
   if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
   if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
   return `${Math.floor(ms / 86_400_000)}d ago`;
-}
-
-export function parseUtcTimestamp(iso: string): number {
-  return new Date(normalizeUtcTimestamp(iso)).getTime();
 }
 
 export function formatLocalDateTime(iso: string | null): string {

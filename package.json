@@ -2,6 +2,7 @@
   "name": "flowy-monorepo",
   "private": true,
   "workspaces": [
+    "shared",
     "backend",
     "frontend",
     "runner",

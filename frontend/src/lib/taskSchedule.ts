@@ -1,14 +1,12 @@
+import { formatIsoDate } from 'flowy-shared';
+
 export function getTodayDateInputValue(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatIsoDate(date);
 }
 
-// Coerce backend / browser-supplied time values to HH:MM so <input type="time">
-// renders only an hour and minute slot. Browsers fall back to an HH:MM:SS UI
-// when the bound value carries seconds, even when step=60.
 const TIME_HHMM_RE = /^(\d{2}):(\d{2})/;
+
+/** Coerce time values to HH:MM so <input type="time"> shows only hours and minutes. */
 export function normalizeScheduledTime(value: string | null | undefined): string {
   if (!value) return '';
   const match = TIME_HHMM_RE.exec(value);

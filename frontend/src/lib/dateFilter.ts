@@ -1,3 +1,4 @@
+import { formatIsoDate } from 'flowy-shared';
 import { Task } from '../types';
 
 export type DateFilterMode = 'today' | 'week' | 'custom';
@@ -11,16 +12,13 @@ export interface DateFilterState {
 }
 
 export function getTodayDateString(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return formatIsoDate(new Date());
 }
 
 export function getWeekRange(): { start: string; end: string } {
-  // "This week" is the current calendar week, Monday → Sunday (ISO 8601).
-  // The previous implementation returned a rolling 7-day window from today,
-  // which silently hid tasks scheduled earlier in the same week.
+  // ISO 8601 calendar week: Monday through Sunday.
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const dayOfWeek = today.getDay();
   const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const start = new Date(today);
   start.setDate(today.getDate() + offsetToMonday);
@@ -28,9 +26,7 @@ export function getWeekRange(): { start: string; end: string } {
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return { start: fmt(start), end: fmt(end) };
+  return { start: formatIsoDate(start), end: formatIsoDate(end) };
 }
 
 export function defaultDateFilter(): DateFilterState {

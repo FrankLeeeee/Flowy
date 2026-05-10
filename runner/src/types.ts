@@ -1,10 +1,14 @@
+export type { AiProvider, TaskStatus, TaskPriority } from 'flowy-shared';
+
+// ── Runner-specific types ─────────────────────────────────────────────────
+
 export interface RunnerConfig {
   name: string;
   url: string;
   providers: string[];
   cliVersions: Record<string, string>;
   lastCliScanAt: string;
-  pollInterval: number;  // seconds
+  pollInterval: number;
   token?: string;
   secret?: string;
   device: string;

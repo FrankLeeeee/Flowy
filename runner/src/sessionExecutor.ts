@@ -1,5 +1,5 @@
-import { ChildProcess, spawn } from 'child_process';
 import { buildCommandWithConfig } from './executor';
+import { spawnCliProcess } from './spawnCli';
 
 export interface SessionMessageHistory {
   role: 'user' | 'assistant' | 'system';
@@ -19,7 +19,7 @@ export interface SessionTurnParams {
  */
 export function composeSessionPrompt(history: SessionMessageHistory[], prompt: string): string {
   const previous = history
-    .slice(0, -1) // exclude the trailing user turn (we add it below)
+    .slice(0, -1)
     .filter((m) => m.content.trim().length > 0)
     .map((m) => {
       const tag = m.role === 'user' ? 'User' : m.role === 'assistant' ? 'Assistant' : 'System';
@@ -50,56 +50,15 @@ export function executeSessionTurn(
   onOutput: (chunk: string) => void,
 ): SessionExecution {
   const fullPrompt = composeSessionPrompt(params.history, params.prompt);
-  const { cmd, args, cwd } = buildCommandWithConfig(params.aiProvider, fullPrompt, params.harnessConfig);
+  const command = buildCommandWithConfig(params.aiProvider, fullPrompt, params.harnessConfig);
 
-  let child: ChildProcess;
-  let buffer = '';
-  let flushTimer: ReturnType<typeof setInterval>;
-
-  const promise = new Promise<{ success: boolean }>((resolve) => {
-    console.log(`  [session] Spawning: ${cmd} (${args.length} args)`);
-
-    child = spawn(cmd, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      cwd,
-      env: { ...process.env },
-    });
-
-    const flush = () => {
-      if (buffer.length > 0) {
-        onOutput(buffer);
-        buffer = '';
-      }
-    };
-
-    flushTimer = setInterval(flush, 1500);
-
-    child.stdout?.on('data', (data: Buffer) => {
-      buffer += data.toString();
-    });
-
-    child.stderr?.on('data', (data: Buffer) => {
-      buffer += data.toString();
-    });
-
-    child.on('error', (err) => {
-      clearInterval(flushTimer);
-      buffer += `\n[Error: ${err.message}]`;
-      flush();
-      resolve({ success: false });
-    });
-
-    child.on('close', (code) => {
-      clearInterval(flushTimer);
-      flush();
-      resolve({ success: code === 0 });
-    });
+  const handle = spawnCliProcess({
+    command,
+    onOutput,
+    flushIntervalMs: 1500,
+    captureFullOutput: false,
+    gateFlushOnStream: false,
   });
 
-  const kill = () => {
-    clearInterval(flushTimer!);
-    child?.kill('SIGTERM');
-  };
-
-  return { promise, kill };
+  return { promise: handle.promise, kill: handle.kill };
 }

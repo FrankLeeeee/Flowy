@@ -1,12 +1,9 @@
 import { v4 as uuid } from 'uuid';
+import { formatIsoDate } from 'flowy-shared';
 import { getDb, nextInboxTaskNumber } from './db';
 import { Task, RecurrenceRule } from './types';
 import { formatTaskKey } from './listIdentity';
 import { utcNow } from './time';
-
-function formatDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 export function parseRecurrenceRule(raw: string | null): RecurrenceRule | null {
   if (!raw) return null;
@@ -23,7 +20,7 @@ export function computeNextDate(fromDate: string, rule: RecurrenceRule): string 
 
   if (rule.frequency === 'day') {
     base.setDate(base.getDate() + rule.interval);
-    return formatDate(base);
+    return formatIsoDate(base);
   }
 
   if (rule.frequency === 'week') {
@@ -40,12 +37,12 @@ export function computeNextDate(fromDate: string, rule: RecurrenceRule): string 
     } else {
       base.setDate(base.getDate() + 7 * rule.interval);
     }
-    return formatDate(base);
+    return formatIsoDate(base);
   }
 
   if (rule.frequency === 'month') {
     base.setMonth(base.getMonth() + rule.interval);
-    return formatDate(base);
+    return formatIsoDate(base);
   }
 
   return null;

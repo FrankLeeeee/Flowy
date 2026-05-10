@@ -1,8 +1,10 @@
+import { formatIsoDate } from 'flowy-shared';
+
 export function addDays(dateStr: string, days: number): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return formatIsoDate(date);
 }
 
 export function formatDateLabel(dateStr: string): string {

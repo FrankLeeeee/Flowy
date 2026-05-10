@@ -38,6 +38,3 @@ export function drainSkillCommandsFor(runnerId: string): SkillCommand[] {
   return list;
 }
 
-export function clearSkillCommandsFor(runnerId: string): void {
-  queues.delete(runnerId);
-}

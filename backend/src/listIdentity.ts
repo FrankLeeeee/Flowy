@@ -1,4 +1,4 @@
-export const INBOX_PREFIX = 'INBOX';
+const INBOX_PREFIX = 'INBOX';
 
 export function normalizeListName(name: string): string {
   return name.trim().replace(/\s+/g, ' ');
