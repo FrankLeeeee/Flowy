@@ -1,6 +1,11 @@
 import * as React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { Markdown } from 'tiptap-markdown';
 import {
   Bold,
   Italic,
@@ -11,11 +16,8 @@ import {
   Code as CodeIcon,
   Link as LinkIcon,
   Quote,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Textarea } from './textarea';
 
 export const MARKDOWN_PROSE_CLASSNAME = `min-w-0 max-w-full overflow-hidden text-[13px] leading-relaxed break-words [overflow-wrap:anywhere] prose prose-sm prose-neutral dark:prose-invert max-w-none
   prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5
@@ -31,158 +33,6 @@ export const MARKDOWN_PROSE_CLASSNAME = `min-w-0 max-w-full overflow-hidden text
   prose-hr:border-border/40
   prose-blockquote:border-border/60 prose-blockquote:text-muted-foreground/80`;
 
-type SelectionTransform = (selection: string) => {
-  text: string;
-  /** Optional explicit selection range to apply after transform. Relative to start of inserted text. */
-  selectionStart?: number;
-  selectionEnd?: number;
-};
-
-type ToolbarAction =
-  | {
-      kind: 'wrap';
-      before: string;
-      after: string;
-      placeholder: string;
-    }
-  | {
-      kind: 'linePrefix';
-      prefix: string | ((index: number) => string);
-      placeholder?: string;
-    }
-  | {
-      kind: 'custom';
-      transform: SelectionTransform;
-    };
-
-type ToolbarItem = {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  action: ToolbarAction;
-};
-
-const TOOLBAR_ITEMS: ToolbarItem[] = [
-  {
-    id: 'bold',
-    label: 'Bold',
-    icon: Bold,
-    action: { kind: 'wrap', before: '**', after: '**', placeholder: 'bold text' },
-  },
-  {
-    id: 'italic',
-    label: 'Italic',
-    icon: Italic,
-    action: { kind: 'wrap', before: '_', after: '_', placeholder: 'italic text' },
-  },
-  {
-    id: 'heading',
-    label: 'Heading',
-    icon: Heading,
-    action: { kind: 'linePrefix', prefix: '## ', placeholder: 'Heading' },
-  },
-  {
-    id: 'quote',
-    label: 'Quote',
-    icon: Quote,
-    action: { kind: 'linePrefix', prefix: '> ', placeholder: 'Quote' },
-  },
-  {
-    id: 'bulleted',
-    label: 'Bulleted list',
-    icon: ListIcon,
-    action: { kind: 'linePrefix', prefix: '- ', placeholder: 'List item' },
-  },
-  {
-    id: 'numbered',
-    label: 'Numbered list',
-    icon: ListOrdered,
-    action: { kind: 'linePrefix', prefix: (i) => `${i + 1}. `, placeholder: 'List item' },
-  },
-  {
-    id: 'checkbox',
-    label: 'Task list',
-    icon: ListChecks,
-    action: { kind: 'linePrefix', prefix: '- [ ] ', placeholder: 'Todo' },
-  },
-  {
-    id: 'code',
-    label: 'Inline code',
-    icon: CodeIcon,
-    action: { kind: 'wrap', before: '`', after: '`', placeholder: 'code' },
-  },
-  {
-    id: 'link',
-    label: 'Link',
-    icon: LinkIcon,
-    action: {
-      kind: 'custom',
-      transform: (selection) => {
-        const label = selection || 'link text';
-        const inserted = `[${label}](https://)`;
-        const urlStart = inserted.indexOf('https://');
-        return {
-          text: inserted,
-          selectionStart: urlStart,
-          selectionEnd: urlStart + 'https://'.length,
-        };
-      },
-    },
-  },
-];
-
-function applyAction(
-  textarea: HTMLTextAreaElement,
-  value: string,
-  action: ToolbarAction,
-): { next: string; selectionStart: number; selectionEnd: number } {
-  const start = textarea.selectionStart ?? value.length;
-  const end = textarea.selectionEnd ?? value.length;
-  const selected = value.slice(start, end);
-
-  if (action.kind === 'wrap') {
-    const inner = selected || action.placeholder;
-    const inserted = `${action.before}${inner}${action.after}`;
-    const next = `${value.slice(0, start)}${inserted}${value.slice(end)}`;
-    const innerStart = start + action.before.length;
-    return { next, selectionStart: innerStart, selectionEnd: innerStart + inner.length };
-  }
-
-  if (action.kind === 'linePrefix') {
-    // Expand selection to whole lines.
-    const lineStart = value.lastIndexOf('\n', Math.max(start - 1, 0)) + 1;
-    let lineEnd = value.indexOf('\n', end);
-    if (lineEnd === -1) lineEnd = value.length;
-
-    const block = value.slice(lineStart, lineEnd);
-    const lines = block.length === 0 ? [''] : block.split('\n');
-    const newLines = lines.map((line, idx) => {
-      const prefix = typeof action.prefix === 'function' ? action.prefix(idx) : action.prefix;
-      if (line.length === 0 && action.placeholder && lines.length === 1) {
-        return `${prefix}${action.placeholder}`;
-      }
-      return `${prefix}${line}`;
-    });
-    const replacement = newLines.join('\n');
-
-    // Insert a leading newline if we're not at the very start of the document
-    // and the previous character isn't already a newline. This avoids merging
-    // the new block with the preceding paragraph.
-    const needsLeadingNewline = lineStart > 0 && value[lineStart - 1] !== '\n' && lineStart === start;
-    const finalReplacement = needsLeadingNewline ? `\n${replacement}` : replacement;
-    const next = `${value.slice(0, lineStart)}${finalReplacement}${value.slice(lineEnd)}`;
-    const cursor = lineStart + finalReplacement.length;
-    return { next, selectionStart: cursor, selectionEnd: cursor };
-  }
-
-  // custom
-  const result = action.transform(selected);
-  const next = `${value.slice(0, start)}${result.text}${value.slice(end)}`;
-  const selStart = start + (result.selectionStart ?? result.text.length);
-  const selEnd = start + (result.selectionEnd ?? result.text.length);
-  return { next, selectionStart: selStart, selectionEnd: selEnd };
-}
-
 export interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -190,7 +40,6 @@ export interface MarkdownEditorProps {
   rows?: number;
   textareaClassName?: string;
   className?: string;
-  /** Whether the live preview pane is shown by default. Defaults to true. */
   defaultPreviewVisible?: boolean;
   ariaLabel?: string;
 }
@@ -200,93 +49,171 @@ export function MarkdownEditor({
   onChange,
   placeholder,
   rows = 5,
-  textareaClassName,
   className,
-  defaultPreviewVisible = true,
   ariaLabel,
 }: MarkdownEditorProps) {
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const [previewVisible, setPreviewVisible] = React.useState(defaultPreviewVisible);
+  const suppressUpdate = React.useRef(false);
 
-  const runAction = (action: ToolbarAction) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const { next, selectionStart, selectionEnd } = applyAction(textarea, value, action);
-    onChange(next);
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(selectionStart, selectionEnd);
-    });
-  };
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Link.configure({ openOnClick: false, autolink: true }),
+      Placeholder.configure({ placeholder: placeholder ?? 'Add description...' }),
+      Markdown.configure({
+        html: false,
+        transformPastedText: true,
+        transformCopiedText: true,
+      }),
+    ],
+    content: value,
+    editorProps: {
+      attributes: {
+        'aria-label': ariaLabel ?? 'Description',
+        role: 'textbox',
+        class: cn(
+          MARKDOWN_PROSE_CLASSNAME,
+          'outline-none min-h-[var(--editor-min-h)] cursor-text',
+        ),
+      },
+    },
+    onUpdate: ({ editor: e }) => {
+      suppressUpdate.current = true;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const md = (e.storage as any).markdown.getMarkdown() as string;
+      onChange(md);
+    },
+  });
 
-  const trimmed = value.trim();
+  React.useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (suppressUpdate.current) {
+      suppressUpdate.current = false;
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const md = (editor.storage as any).markdown.getMarkdown() as string;
+    if (md !== value) {
+      editor.commands.setContent(value);
+    }
+  }, [value, editor]);
+
+  const minH = `${Math.max(rows * 1.625, 3)}rem`;
 
   return (
-    <div className={cn('flex min-w-0 flex-col gap-2', className)}>
-      <div className="flex flex-wrap items-center gap-0.5">
-        {TOOLBAR_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => runAction(item.action)}
-              title={item.label}
-              aria-label={item.label}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/85 transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <Icon className="h-3.5 w-3.5" />
-            </button>
-          );
-        })}
-        <span className="ml-auto" />
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setPreviewVisible((v) => !v)}
-          title={previewVisible ? 'Hide preview' : 'Show preview'}
-          aria-label={previewVisible ? 'Hide preview' : 'Show preview'}
-          aria-pressed={previewVisible}
-          className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/85 transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          {previewVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          Preview
-        </button>
-      </div>
-
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        rows={rows}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        className={cn(
-          'resize-y border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0',
-          textareaClassName,
-        )}
-      />
-
-      {previewVisible && (
-        <div className="rounded-lg border border-border/50 bg-foreground/[0.02] px-3 py-2.5">
-          <div className="mb-1.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground/70">
-            <Eye className="h-3 w-3" />
-            Preview
-          </div>
-          {trimmed.length > 0 ? (
-            <div className={MARKDOWN_PROSE_CLASSNAME}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
-            </div>
-          ) : (
-            <p className="text-[12px] italic text-muted-foreground/55">
-              Nothing to preview yet.
-            </p>
-          )}
+    <div
+      className={cn('flex min-w-0 flex-col gap-2', className)}
+      style={{ '--editor-min-h': minH } as React.CSSProperties}
+    >
+      {editor && (
+        <div className="flex flex-wrap items-center gap-0.5">
+          <ToolbarButton
+            icon={Bold}
+            label="Bold"
+            active={editor.isActive('bold')}
+            onAction={() => editor.chain().focus().toggleBold().run()}
+          />
+          <ToolbarButton
+            icon={Italic}
+            label="Italic"
+            active={editor.isActive('italic')}
+            onAction={() => editor.chain().focus().toggleItalic().run()}
+          />
+          <ToolbarButton
+            icon={Heading}
+            label="Heading"
+            active={editor.isActive('heading')}
+            onAction={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          />
+          <ToolbarButton
+            icon={Quote}
+            label="Quote"
+            active={editor.isActive('blockquote')}
+            onAction={() => editor.chain().focus().toggleBlockquote().run()}
+          />
+          <ToolbarButton
+            icon={ListIcon}
+            label="Bulleted list"
+            active={editor.isActive('bulletList')}
+            onAction={() => editor.chain().focus().toggleBulletList().run()}
+          />
+          <ToolbarButton
+            icon={ListOrdered}
+            label="Numbered list"
+            active={editor.isActive('orderedList')}
+            onAction={() => editor.chain().focus().toggleOrderedList().run()}
+          />
+          <ToolbarButton
+            icon={ListChecks}
+            label="Task list"
+            active={editor.isActive('taskList')}
+            onAction={() => editor.chain().focus().toggleTaskList().run()}
+          />
+          <ToolbarButton
+            icon={CodeIcon}
+            label="Inline code"
+            active={editor.isActive('code')}
+            onAction={() => editor.chain().focus().toggleCode().run()}
+          />
+          <ToolbarButton
+            icon={LinkIcon}
+            label="Link"
+            active={editor.isActive('link')}
+            onAction={() => {
+              if (editor.isActive('link')) {
+                editor.chain().focus().unsetLink().run();
+              } else {
+                const url = window.prompt('URL');
+                if (url) editor.chain().focus().setLink({ href: url }).run();
+              }
+            }}
+          />
         </div>
       )}
+
+      <EditorContent
+        editor={editor}
+        className={cn(
+          '[&_.tiptap_p.is-editor-empty:first-child::before]:text-muted-foreground/45 [&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap_p.is-editor-empty:first-child::before]:float-left [&_.tiptap_p.is-editor-empty:first-child::before]:h-0 [&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child::before]:text-[13px]',
+          '[&_.tiptap_ul[data-type=taskList]]:list-none [&_.tiptap_ul[data-type=taskList]]:pl-0',
+          '[&_.tiptap_ul[data-type=taskList]_li]:flex [&_.tiptap_ul[data-type=taskList]_li]:items-start [&_.tiptap_ul[data-type=taskList]_li]:gap-2',
+          '[&_.tiptap_ul[data-type=taskList]_li_label_input]:mt-1',
+        )}
+      />
     </div>
+  );
+}
+
+function ToolbarButton({
+  icon: Icon,
+  label,
+  active,
+  onAction,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+  onAction: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onAction}
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+        active
+          ? 'bg-foreground/[0.08] text-foreground'
+          : 'text-muted-foreground/85',
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </button>
   );
 }
