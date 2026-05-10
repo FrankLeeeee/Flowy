@@ -7,6 +7,7 @@ import { normalizeHarnessConfig } from '../harnessConfig';
 import { formatTaskKey } from '../listIdentity';
 import { utcNow } from '../time';
 import { spawnNextRecurrence } from '../recurrence';
+import { cleanupSentNotification } from '../notificationScheduler';
 
 const router = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -189,6 +190,11 @@ router.put('/:id', (req: Request, res: Response) => {
     req.params.id,
   );
 
+  const scheduleChanged = schedule.scheduledDate !== task.scheduled_date || schedule.scheduledTime !== task.scheduled_time;
+  if (scheduleChanged) {
+    cleanupSentNotification(req.params.id);
+  }
+
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id) as Task;
 
   if (resolvedStatus === 'done' && task.status !== 'done' && updated.recurrence_rule) {
@@ -202,6 +208,7 @@ router.put('/:id', (req: Request, res: Response) => {
 router.delete('/:id', (req: Request, res: Response) => {
   const result = getDb().prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
   if (result.changes === 0) { res.status(404).json({ error: 'Task not found' }); return; }
+  cleanupSentNotification(req.params.id);
   res.json({ ok: true });
 });
 

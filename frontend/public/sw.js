@@ -317,7 +317,7 @@ self.addEventListener('push', (event) => {
     payload = { title: 'Flowy', body: event.data.text() };
   }
 
-  const { title = 'Flowy', body, icon, tag, data } = payload;
+  const { title = 'Flowy', body, icon, tag, data, requireInteraction } = payload;
 
   event.waitUntil(
     self.registration.showNotification(title, {
@@ -325,6 +325,8 @@ self.addEventListener('push', (event) => {
       icon: icon || '/icon-192.png',
       badge: '/icon-192-maskable.png',
       tag: tag || 'flowy-notification',
+      renotify: true,
+      requireInteraction: requireInteraction || false,
       data,
       vibrate: [100, 50, 100],
     })

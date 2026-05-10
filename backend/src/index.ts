@@ -20,6 +20,7 @@ import { loadSettings } from './storage';
 import { requireUserAuth } from './middleware/userAuth';
 import { initPush }    from './pushService';
 import { attachSessionWs } from './sessionWs';
+import { startNotificationScheduler } from './notificationScheduler';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -85,6 +86,7 @@ app.use(cookieParser());
 initDb();
 loadSettings();
 initPush();
+startNotificationScheduler();
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth',     authRouter);
