@@ -9,11 +9,11 @@
     "docs"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend -- --host\"",
+    "dev": "npm run build --workspace=shared && concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend -- --host\"",
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "build": "npm run build:flowy && npm run build:runner",
-    "build:flowy": "npm run build --workspace=frontend && npm run build --workspace=backend && rm -rf backend/dist/public && cp -r frontend/dist backend/dist/public",
+    "build:flowy": "npm run build --workspace=shared && npm run build --workspace=frontend && npm run build --workspace=backend && rm -rf backend/dist/public && cp -r frontend/dist backend/dist/public",
     "build:runner": "npm run build --workspace=runner",
     "docs:dev": "npm run dev --workspace=docs",
     "docs:build": "npm run build --workspace=docs",
