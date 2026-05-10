@@ -87,7 +87,7 @@ export default function MobileLists() {
   return (
     <div className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
+      <div className="sticky top-[env(safe-area-inset-top)] z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
         <div>
           <h1 className="text-[18px] font-bold tracking-tight text-foreground">Lists</h1>
           <span className={cn('mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1', neutralTone.pill)}>

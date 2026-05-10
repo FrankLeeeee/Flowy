@@ -148,7 +148,7 @@ export default function MobileListDetail() {
   return (
     <div className="motion-drilldown flex flex-col min-h-full">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
+      <div className="sticky top-[env(safe-area-inset-top)] z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <button
