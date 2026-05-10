@@ -1,16 +1,7 @@
 import { AiProvider, HarnessConfig } from '../types';
+import { asRecord, getString } from 'flowy-shared';
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
-  return value as Record<string, unknown>;
-}
-
-function getString(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
+/** Parse a raw harness-config JSON string into a typed HarnessConfig. */
 export function parseHarnessConfig(raw: string | null | undefined): HarnessConfig {
   if (!raw) return {};
 
@@ -22,7 +13,6 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
     const codex = asRecord(root.codex);
     const claudeCode = asRecord(root.claudeCode);
     const cursorAgent = asRecord(root.cursorAgent);
-
     const gemini = asRecord(root.gemini);
 
     return {
@@ -55,6 +45,7 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
   }
 }
 
+/** Build human-readable badges for the active provider's config fields. */
 export function getHarnessConfigBadges(provider: AiProvider | null, config: HarnessConfig): string[] {
   if (!provider) return [];
 

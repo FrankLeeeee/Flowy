@@ -1,3 +1,5 @@
+import { formatIsoDate } from 'flowy-shared';
+
 const DEFAULT_TIME = '00:00';
 
 function isUTCString(value: string): boolean {
@@ -11,7 +13,7 @@ export function splitScheduledDateTime(value: string | null | undefined): { date
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
       return {
-        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        date: formatIsoDate(d),
         time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
       };
     }
@@ -74,7 +76,6 @@ export function formatScheduledDateTime(value: string | null | undefined): strin
     return isNaN(d.getTime()) ? value : d.toLocaleString();
   }
 
-  // Legacy naive local datetime
   const { date, time } = splitScheduledDateTime(value);
   if (!date) return value;
   const [year, month, day] = date.split('-').map(Number);

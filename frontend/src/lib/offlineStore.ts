@@ -49,22 +49,3 @@ export async function setCached(key: string, data: unknown): Promise<void> {
   });
 }
 
-export async function clearCacheByPrefix(prefix: string): Promise<void> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.openCursor();
-    req.onsuccess = () => {
-      const cursor = req.result;
-      if (cursor) {
-        if ((cursor.value as CacheEntry).key.startsWith(prefix)) {
-          cursor.delete();
-        }
-        cursor.continue();
-      }
-    };
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}

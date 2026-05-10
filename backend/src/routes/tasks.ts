@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
+import { formatIsoDate } from 'flowy-shared';
 import { getDb, nextInboxTaskNumber } from '../db';
 import { Task, List, TaskLog, RecurrenceRule } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
@@ -12,8 +13,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function todayDate(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return formatIsoDate(new Date());
 }
 
 function currentTime(): string {
