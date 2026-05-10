@@ -65,6 +65,7 @@ export async function sendPushToAll(payload: {
   body: string;
   icon?: string;
   tag?: string;
+  requireInteraction?: boolean;
   data?: Record<string, unknown>;
 }): Promise<void> {
   const rows = getDb()
