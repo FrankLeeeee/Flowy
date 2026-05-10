@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
@@ -59,6 +59,8 @@ export default function ListDetail() {
   const [editIcon, setEditIcon] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editWorkspaces, setEditWorkspaces] = useState<string[]>([]);
+  const [newWorkspace, setNewWorkspace] = useState('');
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -105,12 +107,14 @@ export default function ListDetail() {
     setEditName(list.name);
     setEditIcon(list.icon ?? null);
     setEditDescription(list.description ?? '');
+    try { setEditWorkspaces(JSON.parse(list.workspaces || '[]')); } catch { setEditWorkspaces([]); }
+    setNewWorkspace('');
     setShowEditList(true);
   };
   const handleEditList = async (e: React.FormEvent) => {
     e.preventDefault(); if (!list || !editName.trim()) return;
     try {
-      const updated = await updateList(list.id, { name: editName.trim(), description: editDescription.trim(), icon: editIcon });
+      const updated = await updateList(list.id, { name: editName.trim(), description: editDescription.trim(), icon: editIcon, workspaces: editWorkspaces });
       setList(updated); setShowEditList(false);
     } catch (e) {
       setError(
@@ -226,7 +230,7 @@ export default function ListDetail() {
       </div>
 
       <CreateTaskModal open={showCreate} lists={allLists} defaultListId={list.id} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
-      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runners={runners} onUpdate={handleTaskUpdate} onDelete={() => setDeleteTaskTarget(detailTask)} onClose={() => setDetailTask(null)} />}
+      {detailTask && <TaskDetailModal open={!!detailTask} task={detailTask} runners={runners} lists={allLists} onUpdate={handleTaskUpdate} onDelete={() => setDeleteTaskTarget(detailTask)} onClose={() => setDetailTask(null)} />}
       <ConfirmDialog
         open={!!deleteTaskTarget}
         title="Delete task"
@@ -267,6 +271,54 @@ export default function ListDetail() {
                     <span className="text-[10px] text-muted-foreground/75">{editDescription.trim().length} chars</span>
                   </div>
                   <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Optional description..." rows={3} className="min-h-[92px] resize-none border-0 bg-transparent px-0 py-0 text-[13px] leading-6 shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </AppDialogSection>
+
+                <AppDialogSection>
+                  <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Workspaces</Label>
+                  <p className="mb-3 text-[11px] text-muted-foreground/70">Register workspace paths so runners can pick from them when assigning tasks.</p>
+                  {editWorkspaces.length > 0 && (
+                    <div className="mb-3 flex flex-col gap-1.5">
+                      {editWorkspaces.map((ws, i) => (
+                        <div key={i} className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/50 px-3 py-1.5">
+                          <FolderOpen className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                          <span className="flex-1 truncate text-[12px] font-mono text-foreground/90">{ws}</span>
+                          <button
+                            type="button"
+                            onClick={() => setEditWorkspaces((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="rounded p-0.5 text-muted-foreground/50 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newWorkspace}
+                      onChange={(e) => setNewWorkspace(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newWorkspace.trim()) {
+                          e.preventDefault();
+                          setEditWorkspaces((prev) => [...prev, newWorkspace.trim()]);
+                          setNewWorkspace('');
+                        }
+                      }}
+                      placeholder="/path/to/workspace"
+                      className="h-8 flex-1 rounded-lg border-border/60 bg-card text-[12px] font-mono shadow-soft"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!newWorkspace.trim()}
+                      onClick={() => { setEditWorkspaces((prev) => [...prev, newWorkspace.trim()]); setNewWorkspace(''); }}
+                      className="h-8 rounded-lg text-[11px]"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  </div>
                 </AppDialogSection>
               </AppDialogBody>
               <AppDialogFooter>

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage, RecurrenceRule } from '../types';
+import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage, RecurrenceRule, Template } from '../types';
 import { getCached, setCached } from '../lib/offlineStore';
 import { isOnline, queueMutation } from '../lib/syncQueue';
 import { patchSwCache, patchSwCacheByPathname, removeById, tempId, upsertById } from '../lib/optimisticCache';
@@ -85,7 +85,7 @@ export async function fetchLists(): Promise<List[]> {
   return cachedGet<List[]>('lists', '/lists');
 }
 
-export async function createList(body: { name: string; description?: string; icon?: string | null }): Promise<List> {
+export async function createList(body: { name: string; description?: string; icon?: string | null; workspaces?: string[] }): Promise<List> {
   if (isOnline()) {
     const { data } = await api.post<List>('/lists', body);
     return data;
@@ -97,7 +97,8 @@ export async function createList(body: { name: string; description?: string; ico
     name: body.name,
     description: body.description ?? '',
     icon: body.icon ?? null,
-    position: Number.MAX_SAFE_INTEGER, // appended; reorder once synced
+    position: Number.MAX_SAFE_INTEGER,
+    workspaces: JSON.stringify(body.workspaces ?? []),
     next_task_num: 1,
     created_at: now,
     updated_at: now,
@@ -107,7 +108,7 @@ export async function createList(body: { name: string; description?: string; ico
   return optimistic;
 }
 
-export async function updateList(id: string, body: { name?: string; description?: string; icon?: string | null }): Promise<List> {
+export async function updateList(id: string, body: { name?: string; description?: string; icon?: string | null; workspaces?: string[] }): Promise<List> {
   if (isOnline()) {
     const { data } = await api.put<List>(`/lists/${id}`, body);
     return data;
@@ -118,7 +119,14 @@ export async function updateList(id: string, body: { name?: string; description?
     const lists = current ?? [];
     return lists.map((list) => {
       if (list.id !== id) return list;
-      updated = { ...list, ...body, icon: body.icon ?? list.icon, updated_at: nowIso() };
+      updated = {
+        ...list,
+        name: body.name ?? list.name,
+        description: body.description ?? list.description,
+        icon: body.icon ?? list.icon,
+        workspaces: body.workspaces !== undefined ? JSON.stringify(body.workspaces) : list.workspaces,
+        updated_at: nowIso(),
+      };
       return updated;
     });
   });
@@ -440,6 +448,35 @@ export async function stopSession(id: string): Promise<Session> {
 
 export async function deleteSession(id: string): Promise<void> {
   await api.delete(`/sessions/${id}`);
+}
+
+// ── Templates ────────────────────────────────────────────────────────────
+
+export async function fetchTemplates(filters?: { list?: string }): Promise<Template[]> {
+  const cacheKey = `templates:${JSON.stringify(filters ?? {})}`;
+  return cachedGet<Template[]>(cacheKey, '/templates', filters as Record<string, string | undefined>);
+}
+
+export async function fetchTemplate(id: string): Promise<Template> {
+  return cachedGet<Template>(`template:${id}`, `/templates/${id}`);
+}
+
+export async function createTemplate(body: {
+  name: string; description?: string; listId?: string | null; content?: string;
+}): Promise<Template> {
+  const { data } = await api.post<Template>('/templates', body);
+  return data;
+}
+
+export async function updateTemplate(id: string, body: {
+  name?: string; description?: string; listId?: string | null; content?: string;
+}): Promise<Template> {
+  const { data } = await api.put<Template>(`/templates/${id}`, body);
+  return data;
+}
+
+export async function deleteTemplate(id: string): Promise<void> {
+  await api.delete(`/templates/${id}`);
 }
 
 // ── Push Notification Subscription ───────────────────────────────────────────

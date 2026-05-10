@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Runner,
   AiProvider,
@@ -16,14 +17,89 @@ import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import { AI_LABELS } from '../../lib/taskConstants';
 
 const DEFAULT_SELECT = '__default__';
+const CUSTOM_BROWSE = '__browse__';
 const FIELD_CLASSNAME = 'h-9 rounded-xl border-border/60 bg-card text-[13px] shadow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';
 const SELECT_TRIGGER_CLASSNAME = 'h-9 rounded-xl border-border/60 bg-card px-3 text-[13px] shadow-soft focus:ring-2 focus:ring-ring focus:ring-offset-0';
+
+function WorkspaceField({
+  value,
+  onChange,
+  runnerId,
+  listWorkspaces,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  runnerId?: string;
+  listWorkspaces?: string[];
+}) {
+  const hasRegistered = listWorkspaces && listWorkspaces.length > 0;
+  const isCustom = !hasRegistered || (value !== '' && !listWorkspaces.includes(value));
+  const [showBrowse, setShowBrowse] = useState(isCustom && value !== '');
+
+  if (!hasRegistered) {
+    return (
+      <DirectoryInput
+        value={value}
+        onChange={(v) => onChange(v || '')}
+        runnerId={runnerId}
+        className={FIELD_CLASSNAME}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Select
+        value={showBrowse ? CUSTOM_BROWSE : (value || DEFAULT_SELECT)}
+        onValueChange={(v) => {
+          if (v === CUSTOM_BROWSE) {
+            setShowBrowse(true);
+            onChange('');
+          } else if (v === DEFAULT_SELECT) {
+            setShowBrowse(false);
+            onChange('');
+          } else {
+            setShowBrowse(false);
+            onChange(v);
+          }
+        }}
+      >
+        <SelectTrigger className={SELECT_TRIGGER_CLASSNAME}>
+          <SelectValue placeholder="Select workspace..." />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">
+            No workspace
+          </SelectItem>
+          {listWorkspaces.map((ws) => (
+            <SelectItem key={ws} value={ws} className="rounded-lg py-2 text-[11px] font-mono">
+              {ws}
+            </SelectItem>
+          ))}
+          <SelectItem value={CUSTOM_BROWSE} className="rounded-lg py-2 text-[11px] text-muted-foreground">
+            Browse custom path...
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      {showBrowse && (
+        <DirectoryInput
+          value={value}
+          onChange={(v) => onChange(v || '')}
+          runnerId={runnerId}
+          placeholder="Browse runner filesystem..."
+          className={FIELD_CLASSNAME}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function RunnerAssignmentFields({
   runners,
   runnerId,
   aiProvider,
   harnessConfig,
+  listWorkspaces,
   onRunnerIdChange,
   onAiProviderChange,
   onHarnessConfigChange,
@@ -32,6 +108,7 @@ export default function RunnerAssignmentFields({
   runnerId: string;
   aiProvider: AiProvider | '';
   harnessConfig: HarnessConfig;
+  listWorkspaces?: string[];
   onRunnerIdChange: (id: string) => void;
   onAiProviderChange: (provider: AiProvider | '') => void;
   onHarnessConfigChange: (config: HarnessConfig) => void;
@@ -121,11 +198,11 @@ export default function RunnerAssignmentFields({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Workspace</Label>
-              <DirectoryInput
+              <WorkspaceField
                 value={codexConfig.workspace ?? ''}
                 onChange={(v) => updateCodexConfig({ workspace: v || undefined })}
                 runnerId={runnerId || undefined}
-                className={FIELD_CLASSNAME}
+                listWorkspaces={listWorkspaces}
               />
             </div>
             <div className="space-y-1.5">
@@ -164,11 +241,11 @@ export default function RunnerAssignmentFields({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Workspace</Label>
-              <DirectoryInput
+              <WorkspaceField
                 value={claudeConfig.workspace ?? ''}
                 onChange={(v) => updateClaudeConfig({ workspace: v || undefined })}
                 runnerId={runnerId || undefined}
-                className={FIELD_CLASSNAME}
+                listWorkspaces={listWorkspaces}
               />
             </div>
             <div className="space-y-1.5">
@@ -202,11 +279,11 @@ export default function RunnerAssignmentFields({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Workspace</Label>
-              <DirectoryInput
+              <WorkspaceField
                 value={cursorConfig.workspace ?? ''}
                 onChange={(v) => updateCursorConfig({ workspace: v || undefined })}
                 runnerId={runnerId || undefined}
-                className={FIELD_CLASSNAME}
+                listWorkspaces={listWorkspaces}
               />
             </div>
             <div className="space-y-1.5">
@@ -268,11 +345,11 @@ export default function RunnerAssignmentFields({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Workspace</Label>
-              <DirectoryInput
+              <WorkspaceField
                 value={geminiConfig.workspace ?? ''}
                 onChange={(v) => updateGeminiConfig({ workspace: v || undefined })}
                 runnerId={runnerId || undefined}
-                className={FIELD_CLASSNAME}
+                listWorkspaces={listWorkspaces}
               />
             </div>
             <div className="space-y-1.5">

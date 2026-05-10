@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { List, TaskPriority, Label, RecurrenceRule } from '../../types';
-import { fetchLabels } from '../../api/client';
+import { List, TaskPriority, Label, RecurrenceRule, Template } from '../../types';
+import { fetchLabels, fetchTemplates } from '../../api/client';
 import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
 import { getTodayDateInputValue } from '@/lib/taskSchedule';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles } from 'lucide-react';
+import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles, FileText } from 'lucide-react';
 
 const INBOX_VALUE = '_inbox';
 
@@ -44,14 +44,18 @@ export default function CreateTaskModal({
   const [scheduledTime, setScheduledTime] = useState('');
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(null);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
+  const [allTemplates, setAllTemplates] = useState<Template[]>([]);
   const isMobile = useIsMobile();
 
   const selectedList = lists.find((list) => list.id === listSelection);
   const priorityStyles = getTaskPriorityStyles(priority);
+  const currentListId = listSelection === INBOX_VALUE ? null : listSelection;
+  const availableTemplates = allTemplates.filter((t) => !t.list_id || t.list_id === currentListId);
 
   useEffect(() => {
     if (open) {
       fetchLabels().then(setAllLabels).catch(() => {});
+      fetchTemplates().then(setAllTemplates).catch(() => {});
       setTitle('');
       setDescription('');
       setPriority('none');
@@ -214,6 +218,31 @@ export default function CreateTaskModal({
                     onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
                     allowCreate={!isMobile}
                   />
+
+                  {availableTemplates.length > 0 && (
+                    <Select
+                      value=""
+                      onValueChange={(templateId) => {
+                        const tpl = allTemplates.find((t) => t.id === templateId);
+                        if (tpl) setDescription(tpl.content);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                        <FileText className="h-3 w-3 opacity-60" />
+                        <span>Template</span>
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                        {availableTemplates.map((tpl) => (
+                          <SelectItem key={tpl.id} value={tpl.id} className="rounded-lg py-2 text-[11px]">
+                            <span className="inline-flex items-center gap-1.5">
+                              <FileText className="h-3 w-3 opacity-60" />
+                              {tpl.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">

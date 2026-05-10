@@ -21,7 +21,7 @@ router.get('/', (_req: Request, res: Response) => {
 
 // POST /api/lists
 router.post('/', (req: Request, res: Response) => {
-  const { name, description, icon } = req.body as { name?: string; description?: string; icon?: string | null };
+  const { name, description, icon, workspaces } = req.body as { name?: string; description?: string; icon?: string | null; workspaces?: string[] };
   const normalizedName = name ? normalizeListName(name) : '';
   if (!normalizedName) { res.status(400).json({ error: 'name is required' }); return; }
 
@@ -33,9 +33,10 @@ router.post('/', (req: Request, res: Response) => {
   const id = uuid();
   const maxPos = (getDb().prepare('SELECT COALESCE(MAX(position), 0) AS m FROM lists').get() as { m: number }).m;
   const now = utcNow();
+  const workspacesJson = JSON.stringify(Array.isArray(workspaces) ? workspaces : []);
   getDb().prepare(`
-    INSERT INTO lists (id, name, icon, description, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, normalizedName, normalizeIcon(icon), description ?? '', maxPos + 1, now, now);
+    INSERT INTO lists (id, name, icon, description, workspaces, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, normalizedName, normalizeIcon(icon), description ?? '', workspacesJson, maxPos + 1, now, now);
 
   const list = getDb().prepare('SELECT * FROM lists WHERE id = ?').get(id) as List;
   res.status(201).json(list);
@@ -70,7 +71,7 @@ router.get('/:id', (req: Request, res: Response) => {
 
 // PUT /api/lists/:id
 router.put('/:id', (req: Request, res: Response) => {
-  const { name, description, icon } = req.body as { name?: string; description?: string; icon?: string | null };
+  const { name, description, icon, workspaces } = req.body as { name?: string; description?: string; icon?: string | null; workspaces?: string[] };
   const db = getDb();
   const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.id) as List | undefined;
   if (!list) { res.status(404).json({ error: 'List not found' }); return; }
@@ -85,6 +86,7 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const nextIcon = icon === undefined ? list.icon : normalizeIcon(icon);
   const nextDescription = description ?? list.description;
+  const nextWorkspaces = workspaces !== undefined ? JSON.stringify(workspaces) : list.workspaces;
 
   const listTasks = db.prepare(`
     SELECT id, task_number FROM tasks WHERE list_id = ? ORDER BY task_number ASC
@@ -92,8 +94,8 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const updateList = db.transaction(() => {
     db.prepare(`
-      UPDATE lists SET name = ?, description = ?, icon = ?, updated_at = ? WHERE id = ?
-    `).run(normalizedName, nextDescription, nextIcon, utcNow(), req.params.id);
+      UPDATE lists SET name = ?, description = ?, icon = ?, workspaces = ?, updated_at = ? WHERE id = ?
+    `).run(normalizedName, nextDescription, nextIcon, nextWorkspaces, utcNow(), req.params.id);
 
     if (normalizedName !== list.name) {
       const updateTaskKey = db.prepare('UPDATE tasks SET task_key = ? WHERE id = ?');

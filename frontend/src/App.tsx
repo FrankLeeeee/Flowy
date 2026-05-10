@@ -18,6 +18,7 @@ import ListDetail from "./pages/ListDetail";
 import Runners from "./pages/Runners";
 import Labels from "./pages/Labels";
 import Skills from "./pages/Skills";
+import Templates from "./pages/Templates";
 import Sessions from "./pages/Sessions";
 import MobileHome from "./pages/mobile/MobileHome";
 import MobileInbox from "./pages/mobile/MobileInbox";
@@ -73,6 +74,7 @@ function DesktopShell() {
               <Route path="/runners" element={<Runners />} />
               <Route path="/labels" element={<Labels />} />
               <Route path="/skills" element={<Skills />} />
+              <Route path="/templates" element={<Templates />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/sessions" element={<Sessions />} />
               <Route path="/todos" element={<TodoView />} />
