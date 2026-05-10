@@ -45,6 +45,7 @@ export default function CreateTaskModal({
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(null);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [allTemplates, setAllTemplates] = useState<Template[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('_none');
   const isMobile = useIsMobile();
 
   const selectedList = lists.find((list) => list.id === listSelection);
@@ -63,6 +64,7 @@ export default function CreateTaskModal({
       setScheduledDate(getTodayDateInputValue());
       setScheduledTime('');
       setRecurrenceRule(null);
+      setSelectedTemplateId('_none');
     }
   }, [open]);
 
@@ -138,7 +140,35 @@ export default function CreateTaskModal({
                 <AppDialogSection>
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
-                    <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars · Markdown</span>
+                    <div className="flex items-center gap-2">
+                      {availableTemplates.length > 0 && (
+                        <Select
+                          value={selectedTemplateId}
+                          onValueChange={(templateId) => {
+                            setSelectedTemplateId(templateId);
+                            if (templateId === '_none') { setDescription(''); return; }
+                            const tpl = allTemplates.find((t) => t.id === templateId);
+                            if (tpl) setDescription(tpl.content);
+                          }}
+                        >
+                          <SelectTrigger className="h-6 w-auto max-w-[180px] gap-1.5 rounded-full border-border/60 bg-card px-2.5 text-[10px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                            <FileText className="h-3 w-3 shrink-0 opacity-60" />
+                            <span className="truncate">{selectedTemplateId !== '_none' ? (allTemplates.find((t) => t.id === selectedTemplateId)?.name ?? 'Template') : 'Template'}</span>
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                            <SelectItem value="_none" className="rounded-lg py-2 text-[10px] text-muted-foreground">
+                              No template
+                            </SelectItem>
+                            {availableTemplates.map((tpl) => (
+                              <SelectItem key={tpl.id} value={tpl.id} className="rounded-lg py-2 text-[10px]">
+                                {tpl.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars · Markdown</span>
+                    </div>
                   </div>
                   <MarkdownEditor
                     value={description}
@@ -218,31 +248,6 @@ export default function CreateTaskModal({
                     onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
                     allowCreate={!isMobile}
                   />
-
-                  {availableTemplates.length > 0 && (
-                    <Select
-                      value=""
-                      onValueChange={(templateId) => {
-                        const tpl = allTemplates.find((t) => t.id === templateId);
-                        if (tpl) setDescription(tpl.content);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                        <FileText className="h-3 w-3 opacity-60" />
-                        <span>Template</span>
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                        {availableTemplates.map((tpl) => (
-                          <SelectItem key={tpl.id} value={tpl.id} className="rounded-lg py-2 text-[11px]">
-                            <span className="inline-flex items-center gap-1.5">
-                              <FileText className="h-3 w-3 opacity-60" />
-                              {tpl.name}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
