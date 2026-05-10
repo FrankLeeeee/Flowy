@@ -28,13 +28,18 @@ export default function MobileShell({ children }: MobileShellProps) {
   return (
     <div className="relative flex h-[100dvh] flex-col bg-background">
       <OfflineBanner />
+      {/* Solid backdrop behind the status bar so scrolling content can't show through */}
+      <div
+        className="fixed top-0 left-0 right-0 z-10 bg-background"
+        style={{ height: 'env(safe-area-inset-top)' }}
+      />
       <main
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+        className="min-h-0 flex-1 overflow-hidden"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
         }}
       >
-        <div key={location.pathname} className="motion-page">
+        <div key={location.pathname} className="motion-page h-full">
           {children({ selectedDate, onDateChange: handleDateChange })}
         </div>
       </main>
