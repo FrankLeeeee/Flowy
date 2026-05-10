@@ -173,6 +173,10 @@ function migrate(): void {
   ensureColumn('lists', 'position', 'INTEGER NOT NULL DEFAULT 0');
   backfillListPositions();
 
+  ensureColumn('lists', 'workspaces', `TEXT NOT NULL DEFAULT '[]'`);
+
+  ensureTemplatesTable();
+
   normalizeListNames();
   ensureUniqueListNamesIndex();
   migrateTaskKeysToListNames();
@@ -602,6 +606,21 @@ function migrateTaskKeysToListNames(): void {
   } catch {
     // Preserve existing task keys if generated names would collide.
   }
+}
+
+function ensureTemplatesTable(): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS templates (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      list_id     TEXT REFERENCES lists(id) ON DELETE CASCADE,
+      content     TEXT NOT NULL DEFAULT '',
+      created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_templates_list_id ON templates(list_id);
+  `);
 }
 
 // ── Settings helpers ─────────────────────────────────────────────────────

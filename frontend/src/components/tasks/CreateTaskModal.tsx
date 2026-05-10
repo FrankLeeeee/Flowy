@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { List, TaskPriority, Label, RecurrenceRule } from '../../types';
-import { fetchLabels } from '../../api/client';
+import { List, TaskPriority, Label, RecurrenceRule, Template } from '../../types';
+import { fetchLabels, fetchTemplates } from '../../api/client';
 import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
 import { getTodayDateInputValue } from '@/lib/taskSchedule';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles } from 'lucide-react';
+import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles, FileText } from 'lucide-react';
 
 const INBOX_VALUE = '_inbox';
 
@@ -44,14 +44,19 @@ export default function CreateTaskModal({
   const [scheduledTime, setScheduledTime] = useState('');
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(null);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
+  const [allTemplates, setAllTemplates] = useState<Template[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('_none');
   const isMobile = useIsMobile();
 
   const selectedList = lists.find((list) => list.id === listSelection);
   const priorityStyles = getTaskPriorityStyles(priority);
+  const currentListId = listSelection === INBOX_VALUE ? null : listSelection;
+  const availableTemplates = allTemplates.filter((t) => !t.list_id || t.list_id === currentListId);
 
   useEffect(() => {
     if (open) {
       fetchLabels().then(setAllLabels).catch(() => {});
+      fetchTemplates().then(setAllTemplates).catch(() => {});
       setTitle('');
       setDescription('');
       setPriority('none');
@@ -59,6 +64,7 @@ export default function CreateTaskModal({
       setScheduledDate(getTodayDateInputValue());
       setScheduledTime('');
       setRecurrenceRule(null);
+      setSelectedTemplateId('_none');
     }
   }, [open]);
 
@@ -134,7 +140,35 @@ export default function CreateTaskModal({
                 <AppDialogSection>
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
-                    <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars · Markdown</span>
+                    <div className="flex items-center gap-2">
+                      {availableTemplates.length > 0 && (
+                        <Select
+                          value={selectedTemplateId}
+                          onValueChange={(templateId) => {
+                            setSelectedTemplateId(templateId);
+                            if (templateId === '_none') { setDescription(''); return; }
+                            const tpl = allTemplates.find((t) => t.id === templateId);
+                            if (tpl) setDescription(tpl.content);
+                          }}
+                        >
+                          <SelectTrigger className="h-6 w-auto max-w-[180px] gap-1.5 rounded-full border-border/60 bg-card px-2.5 text-[10px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                            <FileText className="h-3 w-3 shrink-0 opacity-60" />
+                            <span className="truncate">{selectedTemplateId !== '_none' ? (allTemplates.find((t) => t.id === selectedTemplateId)?.name ?? 'Template') : 'Template'}</span>
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                            <SelectItem value="_none" className="rounded-lg py-2 text-[10px] text-muted-foreground">
+                              No template
+                            </SelectItem>
+                            {availableTemplates.map((tpl) => (
+                              <SelectItem key={tpl.id} value={tpl.id} className="rounded-lg py-2 text-[10px]">
+                                {tpl.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars · Markdown</span>
+                    </div>
                   </div>
                   <MarkdownEditor
                     value={description}

@@ -13,7 +13,7 @@ import ConfirmDialog from './ConfirmDialog';
 import EmojiPicker from './EmojiPicker';
 import { cn } from '@/lib/utils';
 import {
-  Inbox, FolderKanban, LayoutList, Bot, Tags, BarChart2, MessagesSquare,
+  Inbox, FolderKanban, LayoutList, Bot, Tags, BarChart2, MessagesSquare, FileText,
   Plus, ChevronRight, Trash2, GripVertical,
   ArrowRight, Sparkles, Settings,
   CalendarDays, CalendarRange, Layers,
@@ -260,6 +260,10 @@ export default function Sidebar() {
               <NavLink to="/skills" className={navLinkClass}>
                 <Sparkles className="h-4 w-4 shrink-0 opacity-60" />
                 Skills
+              </NavLink>
+              <NavLink to="/templates" className={navLinkClass}>
+                <FileText className="h-4 w-4 shrink-0 opacity-60" />
+                Task Templates
               </NavLink>
               <NavLink to="/stats" className={navLinkClass}>
                 <BarChart2 className="h-4 w-4 shrink-0 opacity-60" />

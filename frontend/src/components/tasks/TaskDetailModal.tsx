@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule } from '../../types';
+import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule, List } from '../../types';
 import { fetchTaskLogs, updateTask, fetchLabels, runTask, assignTask } from '../../api/client';
 import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -52,16 +52,19 @@ const OUTPUT_MARKDOWN_CLASSNAME = `min-w-0 max-w-full overflow-hidden rounded-lg
   prose-blockquote:border-border/60 prose-blockquote:text-muted-foreground/70`;
 
 export default function TaskDetailModal({
-  open, task, runners, onUpdate, onDelete, onClose,
+  open, task, runners, lists, onUpdate, onDelete, onClose,
 }: {
   open: boolean;
   task: Task;
   runners: Runner[];
+  lists?: List[];
   onUpdate: (t: Task) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
   const runner = runners.find((r) => r.id === task.runner_id);
+  const taskList = lists?.find((l) => l.id === task.list_id);
+  const listWorkspaces: string[] = taskList ? (() => { try { return JSON.parse(taskList.workspaces || '[]'); } catch { return []; } })() : [];
 
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [editing, setEditing] = useState(false);
@@ -365,6 +368,7 @@ export default function TaskDetailModal({
                 runnerId={assignRunnerId}
                 aiProvider={assignAiProvider}
                 harnessConfig={assignHarnessConfig}
+                listWorkspaces={listWorkspaces.length > 0 ? listWorkspaces : undefined}
                 onRunnerIdChange={setAssignRunnerId}
                 onAiProviderChange={setAssignAiProvider}
                 onHarnessConfigChange={setAssignHarnessConfig}

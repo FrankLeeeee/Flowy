@@ -190,6 +190,7 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
           open={!!detailTask}
           task={detailTask}
           runners={runners}
+          lists={allLists}
           onUpdate={handleTaskUpdate}
           onDelete={() => setDeleteTaskTarget(detailTask)}
           onClose={() => setDetailTask(null)}

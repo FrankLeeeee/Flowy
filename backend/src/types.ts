@@ -53,7 +53,18 @@ export interface List {
   icon: string | null;
   description: string;
   position: number;
+  workspaces: string;   // JSON array of workspace path strings
   next_task_num: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  list_id: string | null;
+  content: string;
   created_at: string;
   updated_at: string;
 }
