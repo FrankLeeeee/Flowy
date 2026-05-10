@@ -57,7 +57,7 @@ export default function MobileSettings() {
   return (
     <div className="flex min-h-full flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
+      <div className="sticky top-[env(safe-area-inset-top)] z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
         <div className="flex items-center gap-3">
           <button
             type="button"
