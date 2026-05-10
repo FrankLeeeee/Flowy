@@ -384,3 +384,15 @@ html.theme-transition *::after {
     animation: none !important;
   }
 }
+
+/* Disable iOS PWA swipe-back/forward navigation gesture */
+@media all and (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-x: none;
+  }
+
+  #root {
+    touch-action: pan-y;
+  }
+}

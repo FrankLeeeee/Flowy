@@ -5,10 +5,12 @@ import TaskTodoView from '../../components/tasks/TaskTodoView';
 import CreateTaskModal from '../../components/tasks/CreateTaskModal';
 import TaskDetailModal from '../../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import MobilePageLayout from '@/components/mobile/MobilePageLayout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { formatDateLabel } from '@/lib/mobileDateBar';
+import { getTodayDateString } from '@/lib/dateFilter';
 
 interface MobileHomeProps {
   selectedDate: string;
@@ -34,9 +36,13 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
   const loadData = useCallback(async () => {
     try {
       const [allTasks, ls, labels, r] = await Promise.all([fetchTasks(), fetchLists(), fetchLabels(), fetchRunners()]);
-      const filtered = allTasks.filter(
-        (t) => t.status !== 'cancelled' && t.scheduled_date === selectedDate,
-      );
+      const today = getTodayDateString();
+      const filtered = allTasks.filter((t) => {
+        if (t.status === 'cancelled') return false;
+        if (t.scheduled_date === selectedDate) return true;
+        if (selectedDate === today && t.scheduled_date < today && t.status !== 'done') return true;
+        return false;
+      });
       setTasks(filtered);
       setAllLists(ls);
       setAllLabels(labels);
@@ -108,44 +114,45 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-full px-4 pt-4">
-      {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-[22px] font-bold tracking-tight text-foreground">
-          {formatDateLabel(selectedDate)}
-        </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-          <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', neutralTone.pill)}>
-            {uncompleted.length} active
-          </span>
-          {inProgressCount > 0 && (
-            <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', warningTone.pill)}>
-              {inProgressCount} in progress
+    <MobilePageLayout
+      header={
+        <>
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">
+            {formatDateLabel(selectedDate)}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', neutralTone.pill)}>
+              {uncompleted.length} active
             </span>
-          )}
-          {failedCount > 0 && (
-            <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', dangerTone.pill)}>
-              {failedCount} failed
-            </span>
-          )}
-          {completed.length > 0 && (
-            <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', successTone.pill)}>
-              {completed.length} done
-            </span>
-          )}
-        </div>
-      </div>
-
+            {inProgressCount > 0 && (
+              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', warningTone.pill)}>
+                {inProgressCount} in progress
+              </span>
+            )}
+            {failedCount > 0 && (
+              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', dangerTone.pill)}>
+                {failedCount} failed
+              </span>
+            )}
+            {completed.length > 0 && (
+              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', successTone.pill)}>
+                {completed.length} done
+              </span>
+            )}
+          </div>
+        </>
+      }
+    >
       {error && (
-        <div className={cn('mb-4 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>
+        <div className={cn('mx-4 mt-3 rounded-md px-3 py-2 text-[13px] ring-1', dangerTone.panel, dangerTone.text)}>
           {error}
         </div>
       )}
 
-      {/* Task list */}
-      <TaskTodoView tasks={tasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+      <div className="px-4 pt-4">
+        <TaskTodoView tasks={tasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+      </div>
 
-      {/* Modals */}
       <CreateTaskModal
         open={showCreate}
         lists={allLists}
@@ -170,6 +177,6 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
         onConfirm={confirmDeleteTask}
         onCancel={() => setDeleteTaskTarget(null)}
       />
-    </div>
+    </MobilePageLayout>
   );
 }

@@ -65,18 +65,9 @@ function buildCorsOptions(): cors.CorsOptions {
     };
   }
 
-  // Dev: localhost only. Dev still needs credentials for the cookie session.
+  // Non-production: allow all origins.
   return {
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      try {
-        const host = new URL(origin).hostname;
-        if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
-          return cb(null, true);
-        }
-      } catch { /* fall through */ }
-      return cb(new Error(`Origin ${origin} not allowed in dev (localhost only)`));
-    },
+    origin: true,
     credentials: true,
   };
 }

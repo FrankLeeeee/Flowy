@@ -1,23 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Task, List, Runner, Label } from '../../types';
+import { useState, useEffect, useCallback } from "react";
+import { Task, List, Runner, Label, TaskStatus } from "../../types";
 import {
-  fetchTasks, fetchLists, fetchRunners, fetchLabels,
-  createTask, deleteTask, getTask,
-} from '../../api/client';
-import MobileTaskList from '@/components/mobile/MobileTaskList';
-import MobileFilterSheet from '@/components/mobile/MobileFilterSheet';
-import CreateTaskModal from '@/components/tasks/CreateTaskModal';
-import TaskDetailModal from '@/components/tasks/TaskDetailModal';
-import ConfirmDialog from '@/components/ConfirmDialog';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
-import { getToneStyles } from '@/lib/semanticColors';
-import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
-import { SlidersHorizontal } from 'lucide-react';
+  fetchTasks,
+  fetchLists,
+  fetchRunners,
+  fetchLabels,
+  createTask,
+  deleteTask,
+  getTask,
+  updateTask,
+} from "../../api/client";
+import TaskTodoView from "@/components/tasks/TaskTodoView";
+import MobilePageLayout from "@/components/mobile/MobilePageLayout";
+import MobileFilterSheet from "@/components/mobile/MobileFilterSheet";
+import CreateTaskModal from "@/components/tasks/CreateTaskModal";
+import TaskDetailModal from "@/components/tasks/TaskDetailModal";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { getToneStyles } from "@/lib/semanticColors";
+import {
+  DateFilterState,
+  defaultDateFilter,
+  filterTasksByDate,
+} from "@/lib/dateFilter";
+import { SlidersHorizontal } from "lucide-react";
 
 export default function MobileInbox() {
-  const successTone = getToneStyles('success');
-  const neutralTone = getToneStyles('neutral');
+  const successTone = getToneStyles("success");
+  const neutralTone = getToneStyles("neutral");
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [lists, setLists] = useState<List[]>([]);
@@ -25,46 +36,70 @@ export default function MobileInbox() {
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [priorityFilter, setPriorityFilter] = useState('_all');
-  const [runnerFilter, setRunnerFilter] = useState('_all');
-  const [search, setSearch] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState("_all");
+  const [runnerFilter, setRunnerFilter] = useState("_all");
+  const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [dateFilter, setDateFilter] = useState<DateFilterState>(defaultDateFilter());
+  const [dateFilter, setDateFilter] =
+    useState<DateFilterState>(defaultDateFilter());
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 
-  const hasActiveFilters = priorityFilter !== '_all' || runnerFilter !== '_all' || search !== '' || dateFilter.mode !== 'today';
+  const hasActiveFilters =
+    priorityFilter !== "_all" ||
+    runnerFilter !== "_all" ||
+    search !== "" ||
+    dateFilter.mode !== "today";
 
   const loadData = useCallback(async () => {
     try {
-      const filters: { inbox: '1'; priority?: string; runner?: string; search?: string } = { inbox: '1' };
-      if (priorityFilter !== '_all') filters.priority = priorityFilter;
-      if (runnerFilter !== '_all') filters.runner = runnerFilter;
+      const filters: {
+        inbox: "1";
+        priority?: string;
+        runner?: string;
+        search?: string;
+      } = { inbox: "1" };
+      if (priorityFilter !== "_all") filters.priority = priorityFilter;
+      if (runnerFilter !== "_all") filters.runner = runnerFilter;
       if (search) filters.search = search;
 
-      const [t, ls, r, l] = await Promise.all([fetchTasks(filters), fetchLists(), fetchRunners(), fetchLabels()]);
-      setTasks(t.filter((task) => task.status !== 'done' && task.status !== 'cancelled'));
+      const [t, ls, r, l] = await Promise.all([
+        fetchTasks(filters),
+        fetchLists(),
+        fetchRunners(),
+        fetchLabels(),
+      ]);
+      setTasks(t.filter((task) => task.status !== "cancelled"));
       setLists(ls);
       setRunners(r);
       setAllLabels(l);
-    } catch { /* ignore */ } finally {
+    } catch {
+      /* ignore */
+    } finally {
       setLoading(false);
     }
   }, [priorityFilter, runnerFilter, search]);
 
-  useEffect(() => { loadData(); }, [loadData]);
-  useEffect(() => { const iv = setInterval(loadData, 10_000); return () => clearInterval(iv); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+  useEffect(() => {
+    const iv = setInterval(loadData, 10_000);
+    return () => clearInterval(iv);
+  }, [loadData]);
 
   useEffect(() => {
     const handler = () => setShowCreate(true);
-    window.addEventListener('flowy:mobile-create', handler);
-    return () => window.removeEventListener('flowy:mobile-create', handler);
+    window.addEventListener("flowy:mobile-create", handler);
+    return () => window.removeEventListener("flowy:mobile-create", handler);
   }, []);
 
   const handleCreateTask = async (data: Parameters<typeof createTask>[0]) => {
-    await createTask(data); setShowCreate(false); loadData();
+    await createTask(data);
+    setShowCreate(false);
+    loadData();
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -75,10 +110,20 @@ export default function MobileInbox() {
     loadData();
   };
   const handleTaskUpdate = (updated: Task) => {
-    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated);
+    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    setDetailTask(updated);
   };
   const handleTaskClick = async (task: Task) => {
-    try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); }
+    try {
+      setDetailTask(await getTask(task.id));
+    } catch {
+      setDetailTask(task);
+    }
+  };
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    try { await updateTask(taskId, { status: newStatus }); }
+    catch { loadData(); }
   };
 
   const visibleTasks = filterTasksByDate(tasks, dateFilter);
@@ -95,17 +140,28 @@ export default function MobileInbox() {
   }
 
   return (
-    <div className="flex flex-col min-h-full">
-      {/* Header */}
-      <div className="sticky top-[env(safe-area-inset-top)] z-20 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-3 pb-3">
+    <MobilePageLayout
+      header={
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[18px] font-bold tracking-tight text-foreground">Inbox</h1>
-            <div className="mt-1 flex items-center gap-2 text-[11px]">
-              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', neutralTone.pill)}>
+            <h1 className="text-[22px] font-bold tracking-tight text-foreground">
+              Inbox
+            </h1>
+            <div className="mt-2 flex items-center gap-2 text-[11px]">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1",
+                  neutralTone.pill,
+                )}
+              >
                 {tasks.length} active
               </span>
-              <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1', successTone.pill)}>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1",
+                  successTone.pill,
+                )}
+              >
                 {runners.length} runners
               </span>
             </div>
@@ -114,22 +170,33 @@ export default function MobileInbox() {
             type="button"
             onClick={() => setShowFilters(true)}
             className={cn(
-              'relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 transition-colors active:bg-muted/50',
-              hasActiveFilters && 'border-primary/40 bg-primary/5',
+              "relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 transition-colors active:bg-muted/50",
+              hasActiveFilters && "border-primary/40 bg-primary/5",
             )}
           >
-            <SlidersHorizontal className={cn('h-4 w-4', hasActiveFilters ? 'text-primary' : 'text-muted-foreground')} />
+            <SlidersHorizontal
+              className={cn(
+                "h-4 w-4",
+                hasActiveFilters ? "text-primary" : "text-muted-foreground",
+              )}
+            />
             {hasActiveFilters && (
               <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
             )}
           </button>
         </div>
+      }
+    >
+      <div className="px-4 pt-4">
+        <TaskTodoView
+          tasks={visibleTasks}
+          allLabels={allLabels}
+          runners={runners}
+          onTaskClick={handleTaskClick}
+          onStatusChange={handleStatusChange}
+        />
       </div>
 
-      {/* Task list */}
-      <MobileTaskList tasks={visibleTasks} runners={runners} allLabels={allLabels} onTaskClick={handleTaskClick} />
-
-      {/* Filter sheet */}
       <MobileFilterSheet
         open={showFilters}
         onClose={() => setShowFilters(false)}
@@ -144,8 +211,12 @@ export default function MobileInbox() {
         onDateFilterChange={setDateFilter}
       />
 
-      {/* Modals */}
-      <CreateTaskModal open={showCreate} lists={lists} onSubmit={handleCreateTask} onClose={() => setShowCreate(false)} />
+      <CreateTaskModal
+        open={showCreate}
+        lists={lists}
+        onSubmit={handleCreateTask}
+        onClose={() => setShowCreate(false)}
+      />
       {detailTask && (
         <TaskDetailModal
           open={!!detailTask}
@@ -159,11 +230,15 @@ export default function MobileInbox() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete task"
-        description={deleteTarget ? `Delete "${deleteTarget.title}"? Its execution history and output will be removed.` : ''}
+        description={
+          deleteTarget
+            ? `Delete "${deleteTarget.title}"? Its execution history and output will be removed.`
+            : ""
+        }
         confirmLabel="Delete task"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-    </div>
+    </MobilePageLayout>
   );
 }
