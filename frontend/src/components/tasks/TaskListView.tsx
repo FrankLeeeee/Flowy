@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { GripVertical, Repeat } from 'lucide-react';
+import { useAnimatedList } from '@/hooks/useAnimatedList';
+import AnimatedListItem from '@/components/AnimatedListItem';
 
 function StatusGroup({
   status, tasks, runnerMap, onTaskClick, onDrop,
@@ -18,6 +20,7 @@ function StatusGroup({
   const [dragOver, setDragOver] = useState(false);
   const config = STATUS_CONFIG[status];
   const tone = getTaskStatusStyles(status);
+  const animatedTasks = useAnimatedList(tasks);
 
   const handleDragOver = (e: React.DragEvent) => {
     if (!e.dataTransfer.types.includes('application/task-id')) return;
@@ -59,48 +62,53 @@ function StatusGroup({
       </div>
 
       {/* Rows */}
-      {tasks.map((task, index) => {
+      {animatedTasks.map(({ item: task, leaving }, index) => {
         const runner = task.runner_id ? runnerMap.get(task.runner_id) : undefined;
         const priorityTone = getTaskPriorityStyles(task.priority);
 
         return (
-          <div
+          <AnimatedListItem
             key={task.id}
-            draggable
-            style={{ '--motion-delay': `${index * 28 + 80}ms` } as React.CSSProperties}
-            onDragStart={(e) => {
-              e.dataTransfer.setData('application/task-id', task.id);
-              e.dataTransfer.effectAllowed = 'move';
-              requestAnimationFrame(() => {
-                const target = e.currentTarget;
-                target.style.opacity = '0.45';
-                target.dataset.dragging = 'true';
-              });
-            }}
-            onDragEnd={(e) => {
-              e.currentTarget.style.opacity = '1';
-              delete e.currentTarget.dataset.dragging;
-            }}
-            onClick={() => onTaskClick(task)}
-            className="motion-card interactive-row grid grid-cols-[20px_1fr_80px_100px_110px] gap-2 px-4 py-2.5 items-center cursor-grab active:cursor-grabbing hover:bg-primary/[0.035] motion-safe:hover:translate-x-0.5 data-[dragging=true]:scale-[0.995] border-b border-border/30 last:border-b-0"
+            leaving={leaving}
+            className="border-b border-border/30 last:border-b-0"
           >
-            <GripVertical className="h-3 w-3 text-muted-foreground/45 transition-colors hover:text-muted-foreground/75" />
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="shrink-0 text-[11px] font-mono text-muted-foreground/75">{task.task_key}</span>
-              <span className="text-[13px] font-medium text-foreground truncate">{task.title}</span>
-              {task.recurrence_rule && <Repeat className="h-3 w-3 shrink-0 text-primary/60" />}
+            <div
+              draggable={!leaving}
+              style={{ '--motion-delay': `${index * 28 + 80}ms` } as React.CSSProperties}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/task-id', task.id);
+                e.dataTransfer.effectAllowed = 'move';
+                requestAnimationFrame(() => {
+                  const target = e.currentTarget;
+                  target.style.opacity = '0.45';
+                  target.dataset.dragging = 'true';
+                });
+              }}
+              onDragEnd={(e) => {
+                e.currentTarget.style.opacity = '1';
+                delete e.currentTarget.dataset.dragging;
+              }}
+              onClick={() => onTaskClick(task)}
+              className="motion-card interactive-row grid grid-cols-[20px_1fr_80px_100px_110px] gap-2 px-4 py-2.5 items-center cursor-grab active:cursor-grabbing hover:bg-primary/[0.035] motion-safe:hover:translate-x-0.5 data-[dragging=true]:scale-[0.995]"
+            >
+              <GripVertical className="h-3 w-3 text-muted-foreground/45 transition-colors hover:text-muted-foreground/75" />
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="shrink-0 text-[11px] font-mono text-muted-foreground/75">{task.task_key}</span>
+                <span className="text-[13px] font-medium text-foreground truncate">{task.title}</span>
+                {task.recurrence_rule && <Repeat className="h-3 w-3 shrink-0 text-primary/60" />}
+              </div>
+              <div className={cn('flex items-center', priorityTone.icon)}>
+                {PRIORITY_ICON[task.priority]}
+              </div>
+              <span className="text-[12px] text-muted-foreground truncate">{runner?.name ?? '-'}</span>
+              <span className="text-right text-[11px] text-muted-foreground/75">{formatTaskScheduleCompact(task.scheduled_date, task.scheduled_time)}</span>
             </div>
-            <div className={cn('flex items-center', priorityTone.icon)}>
-              {PRIORITY_ICON[task.priority]}
-            </div>
-            <span className="text-[12px] text-muted-foreground truncate">{runner?.name ?? '-'}</span>
-            <span className="text-right text-[11px] text-muted-foreground/75">{formatTaskScheduleCompact(task.scheduled_date, task.scheduled_time)}</span>
-          </div>
+          </AnimatedListItem>
         );
       })}
 
       {/* Empty drop target */}
-      {tasks.length === 0 && (
+      {animatedTasks.length === 0 && (
         <div className={cn(
           'px-4 py-4 text-center text-[12px] text-muted-foreground/65 transition-colors duration-150',
           dragOver && 'text-primary/50',
