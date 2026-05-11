@@ -8,9 +8,17 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { cn } from '@/lib/utils';
 
 function NotificationSection() {
-  const { permission, subscribed, loading, subscribe, unsubscribe } = usePushNotifications();
+  const { permission, subscribed, loading, support, subscribe, unsubscribe } = usePushNotifications();
 
-  if (!('PushManager' in window) || !('serviceWorker' in navigator)) {
+  if (support === 'ios-needs-install') {
+    return (
+      <p className="text-[13px] text-muted-foreground/70">
+        To enable notifications on iOS, install Flowy by tapping the Share button in Safari and choosing &ldquo;Add to Home Screen&rdquo;, then open it from the Home Screen.
+      </p>
+    );
+  }
+
+  if (support === 'unsupported') {
     return (
       <p className="text-[13px] text-muted-foreground/70">Push notifications are not supported in this browser.</p>
     );

@@ -308,13 +308,16 @@ async function notifyClientsSyncComplete(count) {
 // ── Push Notifications ───────────────────────────────────────────────────────
 
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: 'Flowy', body: event.data.text() };
+  // iOS Safari revokes the push subscription if a push event ever fails to
+  // produce a visible notification — so we must always call showNotification,
+  // even when the payload is missing or malformed.
+  let payload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { body: event.data.text() };
+    }
   }
 
   const { title = 'Flowy', body, icon, tag, data, requireInteraction } = payload;
@@ -329,6 +332,11 @@ self.addEventListener('push', (event) => {
       requireInteraction: requireInteraction || false,
       data,
       vibrate: [100, 50, 100],
+    }).catch(() => {
+      // showNotification can reject on some platforms (e.g. iOS) when an
+      // option is rejected. Fall back to a minimal notification so iOS
+      // doesn't drop the subscription.
+      return self.registration.showNotification(title, { body });
     })
   );
 });

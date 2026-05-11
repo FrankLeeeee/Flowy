@@ -22,10 +22,19 @@ const THEME_OPTIONS = [
 ] as const;
 
 function NotificationButton() {
-  const { permission, subscribed, loading, subscribe, unsubscribe } =
+  const { permission, subscribed, loading, support, subscribe, unsubscribe } =
     usePushNotifications();
 
-  if (!("PushManager" in window) || !("serviceWorker" in navigator)) {
+  if (support === "ios-needs-install") {
+    return (
+      <p className="px-1 text-[13px] leading-relaxed text-muted-foreground/70">
+        Tap the Share button in Safari, choose &ldquo;Add to Home Screen&rdquo;,
+        then open Flowy from your Home Screen to enable notifications.
+      </p>
+    );
+  }
+
+  if (support === "unsupported") {
     return (
       <p className="px-1 text-[13px] text-muted-foreground/60">
         Not supported in this browser.

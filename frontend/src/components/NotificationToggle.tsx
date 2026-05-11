@@ -2,9 +2,9 @@ import { Bell, BellOff } from 'lucide-react';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
 export default function NotificationToggle() {
-  const { permission, subscribed, loading, subscribe, unsubscribe } = usePushNotifications();
+  const { permission, subscribed, loading, support, subscribe, unsubscribe } = usePushNotifications();
 
-  if (!('PushManager' in window) || !('serviceWorker' in navigator)) {
+  if (support !== 'supported') {
     return null;
   }
 
