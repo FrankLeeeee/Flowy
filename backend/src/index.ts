@@ -21,6 +21,7 @@ import { requireUserAuth } from './middleware/userAuth';
 import { initPush }    from './pushService';
 import { attachSessionWs } from './sessionWs';
 import { startNotificationScheduler } from './notificationScheduler';
+import { startTaskDispatcher } from './taskDispatcher';
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -78,6 +79,7 @@ initDb();
 loadSettings();
 initPush();
 startNotificationScheduler();
+startTaskDispatcher();
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth',     authRouter);
