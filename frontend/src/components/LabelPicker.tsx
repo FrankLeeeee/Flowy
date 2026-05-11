@@ -80,13 +80,13 @@ export default function LabelPicker({
         container={triggerRef.current?.closest<HTMLElement>('[role="dialog"]') ?? undefined}
       >
         <Popover.Content
-          side="top"
-          align="start"
+          side="bottom"
+          align="end"
           sideOffset={6}
           collisionPadding={12}
           avoidCollisions={false}
           onOpenAutoFocus={(event) => event.preventDefault()}
-          className="z-[60] w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border/60 bg-popover p-1 shadow-lg"
+          className="z-[60] w-48 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border/60 bg-popover p-1 shadow-lg"
         >
           <div className="px-2 pb-1 pt-1">
             <input
