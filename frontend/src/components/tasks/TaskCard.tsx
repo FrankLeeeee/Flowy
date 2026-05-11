@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { Task, Runner, Label } from '../../types';
 import { PRIORITY_ICON } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
@@ -5,12 +6,12 @@ import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { CalendarDays, Clock3, Repeat } from 'lucide-react';
 
-export default function TaskCard({
+export default memo(function TaskCard({
   task, runner, allLabels = [], onClick,
 }: {
   task: Task; runner?: Runner; allLabels?: Label[]; onClick: () => void;
 }) {
-  const labels: string[] = JSON.parse(task.labels || '[]');
+  const labels: string[] = useMemo(() => JSON.parse(task.labels || '[]'), [task.labels]);
   const priorityStyles = getTaskPriorityStyles(task.priority);
   const elapsed = formatElapsedTime(task.started_at, task.completed_at);
 
@@ -87,4 +88,4 @@ export default function TaskCard({
       )}
     </button>
   );
-}
+});

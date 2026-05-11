@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -13,27 +13,29 @@ import Sidebar from "./components/Sidebar";
 import CommandPalette from "./components/CommandPalette";
 import CreateTaskModal from "./components/tasks/CreateTaskModal";
 import MobileShell from "./components/mobile/MobileShell";
-import Inbox from "./pages/Inbox";
-import ListDetail from "./pages/ListDetail";
-import Runners from "./pages/Runners";
-import Labels from "./pages/Labels";
-import Skills from "./pages/Skills";
-import Templates from "./pages/Templates";
-import Sessions from "./pages/Sessions";
-import MobileHome from "./pages/mobile/MobileHome";
-import MobileInbox from "./pages/mobile/MobileInbox";
-import MobileLists from "./pages/mobile/MobileLists";
-import MobileListDetail from "./pages/mobile/MobileListDetail";
-import MobileLabels from "./pages/mobile/MobileLabels";
-import Stats from "./pages/Stats";
-import MobileStats from "./pages/mobile/MobileStats";
-import MobileSettings from "./pages/mobile/MobileSettings";
-import TodoView from "./pages/TodoView";
 import ScheduledTasksView from "./pages/ScheduledTasksView";
-import Settings from "./pages/Settings";
 import { fetchLists, createTask } from "./api/client";
 import { List } from "./types";
 import OfflineBanner from "./components/OfflineBanner";
+
+const Inbox = lazy(() => import("./pages/Inbox"));
+const ListDetail = lazy(() => import("./pages/ListDetail"));
+const Runners = lazy(() => import("./pages/Runners"));
+const Labels = lazy(() => import("./pages/Labels"));
+const Skills = lazy(() => import("./pages/Skills"));
+const Templates = lazy(() => import("./pages/Templates"));
+const Sessions = lazy(() => import("./pages/Sessions"));
+const Stats = lazy(() => import("./pages/Stats"));
+const TodoView = lazy(() => import("./pages/TodoView"));
+const Settings = lazy(() => import("./pages/Settings"));
+
+const MobileHome = lazy(() => import("./pages/mobile/MobileHome"));
+const MobileInbox = lazy(() => import("./pages/mobile/MobileInbox"));
+const MobileLists = lazy(() => import("./pages/mobile/MobileLists"));
+const MobileListDetail = lazy(() => import("./pages/mobile/MobileListDetail"));
+const MobileLabels = lazy(() => import("./pages/mobile/MobileLabels"));
+const MobileStats = lazy(() => import("./pages/mobile/MobileStats"));
+const MobileSettings = lazy(() => import("./pages/mobile/MobileSettings"));
 
 function DesktopShell() {
   const location = useLocation();
@@ -64,27 +66,29 @@ function DesktopShell() {
         <Sidebar />
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
           <div key={location.pathname} className="motion-page h-full">
-            <Routes>
-              <Route path="/" element={<Navigate to="/today" replace />} />
-              <Route path="/today" element={<ScheduledTasksView mode="today" />} />
-              <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
-              <Route path="/all" element={<ScheduledTasksView mode="all" />} />
-              <Route path="/inbox" element={<Inbox />} />
-              <Route path="/list/:id" element={<ListDetail />} />
-              <Route path="/runners" element={<Runners />} />
-              <Route path="/labels" element={<Labels />} />
-              <Route path="/skills" element={<Skills />} />
-              <Route path="/templates" element={<Templates />} />
-              <Route path="/stats" element={<Stats />} />
-              <Route path="/sessions" element={<Sessions />} />
-              <Route path="/todos" element={<TodoView />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route
-                path="/lists"
-                element={<Navigate to="/inbox" replace />}
-              />
-              <Route path="/usage" element={<Navigate to="/runners" replace />} />
-            </Routes>
+            <Suspense>
+              <Routes>
+                <Route path="/" element={<Navigate to="/today" replace />} />
+                <Route path="/today" element={<ScheduledTasksView mode="today" />} />
+                <Route path="/this-week" element={<ScheduledTasksView mode="week" />} />
+                <Route path="/all" element={<ScheduledTasksView mode="all" />} />
+                <Route path="/inbox" element={<Inbox />} />
+                <Route path="/list/:id" element={<ListDetail />} />
+                <Route path="/runners" element={<Runners />} />
+                <Route path="/labels" element={<Labels />} />
+                <Route path="/skills" element={<Skills />} />
+                <Route path="/templates" element={<Templates />} />
+                <Route path="/stats" element={<Stats />} />
+                <Route path="/sessions" element={<Sessions />} />
+                <Route path="/todos" element={<TodoView />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route
+                  path="/lists"
+                  element={<Navigate to="/inbox" replace />}
+                />
+                <Route path="/usage" element={<Navigate to="/runners" replace />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
         <CommandPalette />
@@ -103,17 +107,19 @@ function MobileApp() {
   return (
     <MobileShell>
       {({ selectedDate }) => (
-        <Routes>
-          <Route path="/" element={<Navigate to="/today" replace />} />
-          <Route path="/today" element={<MobileHome selectedDate={selectedDate} />} />
-          <Route path="/inbox" element={<MobileInbox />} />
-          <Route path="/lists" element={<MobileLists />} />
-          <Route path="/list/:id" element={<MobileListDetail />} />
-          <Route path="/labels" element={<MobileLabels />} />
-          <Route path="/stats" element={<MobileStats />} />
-          <Route path="/settings" element={<MobileSettings />} />
-          <Route path="*" element={<Navigate to="/today" replace />} />
-        </Routes>
+        <Suspense>
+          <Routes>
+            <Route path="/" element={<Navigate to="/today" replace />} />
+            <Route path="/today" element={<MobileHome selectedDate={selectedDate} />} />
+            <Route path="/inbox" element={<MobileInbox />} />
+            <Route path="/lists" element={<MobileLists />} />
+            <Route path="/list/:id" element={<MobileListDetail />} />
+            <Route path="/labels" element={<MobileLabels />} />
+            <Route path="/stats" element={<MobileStats />} />
+            <Route path="/settings" element={<MobileSettings />} />
+            <Route path="*" element={<Navigate to="/today" replace />} />
+          </Routes>
+        </Suspense>
       )}
     </MobileShell>
   );

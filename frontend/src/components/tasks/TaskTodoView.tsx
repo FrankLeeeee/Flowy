@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { Label, Runner, Task, TaskStatus } from '@/types';
 import { ChevronDown, Check, Circle, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,7 +7,7 @@ import { getAiHarnessPillStyle, getLabelColorStyles, getTaskStatusStyles, getTas
 import { useAnimatedList } from '@/hooks/useAnimatedList';
 import AnimatedListItem from '@/components/AnimatedListItem';
 
-function TodoRow({
+const TodoRow = memo(function TodoRow({
   task,
   onCheck,
   onUncheck,
@@ -27,7 +27,7 @@ function TodoRow({
   const statusStyles = getTaskStatusStyles(task.status);
   const priorityStyles = getTaskPriorityStyles(task.priority);
   const showPriority = !checked && task.priority !== 'none';
-  const labels: string[] = JSON.parse(task.labels || '[]');
+  const labels: string[] = useMemo(() => JSON.parse(task.labels || '[]'), [task.labels]);
   const [optimistic, setOptimistic] = useState(false);
   const [optimisticUncheck, setOptimisticUncheck] = useState(false);
 
@@ -132,7 +132,7 @@ function TodoRow({
       </span>
     </div>
   );
-}
+});
 
 interface TaskTodoViewProps {
   tasks: Task[];
