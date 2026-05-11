@@ -1,0 +1,108 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: Dry run (show what would change without committing)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Bump versions
+        id: bump
+        run: |
+          CURRENT=$(node -p "require('./backend/package.json').version")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "old=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+          for pkg in backend frontend runner; do
+            npm version "$NEW_VERSION" --no-git-tag-version --workspace="$pkg"
+          done
+
+          echo "Bumped backend, frontend, runner from $CURRENT to $NEW_VERSION"
+
+      - name: Update CHANGELOG.md
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new }}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Collect commits since last version tag (or all commits if no tag exists)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          fi
+
+          # Build the new changelog entry
+          ENTRY=$(printf "## v%s (%s)\n\n%s" "$NEW_VERSION" "$DATE" "$COMMITS")
+
+          # Insert after the header line
+          awk -v entry="$ENTRY" '
+            /^# Changelog/ { print; getline; print; print entry; print ""; next }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+
+      - name: Show diff
+        run: git diff
+
+      - name: Create branch, commit, and push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="chore/bump-v${{ steps.bump.outputs.new }}"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "chore: bump version to v${{ steps.bump.outputs.new }}"
+          git push origin "$BRANCH"
+
+      - name: Create pull request
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --title "chore: bump version to v${{ steps.bump.outputs.new }}" \
+            --body "Bumps version from v${{ steps.bump.outputs.old }} to v${{ steps.bump.outputs.new }} (${{ inputs.bump }}).
+
+          ### Changed packages
+          - \`backend\`
+          - \`frontend\`
+          - \`runner\`"
