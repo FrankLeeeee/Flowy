@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -54,6 +56,28 @@ jobs:
           done
 
           echo "Bumped backend, frontend, runner from $CURRENT to $NEW_VERSION"
+
+      - name: Update CHANGELOG.md
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new }}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Collect commits since last version tag (or all commits if no tag exists)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          fi
+
+          # Build the new changelog entry
+          ENTRY=$(printf "## v%s (%s)\n\n%s" "$NEW_VERSION" "$DATE" "$COMMITS")
+
+          # Insert after the header line
+          awk -v entry="$ENTRY" '
+            /^# Changelog/ { print; getline; print; print entry; print ""; next }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
 
       - name: Show diff
         run: git diff
