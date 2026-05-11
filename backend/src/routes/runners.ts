@@ -12,7 +12,7 @@ import { drainSkillInventoryRequestsFor, resolveSkillInventoryRequest, RunnerSki
 import { drainSessionCommands, enqueueSessionCommand } from './sessionCommandQueue';
 import { broadcastSessionEvent } from '../sessionWs';
 import { sendPushToAll } from '../pushService';
-import { parseUtcTimestamp, utcNow } from '../time';
+import { parseUtcTimestamp, scheduledWallClockToMs, utcNow } from '../time';
 import { spawnNextRecurrence } from '../recurrence';
 
 const router = Router();
@@ -36,7 +36,7 @@ function secretsMatch(a: string, b: string): boolean {
 function getScheduledTimeMs(scheduledDate: string | null, scheduledTime: string | null): number | null {
   if (!scheduledDate || !scheduledTime) return null;
 
-  const scheduledTimeMs = new Date(`${scheduledDate}T${scheduledTime}:00`).getTime();
+  const scheduledTimeMs = scheduledWallClockToMs(scheduledDate, scheduledTime);
   return Number.isFinite(scheduledTimeMs) ? scheduledTimeMs : null;
 }
 

@@ -18,6 +18,15 @@ for (let i = 0; i < args.length; i++) {
       process.exit(1);
     }
     process.env.CORS = value;
+  } else if (args[i] === '--tz' || args[i].startsWith('--tz=')) {
+    const value = args[i].startsWith('--tz=')
+      ? args[i].slice('--tz='.length)
+      : args[++i];
+    if (!value || value.startsWith('-')) {
+      console.error('Error: --tz requires an IANA timezone, e.g. --tz=Asia/Singapore');
+      process.exit(1);
+    }
+    process.env.FLOWY_SCHEDULE_TZ = value;
   }
 }
 

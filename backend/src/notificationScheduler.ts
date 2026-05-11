@@ -1,5 +1,6 @@
 import { getDb } from './db';
 import { sendPushToAll } from './pushService';
+import { nowAsScheduledWallClock } from './time';
 import { Task } from './types';
 
 const CHECK_INTERVAL_MS = 60_000; // check every minute
@@ -37,9 +38,7 @@ export function cleanupSentNotification(taskId: string): void {
 }
 
 function getDueTasks(): Task[] {
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const { date: todayStr, time: timeStr } = nowAsScheduledWallClock();
 
   return getDb()
     .prepare(`
@@ -54,16 +53,10 @@ function getDueTasks(): Task[] {
     .all(todayStr, todayStr, timeStr) as Task[];
 }
 
-function formatDateTime(d: Date): string {
-  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  return `${date} ${time}`;
-}
-
 function getUpcomingTasks(): Task[] {
   const now = new Date();
-  const nowDt = formatDateTime(now);
-  const futureDt = formatDateTime(new Date(now.getTime() + 15 * 60_000));
+  const { date: nowDate, time: nowTime } = nowAsScheduledWallClock(now);
+  const { date: futureDate, time: futureTime } = nowAsScheduledWallClock(new Date(now.getTime() + 15 * 60_000));
 
   return getDb()
     .prepare(`
@@ -73,7 +66,7 @@ function getUpcomingTasks(): Task[] {
         AND (scheduled_date || ' ' || scheduled_time) > ?
         AND (scheduled_date || ' ' || scheduled_time) <= ?
     `)
-    .all(nowDt, futureDt) as Task[];
+    .all(`${nowDate} ${nowTime}`, `${futureDate} ${futureTime}`) as Task[];
 }
 
 function checkAndNotify(): void {

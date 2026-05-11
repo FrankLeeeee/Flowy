@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
-import { formatIsoDate } from 'flowy-shared';
 import { getDb, nextInboxTaskNumber } from '../db';
 import { Task, List, TaskLog, RecurrenceRule } from '../types';
 import { normalizeHarnessConfig } from '../harnessConfig';
 import { formatTaskKey } from '../listIdentity';
-import { utcNow } from '../time';
+import { nowAsScheduledWallClock, utcNow } from '../time';
 import { spawnNextRecurrence } from '../recurrence';
 import { cleanupSentNotification } from '../notificationScheduler';
 
@@ -14,12 +13,11 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function todayDate(): string {
-  return formatIsoDate(new Date());
+  return nowAsScheduledWallClock().date;
 }
 
 function currentTime(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return nowAsScheduledWallClock().time;
 }
 
 function isValidDateInput(value: string): boolean {
