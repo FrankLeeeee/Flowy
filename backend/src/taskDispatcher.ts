@@ -1,22 +1,16 @@
 import { getDb } from './db';
 import { Task } from './types';
-import { utcNow } from './time';
+import { nowAsScheduledWallClock, utcNow } from './time';
 
 const DISPATCH_INTERVAL_MS = 60_000;
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
-function localDateTime(now: Date): { date: string; time: string } {
-  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  return { date, time };
-}
-
 // Backlog tasks that have a runner+provider+time and whose scheduled time has
 // arrived (or already passed — e.g. missed while the runner was offline). These
 // are stuck without the dispatcher because runners only poll for `'todo'` tasks.
 export function findDispatchableTasks(now: Date = new Date()): Task[] {
-  const { date, time } = localDateTime(now);
+  const { date, time } = nowAsScheduledWallClock(now);
   return getDb().prepare(`
     SELECT * FROM tasks
     WHERE status = 'backlog'

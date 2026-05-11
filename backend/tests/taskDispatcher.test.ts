@@ -64,6 +64,8 @@ function getStatus(id: string): string | undefined {
 }
 
 describe('taskDispatcher', () => {
+  const originalTz = process.env.FLOWY_SCHEDULE_TZ;
+
   beforeEach(async () => {
     await setupTempHome();
     insertRunner('r1');
@@ -74,6 +76,8 @@ describe('taskDispatcher', () => {
     vi.resetModules();
     vi.doUnmock('os');
     fs.rmSync(homeDir, { recursive: true, force: true });
+    if (originalTz === undefined) delete process.env.FLOWY_SCHEDULE_TZ;
+    else process.env.FLOWY_SCHEDULE_TZ = originalTz;
   });
 
   it('promotes a backlog task whose scheduled time has just arrived', () => {
@@ -205,6 +209,48 @@ describe('taskDispatcher', () => {
     expect(getStatus('todo1')).toBe('todo');
     expect(getStatus('inprog1')).toBe('in_progress');
     expect(getStatus('done1')).toBe('done');
+  });
+
+  it('promotes a Singapore-scheduled task when FLOWY_SCHEDULE_TZ is set even though the server runs in UTC', async () => {
+    // Re-import the dispatcher with FLOWY_SCHEDULE_TZ set so it picks up the
+    // env. The dispatcher reads the env each call, but tests run after the
+    // first module load, so set before reloading to keep the production
+    // behaviour realistic.
+    process.env.FLOWY_SCHEDULE_TZ = 'Asia/Singapore';
+
+    insertTask({
+      id: 'sg1',
+      runnerId: 'r1',
+      aiProvider: 'claude-code',
+      scheduledDate: '2026-05-11',
+      scheduledTime: '11:10',
+    });
+
+    // 03:10 UTC on 2026-05-11 == 11:10 Singapore time. Before the fix this
+    // would have left the task in backlog until 11:10 UTC (19:10 SGT).
+    const utcInstant = new Date('2026-05-11T03:10:00Z');
+    const result = dispatcher.dispatchDueTasks(utcInstant);
+
+    expect(result.promoted).toEqual(['sg1']);
+    expect(getStatus('sg1')).toBe('todo');
+  });
+
+  it('does not promote a Singapore-scheduled task before its SGT wall-clock arrives', () => {
+    process.env.FLOWY_SCHEDULE_TZ = 'Asia/Singapore';
+
+    insertTask({
+      id: 'sg2',
+      runnerId: 'r1',
+      aiProvider: 'claude-code',
+      scheduledDate: '2026-05-11',
+      scheduledTime: '11:10',
+    });
+
+    // 03:09 UTC == 11:09 SGT — one minute before the scheduled time.
+    const result = dispatcher.dispatchDueTasks(new Date('2026-05-11T03:09:00Z'));
+
+    expect(result.promoted).toEqual([]);
+    expect(getStatus('sg2')).toBe('backlog');
   });
 
   it('promotes multiple due tasks ordered by scheduled date/time', () => {
