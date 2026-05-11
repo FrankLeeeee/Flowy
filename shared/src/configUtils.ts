@@ -20,3 +20,45 @@ export function parseRootConfig(raw: string | null | undefined): Record<string, 
     return {};
   }
 }
+
+/**
+ * Validate an arbitrary list of workspace inputs into trimmed `{ name, path }`
+ * objects, de-duplicated by path (first occurrence wins).
+ *
+ * Tolerates the legacy shape where entries were plain path strings: those are
+ * lifted into `{ name: path, path }` so the UI has something to display until
+ * the user renames them. Entries without a usable path are dropped.
+ */
+export function normalizeWorkspaceList(input: unknown): Array<{ name: string; path: string }> {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: Array<{ name: string; path: string }> = [];
+  for (const entry of input) {
+    let path: string | undefined;
+    let name: string | undefined;
+    if (typeof entry === 'string') {
+      path = getString(entry);
+      name = path;
+    } else {
+      const record = asRecord(entry);
+      if (record) {
+        path = getString(record.path);
+        name = getString(record.name);
+      }
+    }
+    if (!path || seen.has(path)) continue;
+    seen.add(path);
+    out.push({ name: name ?? path, path });
+  }
+  return out;
+}
+
+/** Parse the persisted `lists.workspaces` JSON column into `{ name, path }` objects. */
+export function parseWorkspaces(raw: string | null | undefined): Array<{ name: string; path: string }> {
+  if (!raw) return [];
+  try {
+    return normalizeWorkspaceList(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}

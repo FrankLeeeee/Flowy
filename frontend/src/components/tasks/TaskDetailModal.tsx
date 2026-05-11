@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule, List } from '../../types';
+import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule, List, Workspace } from '../../types';
+import { parseWorkspaces } from 'flowy-shared';
 import { fetchTaskLogs, updateTask, fetchLabels, runTask, assignTask } from '../../api/client';
 import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/components/RecurrenceEditor';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -64,7 +65,7 @@ export default function TaskDetailModal({
 }) {
   const runner = runners.find((r) => r.id === task.runner_id);
   const taskList = lists?.find((l) => l.id === task.list_id);
-  const listWorkspaces: string[] = taskList ? (() => { try { return JSON.parse(taskList.workspaces || '[]'); } catch { return []; } })() : [];
+  const listWorkspaces: Workspace[] = taskList ? parseWorkspaces(taskList.workspaces) : [];
 
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [editing, setEditing] = useState(false);

@@ -39,6 +39,11 @@ export interface HarnessConfig {
   gemini?: GeminiHarnessConfig;
 }
 
+export interface Workspace {
+  name: string;
+  path: string;
+}
+
 export interface List {
   id: string;
   name: string;

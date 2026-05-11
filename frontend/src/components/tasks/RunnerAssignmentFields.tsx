@@ -7,6 +7,7 @@ import {
   ClaudeCodeHarnessConfig,
   CursorAgentHarnessConfig,
   GeminiHarnessConfig,
+  Workspace,
 } from '../../types';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,10 +31,11 @@ function WorkspaceField({
   value: string;
   onChange: (v: string) => void;
   runnerId?: string;
-  listWorkspaces?: string[];
+  listWorkspaces?: Workspace[];
 }) {
   const hasRegistered = listWorkspaces && listWorkspaces.length > 0;
-  const isCustom = !hasRegistered || (value !== '' && !listWorkspaces.includes(value));
+  const matchedRegistered = hasRegistered ? listWorkspaces.find((w) => w.path === value) : undefined;
+  const isCustom = !hasRegistered || (value !== '' && !matchedRegistered);
   const [showBrowse, setShowBrowse] = useState(isCustom && value !== '');
 
   if (!hasRegistered) {
@@ -46,6 +48,19 @@ function WorkspaceField({
       />
     );
   }
+
+  const renderTriggerLabel = () => {
+    if (showBrowse) return <span className="text-muted-foreground">Browse custom path...</span>;
+    if (!matchedRegistered) return <span className="text-muted-foreground">No workspace</span>;
+    return (
+      <span className="flex items-baseline gap-2 min-w-0">
+        <span className="truncate">{matchedRegistered.name}</span>
+        {matchedRegistered.name !== matchedRegistered.path && (
+          <span className="truncate font-mono text-[10px] text-muted-foreground/70">{matchedRegistered.path}</span>
+        )}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-2">
@@ -65,15 +80,20 @@ function WorkspaceField({
         }}
       >
         <SelectTrigger className={SELECT_TRIGGER_CLASSNAME}>
-          <SelectValue placeholder="Select workspace..." />
+          <SelectValue placeholder="Select workspace...">{renderTriggerLabel()}</SelectValue>
         </SelectTrigger>
         <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
           <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">
             No workspace
           </SelectItem>
           {listWorkspaces.map((ws) => (
-            <SelectItem key={ws} value={ws} className="rounded-lg py-2 text-[11px] font-mono">
-              {ws}
+            <SelectItem key={ws.path} value={ws.path} className="rounded-lg py-1.5 text-[11px]">
+              <span className="flex flex-col leading-tight">
+                <span className="text-[11px] font-medium text-foreground">{ws.name}</span>
+                {ws.name !== ws.path && (
+                  <span className="text-[10px] font-mono text-muted-foreground/70">{ws.path}</span>
+                )}
+              </span>
             </SelectItem>
           ))}
           <SelectItem value={CUSTOM_BROWSE} className="rounded-lg py-2 text-[11px] text-muted-foreground">
@@ -108,7 +128,7 @@ export default function RunnerAssignmentFields({
   runnerId: string;
   aiProvider: AiProvider | '';
   harnessConfig: HarnessConfig;
-  listWorkspaces?: string[];
+  listWorkspaces?: Workspace[];
   onRunnerIdChange: (id: string) => void;
   onAiProviderChange: (provider: AiProvider | '') => void;
   onHarnessConfigChange: (config: HarnessConfig) => void;
