@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Task, List, Runner, Label as LabelType, TaskStatus } from '../types';
+import { Task, List, Runner, Label as LabelType, TaskStatus, Workspace } from '../types';
+import { parseWorkspaces } from 'flowy-shared';
 import {
   fetchTasks, fetchRunners, fetchLabels, createTask, deleteTask, getTask, updateTask,
   fetchLists, updateList, deleteList,
@@ -59,8 +60,9 @@ export default function ListDetail() {
   const [editIcon, setEditIcon] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [editWorkspaces, setEditWorkspaces] = useState<string[]>([]);
-  const [newWorkspace, setNewWorkspace] = useState('');
+  const [editWorkspaces, setEditWorkspaces] = useState<Workspace[]>([]);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [newWorkspacePath, setNewWorkspacePath] = useState('');
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -107,8 +109,9 @@ export default function ListDetail() {
     setEditName(list.name);
     setEditIcon(list.icon ?? null);
     setEditDescription(list.description ?? '');
-    try { setEditWorkspaces(JSON.parse(list.workspaces || '[]')); } catch { setEditWorkspaces([]); }
-    setNewWorkspace('');
+    setEditWorkspaces(parseWorkspaces(list.workspaces));
+    setNewWorkspaceName('');
+    setNewWorkspacePath('');
     setShowEditList(true);
   };
   const handleEditList = async (e: React.FormEvent) => {
@@ -130,6 +133,14 @@ export default function ListDetail() {
     if (!list) return;
     try { await deleteList(list.id); setShowDeleteConfirm(false); navigate('/inbox'); }
     catch (e) { setError(e instanceof Error ? e.message : 'Failed to delete list'); setShowDeleteConfirm(false); }
+  };
+
+  const pushPendingWorkspace = () => {
+    const path = newWorkspacePath.trim();
+    if (!path) return;
+    setEditWorkspaces((prev) => [...prev, { name: newWorkspaceName.trim() || path, path }]);
+    setNewWorkspaceName('');
+    setNewWorkspacePath('');
   };
 
   // Apply date filter using the mandatory task date.
@@ -275,13 +286,24 @@ export default function ListDetail() {
 
                 <AppDialogSection>
                   <Label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Workspaces</Label>
-                  <p className="mb-3 text-[11px] text-muted-foreground/70">Register workspace paths so runners can pick from them when assigning tasks.</p>
+                  <p className="mb-3 text-[11px] text-muted-foreground/70">Give each workspace a name and path so runners can pick them by name when assigning tasks.</p>
                   {editWorkspaces.length > 0 && (
                     <div className="mb-3 flex flex-col gap-1.5">
                       {editWorkspaces.map((ws, i) => (
-                        <div key={i} className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/50 px-3 py-1.5">
+                        <div key={i} className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/50 px-2 py-1.5">
                           <FolderOpen className="h-3 w-3 shrink-0 text-muted-foreground/50" />
-                          <span className="flex-1 truncate text-[12px] font-mono text-foreground/90">{ws}</span>
+                          <Input
+                            value={ws.name}
+                            onChange={(e) => setEditWorkspaces((prev) => prev.map((w, idx) => idx === i ? { ...w, name: e.target.value } : w))}
+                            placeholder="Workspace name"
+                            className="h-7 w-[130px] shrink-0 rounded border-border/40 bg-card text-[12px] shadow-none"
+                          />
+                          <Input
+                            value={ws.path}
+                            onChange={(e) => setEditWorkspaces((prev) => prev.map((w, idx) => idx === i ? { ...w, path: e.target.value } : w))}
+                            placeholder="/path/to/workspace"
+                            className="h-7 flex-1 rounded border-border/40 bg-card text-[12px] font-mono shadow-none"
+                          />
                           <button
                             type="button"
                             onClick={() => setEditWorkspaces((prev) => prev.filter((_, idx) => idx !== i))}
@@ -295,13 +317,18 @@ export default function ListDetail() {
                   )}
                   <div className="flex items-center gap-2">
                     <Input
-                      value={newWorkspace}
-                      onChange={(e) => setNewWorkspace(e.target.value)}
+                      value={newWorkspaceName}
+                      onChange={(e) => setNewWorkspaceName(e.target.value)}
+                      placeholder="Name"
+                      className="h-8 w-[130px] shrink-0 rounded-lg border-border/60 bg-card text-[12px] shadow-soft"
+                    />
+                    <Input
+                      value={newWorkspacePath}
+                      onChange={(e) => setNewWorkspacePath(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newWorkspace.trim()) {
+                        if (e.key === 'Enter' && newWorkspacePath.trim()) {
                           e.preventDefault();
-                          setEditWorkspaces((prev) => [...prev, newWorkspace.trim()]);
-                          setNewWorkspace('');
+                          pushPendingWorkspace();
                         }
                       }}
                       placeholder="/path/to/workspace"
@@ -311,8 +338,8 @@ export default function ListDetail() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      disabled={!newWorkspace.trim()}
-                      onClick={() => { setEditWorkspaces((prev) => [...prev, newWorkspace.trim()]); setNewWorkspace(''); }}
+                      disabled={!newWorkspacePath.trim()}
+                      onClick={pushPendingWorkspace}
                       className="h-8 rounded-lg text-[11px]"
                     >
                       <Plus className="h-3 w-3 mr-1" />

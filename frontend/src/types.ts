@@ -9,6 +9,7 @@ export type {
   GeminiHarnessConfig,
   HarnessConfig,
   List,
+  Workspace,
   Template,
   RecurrenceFrequency,
   RecurrenceRule,

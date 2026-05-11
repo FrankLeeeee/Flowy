@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
+import { normalizeWorkspaceList } from 'flowy-shared';
 import { getDb } from '../db';
 import { List } from '../types';
 import { formatTaskKey, normalizeListName } from '../listIdentity';
@@ -13,6 +14,19 @@ function normalizeIcon(icon: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/** Serialize raw workspace input from the API into the JSON column shape. */
+export function normalizeWorkspaces(input: unknown): string {
+  return JSON.stringify(normalizeWorkspaceList(input));
+}
+
+type WorkspaceInput = Array<string | { name?: string; path?: string }>;
+type ListWriteBody = {
+  name?: string;
+  description?: string;
+  icon?: string | null;
+  workspaces?: WorkspaceInput;
+};
+
 // GET /api/lists
 router.get('/', (_req: Request, res: Response) => {
   const rows = getDb().prepare('SELECT * FROM lists ORDER BY position ASC').all() as List[];
@@ -21,7 +35,7 @@ router.get('/', (_req: Request, res: Response) => {
 
 // POST /api/lists
 router.post('/', (req: Request, res: Response) => {
-  const { name, description, icon, workspaces } = req.body as { name?: string; description?: string; icon?: string | null; workspaces?: string[] };
+  const { name, description, icon, workspaces } = req.body as ListWriteBody;
   const normalizedName = name ? normalizeListName(name) : '';
   if (!normalizedName) { res.status(400).json({ error: 'name is required' }); return; }
 
@@ -33,7 +47,7 @@ router.post('/', (req: Request, res: Response) => {
   const id = uuid();
   const maxPos = (getDb().prepare('SELECT COALESCE(MAX(position), 0) AS m FROM lists').get() as { m: number }).m;
   const now = utcNow();
-  const workspacesJson = JSON.stringify(Array.isArray(workspaces) ? workspaces : []);
+  const workspacesJson = normalizeWorkspaces(workspaces);
   getDb().prepare(`
     INSERT INTO lists (id, name, icon, description, workspaces, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, normalizedName, normalizeIcon(icon), description ?? '', workspacesJson, maxPos + 1, now, now);
@@ -71,7 +85,7 @@ router.get('/:id', (req: Request, res: Response) => {
 
 // PUT /api/lists/:id
 router.put('/:id', (req: Request, res: Response) => {
-  const { name, description, icon, workspaces } = req.body as { name?: string; description?: string; icon?: string | null; workspaces?: string[] };
+  const { name, description, icon, workspaces } = req.body as ListWriteBody;
   const db = getDb();
   const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.id) as List | undefined;
   if (!list) { res.status(404).json({ error: 'List not found' }); return; }
@@ -86,7 +100,7 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const nextIcon = icon === undefined ? list.icon : normalizeIcon(icon);
   const nextDescription = description ?? list.description;
-  const nextWorkspaces = workspaces !== undefined ? JSON.stringify(workspaces) : list.workspaces;
+  const nextWorkspaces = workspaces !== undefined ? normalizeWorkspaces(workspaces) : list.workspaces;
 
   const listTasks = db.prepare(`
     SELECT id, task_number FROM tasks WHERE list_id = ? ORDER BY task_number ASC

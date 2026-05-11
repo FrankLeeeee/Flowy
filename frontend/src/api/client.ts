@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage, RecurrenceRule, Template } from '../types';
+import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage, RecurrenceRule, Template, Workspace } from '../types';
 import { getCached, setCached } from '../lib/offlineStore';
 import { isOnline, queueMutation } from '../lib/syncQueue';
 import { patchSwCache, patchSwCacheByPathname, removeById, tempId, upsertById } from '../lib/optimisticCache';
@@ -85,7 +85,7 @@ export async function fetchLists(): Promise<List[]> {
   return cachedGet<List[]>('lists', '/lists');
 }
 
-export async function createList(body: { name: string; description?: string; icon?: string | null; workspaces?: string[] }): Promise<List> {
+export async function createList(body: { name: string; description?: string; icon?: string | null; workspaces?: Workspace[] }): Promise<List> {
   if (isOnline()) {
     const { data } = await api.post<List>('/lists', body);
     return data;
@@ -108,7 +108,7 @@ export async function createList(body: { name: string; description?: string; ico
   return optimistic;
 }
 
-export async function updateList(id: string, body: { name?: string; description?: string; icon?: string | null; workspaces?: string[] }): Promise<List> {
+export async function updateList(id: string, body: { name?: string; description?: string; icon?: string | null; workspaces?: Workspace[] }): Promise<List> {
   if (isOnline()) {
     const { data } = await api.put<List>(`/lists/${id}`, body);
     return data;

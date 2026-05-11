@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { asRecord, getString, parseRootConfig } from '../src/configUtils';
+import { asRecord, getString, parseRootConfig, parseWorkspaces } from '../src/configUtils';
 
 describe('shared/configUtils', () => {
   describe('asRecord', () => {
@@ -77,6 +77,73 @@ describe('shared/configUtils', () => {
     it('returns {} for JSON primitives', () => {
       expect(parseRootConfig('"string"')).toEqual({});
       expect(parseRootConfig('42')).toEqual({});
+    });
+  });
+
+  describe('parseWorkspaces', () => {
+    it('returns [] for null, undefined, or empty input', () => {
+      expect(parseWorkspaces(null)).toEqual([]);
+      expect(parseWorkspaces(undefined)).toEqual([]);
+      expect(parseWorkspaces('')).toEqual([]);
+    });
+
+    it('returns [] for invalid JSON', () => {
+      expect(parseWorkspaces('not json')).toEqual([]);
+    });
+
+    it('returns [] for non-array JSON', () => {
+      expect(parseWorkspaces('{"foo": "bar"}')).toEqual([]);
+      expect(parseWorkspaces('"string"')).toEqual([]);
+    });
+
+    it('parses an array of name/path objects', () => {
+      const raw = JSON.stringify([
+        { name: 'Frontend', path: '/home/me/frontend' },
+        { name: 'Backend', path: '/home/me/backend' },
+      ]);
+      expect(parseWorkspaces(raw)).toEqual([
+        { name: 'Frontend', path: '/home/me/frontend' },
+        { name: 'Backend', path: '/home/me/backend' },
+      ]);
+    });
+
+    it('lifts legacy string entries into { name: path, path } objects', () => {
+      const raw = JSON.stringify(['/home/me/legacy', '/home/me/other']);
+      expect(parseWorkspaces(raw)).toEqual([
+        { name: '/home/me/legacy', path: '/home/me/legacy' },
+        { name: '/home/me/other', path: '/home/me/other' },
+      ]);
+    });
+
+    it('falls back to path when name is missing or blank', () => {
+      const raw = JSON.stringify([
+        { path: '/no/name' },
+        { name: '   ', path: '/blank/name' },
+      ]);
+      expect(parseWorkspaces(raw)).toEqual([
+        { name: '/no/name', path: '/no/name' },
+        { name: '/blank/name', path: '/blank/name' },
+      ]);
+    });
+
+    it('drops entries without a usable path', () => {
+      const raw = JSON.stringify([
+        '',
+        '   ',
+        { name: 'No Path' },
+        { name: 'Empty', path: '   ' },
+        { name: 'Good', path: '/ok' },
+        null,
+        42,
+      ]);
+      expect(parseWorkspaces(raw)).toEqual([
+        { name: 'Good', path: '/ok' },
+      ]);
+    });
+
+    it('trims surrounding whitespace from path and name', () => {
+      const raw = JSON.stringify([{ name: '  Web  ', path: '  /a/b  ' }]);
+      expect(parseWorkspaces(raw)).toEqual([{ name: 'Web', path: '/a/b' }]);
     });
   });
 });
