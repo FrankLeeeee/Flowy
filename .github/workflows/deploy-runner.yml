@@ -20,6 +20,8 @@ on:
       - main
     paths:
       - "runner/**"
+      - "shared/**"
+      - "package.json"
 
 concurrency:
   group: flowy-runner-deploy
