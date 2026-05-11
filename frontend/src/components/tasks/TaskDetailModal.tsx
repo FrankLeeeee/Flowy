@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule, List, Workspace } from '../../types';
 import { parseWorkspaces } from 'flowy-shared';
 import { fetchTaskLogs, updateTask, fetchLabels, runTask, assignTask } from '../../api/client';
@@ -6,7 +6,7 @@ import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/com
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MarkdownEditor, MARKDOWN_PROSE_CLASSNAME } from '@/components/ui/markdown-editor';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -15,13 +15,13 @@ import LabelPicker from '@/components/LabelPicker';
 import RunnerStatusBadge from '../runners/RunnerStatusBadge';
 import RunnerAssignmentFields from './RunnerAssignmentFields';
 import { cn, formatLocalDateTime } from '@/lib/utils';
-import { formatTaskSchedule, normalizeScheduledTime } from '@/lib/taskSchedule';
+import { normalizeScheduledTime } from '@/lib/taskSchedule';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { CalendarDays, Clock3, Pencil, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog, Repeat } from 'lucide-react';
+import { CalendarDays, Clock3, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog, Code2, Eye } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -68,7 +68,7 @@ export default function TaskDetailModal({
   const listWorkspaces: Workspace[] = taskList ? parseWorkspaces(taskList.workspaces) : [];
 
   const [logs, setLogs] = useState<TaskLog[]>([]);
-  const [editing, setEditing] = useState(false);
+  const [rawMarkdown, setRawMarkdown] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
@@ -88,6 +88,28 @@ export default function TaskDetailModal({
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [running, setRunning] = useState(false);
 
+  // Auto-save: stable ref so saveField doesn't depend on onUpdate identity
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  const saveField = useCallback(async (updates: Parameters<typeof updateTask>[1]) => {
+    try {
+      const updated = await updateTask(task.id, updates);
+      onUpdateRef.current(updated);
+    } catch { /* ignore */ }
+  }, [task.id]);
+
+  // Debounced auto-save for description
+  const initialDescRef = useRef(task.description);
+  useEffect(() => {
+    if (description === initialDescRef.current) return;
+    const timeout = setTimeout(() => {
+      saveField({ description });
+      initialDescRef.current = description;
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [description, saveField]);
+
   useEffect(() => {
     fetchLabels().then(setAllLabels).catch(() => {});
   }, []);
@@ -104,36 +126,11 @@ export default function TaskDetailModal({
     return () => clearInterval(iv);
   }, [task.status, loadLogs]);
 
-  const enterEditMode = () => {
-    setTitle(task.title);
-    setDescription(task.description);
-    setStatus(task.status);
-    setPriority(task.priority);
-    setLabelsText(JSON.parse(task.labels || '[]').join(', '));
-    setScheduledDate(task.scheduled_date);
-    setScheduledTime(normalizeScheduledTime(task.scheduled_time));
-    setRecurrenceRule(task.recurrence_rule ? JSON.parse(task.recurrence_rule) : null);
-    setEditing(true);
-  };
-
   const enterAssignMode = () => {
     setAssignRunnerId(task.runner_id ?? '');
     setAssignAiProvider((task.ai_provider as AiProvider | null) ?? '');
     setAssignHarnessConfig(parseHarnessConfig(task.harness_config));
     setAssigning(true);
-  };
-
-  const handleSave = async () => {
-    if (!scheduledDate) return;
-    const nextLabels = labelsText.split(',').map((label: string) => label.trim()).filter(Boolean);
-    const updated = await updateTask(task.id, {
-      title, description, status, priority, labels: nextLabels,
-      scheduledDate,
-      scheduledTime: scheduledTime || null,
-      recurrenceRule,
-    });
-    onUpdate(updated);
-    setEditing(false);
   };
 
   const handleSaveAssignment = async () => {
@@ -173,24 +170,21 @@ export default function TaskDetailModal({
     }
   };
 
-  const labels: string[] = editing
-    ? labelsText.split(',').map((label: string) => label.trim()).filter(Boolean)
-    : JSON.parse(task.labels || '[]');
-  const statusConfig = STATUS_CONFIG[task.status];
+  const labels: string[] = labelsText.split(',').map((label: string) => label.trim()).filter(Boolean);
+  const statusConfig = STATUS_CONFIG[status];
   const output = useMemo(() => task.output?.trim() ?? '', [task.output]);
   const hasOutput = output.length > 0;
-  const canViewFullscreenOutput = hasOutput && TERMINAL_STATUSES.includes(task.status);
+  const canViewFullscreenOutput = hasOutput && TERMINAL_STATUSES.includes(status);
   const harnessConfigBadges = useMemo(() => getHarnessConfigBadges(task.ai_provider, parseHarnessConfig(task.harness_config)), [task.ai_provider, task.harness_config]);
-  const statusStyles = getTaskStatusStyles(task.status);
-  const editingStatusStyles = getTaskStatusStyles(status);
-  const priorityStyles = getTaskPriorityStyles(task.priority);
-  const editingPriorityStyles = getTaskPriorityStyles(priority);
+  const statusStyles = getTaskStatusStyles(status);
+  const priorityStyles = getTaskPriorityStyles(priority);
 
-  const canRun = !!task.runner_id && !!task.ai_provider && task.status !== 'in_progress' && task.status !== 'todo';
-  const isRerun = TERMINAL_STATUSES.includes(task.status);
+  const canRun = !!task.runner_id && !!task.ai_provider && status !== 'in_progress' && status !== 'todo';
+  const isRerun = TERMINAL_STATUSES.includes(status);
 
   const syncLabels = (nextLabels: string[]) => {
     setLabelsText(nextLabels.join(', '));
+    saveField({ labels: nextLabels });
   };
 
   const toggleLabel = (label: string) => {
@@ -208,16 +202,16 @@ export default function TaskDetailModal({
         <AppDialogHeader className="shrink-0">
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
           <DialogDescription className="sr-only">View and edit task details</DialogDescription>
-          <AppDialogEyebrow>{editing ? 'Edit task' : assigning ? (task.runner_id ? 'Re-assign runner' : 'Assign runner') : 'Task details'}</AppDialogEyebrow>
+          <AppDialogEyebrow>{assigning ? (task.runner_id ? 'Re-assign runner' : 'Assign runner') : 'Task details'}</AppDialogEyebrow>
           <div className="flex items-center gap-2.5 flex-wrap text-[11px] font-medium">
             <span className="text-[11px] font-mono tracking-wide text-muted-foreground/75">{task.task_key}</span>
             <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium', statusStyles.icon)}>
               {statusConfig.icon}
-              {STATUS_OPTIONS.find((s) => s.value === task.status)?.label}
+              {STATUS_OPTIONS.find((s) => s.value === status)?.label}
             </span>
-            {task.priority !== 'none' && (
+            {priority !== 'none' && (
               <span className={cn('text-[11px] font-medium capitalize', priorityStyles.text)}>
-                {task.priority}
+                {priority}
               </span>
             )}
           </div>
@@ -226,33 +220,81 @@ export default function TaskDetailModal({
         <AppDialogBody className="flex min-h-0 flex-1 flex-col space-y-0 overflow-hidden px-0 py-0 sm:px-0 sm:py-0">
           <ScrollArea className="min-h-0 min-w-0 flex-1">
             <div className="flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6">
-          {editing ? (
+          {assigning ? (
             <div className="flex flex-col gap-5">
-              {/* Title */}
-              <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+              <div>
+                <h2 className="text-[15px] font-semibold text-foreground leading-snug">{task.title}</h2>
+                <p className="mt-1 text-[12px] text-muted-foreground/85">
+                  {task.runner_id
+                    ? 'Choose a different runner or update the harness configuration. Saving moves the task to todo when ready to run.'
+                    : 'Pick a runner and AI provider so this task can be picked up when due.'}
+                </p>
+              </div>
+              <RunnerAssignmentFields
+                runners={runners}
+                runnerId={assignRunnerId}
+                aiProvider={assignAiProvider}
+                harnessConfig={assignHarnessConfig}
+                listWorkspaces={listWorkspaces.length > 0 ? listWorkspaces : undefined}
+                onRunnerIdChange={setAssignRunnerId}
+                onAiProviderChange={setAssignAiProvider}
+                onHarnessConfigChange={setAssignHarnessConfig}
+              />
+            </div>
+          ) : (
+            <>
+              {/* Title — always editable */}
+              <div>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  onBlur={() => { if (title.trim() && title !== task.title) saveField({ title }); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                   placeholder="Task title"
-                  className="h-auto border-0 bg-transparent px-0 py-0 text-[18px] font-semibold tracking-[-0.02em] text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="h-auto border-0 bg-transparent px-0 py-0 text-[15px] font-semibold leading-snug text-foreground shadow-none placeholder:text-muted-foreground/45 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
 
-              {/* Description */}
-              <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
-                <MarkdownEditor
-                  value={description}
-                  onChange={setDescription}
-                  rows={5}
-                  placeholder="Add description..."
-                  textareaClassName="min-h-[108px]"
-                  ariaLabel="Task description"
-                />
+              {/* Description — always editable, with raw markdown toggle */}
+              <div className="rounded-xl border border-border/40 bg-foreground/[0.01] px-3 py-2.5">
+                {rawMarkdown ? (
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Add description..."
+                    aria-label="Task description (raw markdown)"
+                    rows={6}
+                    className="w-full resize-y rounded-md border-0 bg-transparent p-0 font-mono text-[12px] leading-relaxed text-foreground/90 placeholder:text-muted-foreground/45 focus:outline-none"
+                  />
+                ) : (
+                  <MarkdownEditor
+                    value={description}
+                    onChange={setDescription}
+                    rows={3}
+                    placeholder="Add description..."
+                    ariaLabel="Task description"
+                  />
+                )}
+                <div className="mt-1.5 flex items-center justify-start">
+                  <button
+                    type="button"
+                    onClick={() => setRawMarkdown((v) => !v)}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors',
+                      rawMarkdown
+                        ? 'bg-foreground/[0.08] text-foreground'
+                        : 'text-muted-foreground/60 hover:text-muted-foreground',
+                    )}
+                  >
+                    {rawMarkdown ? <Eye className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
+                    {rawMarkdown ? 'Rich text' : 'Markdown'}
+                  </button>
+                </div>
               </div>
 
-              {/* Labels chips with remove */}
+              {/* Labels with remove */}
               {labels.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {labels.map((label) => {
                     const colorStyles = getLabelColorStyles(label, allLabels);
                     return (
@@ -271,11 +313,12 @@ export default function TaskDetailModal({
                 </div>
               )}
 
+              {/* Inline metadata controls */}
               <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
+                  <Select value={status} onValueChange={(value) => { const s = value as TaskStatus; setStatus(s); saveField({ status: s }); }}>
                     <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
-                      <span className={cn('h-2 w-2 rounded-full', editingStatusStyles.dot)} />
+                      <span className={cn('h-2 w-2 rounded-full', statusStyles.dot)} />
                       <SelectValue>
                         {STATUS_OPTIONS.find((item) => item.value === status)?.label}
                       </SelectValue>
@@ -292,9 +335,9 @@ export default function TaskDetailModal({
                     </SelectContent>
                   </Select>
 
-                  <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                  <Select value={priority} onValueChange={(value) => { const p = value as TaskPriority; setPriority(p); saveField({ priority: p }); }}>
                     <SelectTrigger className="h-8 w-auto gap-2 rounded-full border-border/60 bg-foreground/[0.04] px-3 text-[11px] font-medium shadow-none focus:ring-0 focus:ring-offset-0">
-                      <span className={cn('h-2 w-2 rounded-full', editingPriorityStyles.dot)} />
+                      <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
                       <SelectValue>
                         {PRIORITY_OPTIONS.find((item) => item.value === priority)?.label}
                       </SelectValue>
@@ -325,7 +368,7 @@ export default function TaskDetailModal({
                     <Input
                       type="date"
                       value={scheduledDate}
-                      onChange={(e) => setScheduledDate(e.target.value)}
+                      onChange={(e) => { setScheduledDate(e.target.value); if (e.target.value) saveField({ scheduledDate: e.target.value }); }}
                       required
                       className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
@@ -337,95 +380,24 @@ export default function TaskDetailModal({
                       type="time"
                       step={60}
                       value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
+                      onChange={(e) => { setScheduledTime(e.target.value); saveField({ scheduledTime: e.target.value || null }); }}
                       className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
 
                   <RecurrenceTrigger
                     active={!!recurrenceRule}
-                    onEnable={() => { if (!recurrenceRule) setRecurrenceRule(defaultRecurrenceRule()); }}
-                    onDisable={() => setRecurrenceRule(null)}
+                    onEnable={() => { const rule = defaultRecurrenceRule(); setRecurrenceRule(rule); saveField({ recurrenceRule: rule }); }}
+                    onDisable={() => { setRecurrenceRule(null); saveField({ recurrenceRule: null }); }}
                   />
                 </div>
 
                 {recurrenceRule && (
-                  <RecurrencePanel value={recurrenceRule} onChange={(rule) => setRecurrenceRule(rule)} />
-                )}
-              </div>
-            </div>
-          ) : assigning ? (
-            <div className="flex flex-col gap-5">
-              <div>
-                <h2 className="text-[15px] font-semibold text-foreground leading-snug">{task.title}</h2>
-                <p className="mt-1 text-[12px] text-muted-foreground/85">
-                  {task.runner_id
-                    ? 'Choose a different runner or update the harness configuration. Saving moves the task to todo when ready to run.'
-                    : 'Pick a runner and AI provider so this task can be picked up when due.'}
-                </p>
-              </div>
-              <RunnerAssignmentFields
-                runners={runners}
-                runnerId={assignRunnerId}
-                aiProvider={assignAiProvider}
-                harnessConfig={assignHarnessConfig}
-                listWorkspaces={listWorkspaces.length > 0 ? listWorkspaces : undefined}
-                onRunnerIdChange={setAssignRunnerId}
-                onAiProviderChange={setAssignAiProvider}
-                onHarnessConfigChange={setAssignHarnessConfig}
-              />
-            </div>
-          ) : (
-            <>
-              {/* Title & Description */}
-              <div>
-                <h2 className="text-[15px] font-semibold text-foreground leading-snug">{task.title}</h2>
-                {task.description && (
-                  <div className={cn(MARKDOWN_PROSE_CLASSNAME, 'mt-2')}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{task.description}</ReactMarkdown>
-                  </div>
+                  <RecurrencePanel value={recurrenceRule} onChange={(rule) => { setRecurrenceRule(rule); saveField({ recurrenceRule: rule }); }} />
                 )}
               </div>
 
-              {/* Labels */}
-              {labels.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {labels.map((l) => {
-                    const colorStyles = getLabelColorStyles(l, allLabels);
-                    return (
-                      <span key={l} className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1', colorStyles.pill)}>{l}</span>
-                    );
-                  })}
-                </div>
-              )}
-
-              <AppDialogSection className="rounded-lg bg-foreground/[0.02] p-4">
-                <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Scheduled</h3>
-                <div className="flex flex-wrap items-center gap-2 text-[13px] text-foreground">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                  <span>{formatTaskSchedule(task.scheduled_date, task.scheduled_time)}</span>
-                </div>
-                {task.recurrence_rule && (() => {
-                  const rule: RecurrenceRule = JSON.parse(task.recurrence_rule!);
-                  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                  const freqLabel = rule.interval === 1
-                    ? (rule.frequency === 'day' ? 'Daily' : rule.frequency === 'week' ? 'Weekly' : 'Monthly')
-                    : `Every ${rule.interval} ${rule.frequency}s`;
-                  const daysLabel = rule.frequency === 'week' && rule.daysOfWeek?.length
-                    ? ` on ${rule.daysOfWeek.map((d) => dayNames[d]).join(', ')}`
-                    : '';
-                  const timeLabel = rule.time ? ` at ${rule.time}` : '';
-                  const endLabel = rule.endDate ? ` until ${rule.endDate}` : '';
-                  return (
-                    <div className="mt-2 flex items-center gap-2 text-[12px] text-primary/80">
-                      <Repeat className="h-3.5 w-3.5" />
-                      <span>{freqLabel}{daysLabel}{timeLabel}{endLabel}</span>
-                    </div>
-                  );
-                })()}
-              </AppDialogSection>
-
-              {/* Runner Info */}
+              {/* Runner Assignment */}
               <AppDialogSection className="rounded-lg bg-foreground/[0.02] p-4">
                 <h3 className="mb-2 text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground/85">Runner Assignment</h3>
                 {runner ? (
@@ -535,26 +507,7 @@ export default function TaskDetailModal({
         </AppDialogBody>
 
         <AppDialogFooter className="bg-background shrink-0">
-          {editing ? (
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setEditing(false)}
-                className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                className="h-8 rounded-full px-4 text-[11px]"
-              >
-                Save changes
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ) : assigning ? (
+          {assigning ? (
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               {task.runner_id && (
                 <Button
@@ -629,15 +582,6 @@ export default function TaskDetailModal({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={enterEditMode}
-                className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground"
-              >
-                <Pencil className="mr-1.5 h-3 w-3" />
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
                 onClick={onDelete}
                 className="h-8 rounded-full px-3.5 text-[11px] text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
               >
@@ -659,7 +603,7 @@ export default function TaskDetailModal({
               <span className="font-mono tracking-wide">{task.task_key}</span>
               <span className={cn('inline-flex items-center gap-1', statusStyles.icon)}>
                 {statusConfig.icon}
-                {STATUS_OPTIONS.find((item) => item.value === task.status)?.label}
+                {STATUS_OPTIONS.find((item) => item.value === status)?.label}
               </span>
             </div>
             <DialogTitle className="mt-2 text-[15px] font-semibold tracking-[-0.02em] text-foreground">
