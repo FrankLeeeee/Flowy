@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Task, TaskLog, Runner, TaskStatus, TaskPriority, Label, AiProvider, HarnessConfig, RecurrenceRule, List, Workspace } from '../../types';
 import { parseWorkspaces } from 'flowy-shared';
 import { fetchTaskLogs, updateTask, fetchLabels, runTask, assignTask } from '../../api/client';
@@ -177,10 +177,10 @@ export default function TaskDetailModal({
     ? labelsText.split(',').map((label: string) => label.trim()).filter(Boolean)
     : JSON.parse(task.labels || '[]');
   const statusConfig = STATUS_CONFIG[task.status];
-  const output = task.output?.trim() ?? '';
+  const output = useMemo(() => task.output?.trim() ?? '', [task.output]);
   const hasOutput = output.length > 0;
   const canViewFullscreenOutput = hasOutput && TERMINAL_STATUSES.includes(task.status);
-  const harnessConfigBadges = getHarnessConfigBadges(task.ai_provider, parseHarnessConfig(task.harness_config));
+  const harnessConfigBadges = useMemo(() => getHarnessConfigBadges(task.ai_provider, parseHarnessConfig(task.harness_config)), [task.ai_provider, task.harness_config]);
   const statusStyles = getTaskStatusStyles(task.status);
   const editingStatusStyles = getTaskStatusStyles(status);
   const priorityStyles = getTaskPriorityStyles(task.priority);

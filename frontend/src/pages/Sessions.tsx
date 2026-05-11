@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -455,7 +455,7 @@ export default function SessionsPage({ mobile = false }: SessionsPageProps) {
   );
 }
 
-function MessageBubble({ message, isBusy, isLast }: { message: SessionMessage; isBusy: boolean; isLast: boolean }) {
+const MessageBubble = memo(function MessageBubble({ message, isBusy, isLast }: { message: SessionMessage; isBusy: boolean; isLast: boolean }) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const hasContent = message.content.trim().length > 0;
@@ -513,7 +513,7 @@ function MessageBubble({ message, isBusy, isLast }: { message: SessionMessage; i
       </div>
     </div>
   );
-}
+});
 
 function CreateSessionDialog({
   open, runners, onClose, onCreated,
