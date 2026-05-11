@@ -66,5 +66,14 @@ jobs:
             echo "Runner session is active"
           else
             echo "ERROR: Runner session not found — process may have crashed"
+            echo "--- Attempting to capture crash output ---"
+            node runner/dist/cli.js --name "$LOCAL_RUNNER_NAME" --url "$FLOWY_URL" --secret "$FLOWY_RUNNER_SECRET" &
+            NODE_PID=$!
+            sleep 5
+            kill $NODE_PID 2>/dev/null || true
             exit 1
           fi
+        env:
+          LOCAL_RUNNER_NAME: ${{ inputs.local_runner_name || secrets.FLOWY_LOCAL_RUNNER_NAME }}
+          FLOWY_URL: ${{ inputs.flowy_url || secrets.FLOWY_URL }}
+          FLOWY_RUNNER_SECRET: ${{ inputs.flowy_runner_secret || secrets.FLOWY_RUNNER_SECRET }}
