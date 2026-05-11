@@ -47,6 +47,7 @@ jobs:
             -p 0.0.0.0:3456:8000 \
             -v "$HOME/.flowy-data:/root/.config/flowy" \
             -e CORS="$FLOWY_CORS" \
+            -e FLOWY_SCHEDULE_TZ=Asia/Singapore \
             flowy:latest
 
       - name: Health check
