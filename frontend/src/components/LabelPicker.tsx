@@ -13,12 +13,14 @@ export default function LabelPicker({
   onToggle,
   onLabelsChange,
   allowCreate = true,
+  compact = false,
 }: {
   selectedLabels: string[];
   allLabels: Label[];
   onToggle: (labelName: string) => void;
   onLabelsChange: () => void;
   allowCreate?: boolean;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -61,19 +63,32 @@ export default function LabelPicker({
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger ref={triggerRef} asChild>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-8 gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft hover:bg-accent"
-        >
-          <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-          Labels
-          {selectedLabels.length > 0 && (
-            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-              {selectedLabels.length}
-            </span>
-          )}
-        </Button>
+        {compact ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-[13px] font-medium text-foreground"
+          >
+            {selectedLabels.length > 0 ? (
+              <span>{selectedLabels.length} label{selectedLabels.length !== 1 ? 's' : ''}</span>
+            ) : (
+              <span className="text-muted-foreground">None</span>
+            )}
+          </button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft hover:bg-accent"
+          >
+            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+            Labels
+            {selectedLabels.length > 0 && (
+              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                {selectedLabels.length}
+              </span>
+            )}
+          </Button>
+        )}
       </Popover.Trigger>
 
       <Popover.Portal
@@ -84,7 +99,7 @@ export default function LabelPicker({
           align="end"
           sideOffset={6}
           collisionPadding={12}
-          avoidCollisions={false}
+          avoidCollisions
           onOpenAutoFocus={(event) => event.preventDefault()}
           className="z-[60] w-48 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border/60 bg-popover p-1 shadow-lg"
         >
