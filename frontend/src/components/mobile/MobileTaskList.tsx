@@ -5,6 +5,8 @@ import { cn, formatElapsedTime } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { CalendarDays, ChevronRight, Clock3 } from 'lucide-react';
+import { useAnimatedList } from '@/hooks/useAnimatedList';
+import AnimatedListItem from '@/components/AnimatedListItem';
 
 function MobileTaskCard({
   task, runner, allLabels, onClick,
@@ -91,8 +93,9 @@ function StatusGroup({
   const [open, setOpen] = useState(defaultOpen);
   const config = STATUS_CONFIG[status];
   const tone = getTaskStatusStyles(status);
+  const animatedTasks = useAnimatedList(tasks);
 
-  if (tasks.length === 0) return null;
+  if (animatedTasks.length === 0) return null;
 
   return (
     <div>
@@ -109,19 +112,27 @@ function StatusGroup({
         </span>
       </button>
 
-      {open && (
-        <div className="flex flex-col">
-          {tasks.map((task) => (
-            <MobileTaskCard
-              key={task.id}
-              task={task}
-              runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
-              allLabels={allLabels}
-              onClick={() => onTaskClick(task)}
-            />
-          ))}
+      <div
+        className={cn(
+          'grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out-quart)]',
+          open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col">
+            {animatedTasks.map(({ item: task, leaving }) => (
+              <AnimatedListItem key={task.id} leaving={leaving}>
+                <MobileTaskCard
+                  task={task}
+                  runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
+                  allLabels={allLabels}
+                  onClick={() => onTaskClick(task)}
+                />
+              </AnimatedListItem>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

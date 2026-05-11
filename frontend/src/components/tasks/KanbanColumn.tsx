@@ -4,6 +4,8 @@ import { STATUS_CONFIG } from '@/lib/taskConstants';
 import TaskCard from './TaskCard';
 import { cn } from '@/lib/utils';
 import { getTaskStatusStyles } from '@/lib/semanticColors';
+import { useAnimatedList } from '@/hooks/useAnimatedList';
+import AnimatedListItem from '@/components/AnimatedListItem';
 
 export default function KanbanColumn({
   status, tasks, runners, allLabels = [], onTaskClick, onDrop,
@@ -19,6 +21,7 @@ export default function KanbanColumn({
   const runnerMap = new Map(runners.map((r) => [r.id, r]));
   const config = STATUS_CONFIG[status];
   const tone = getTaskStatusStyles(status);
+  const animatedTasks = useAnimatedList(tasks);
 
   const handleDragOver = (e: React.DragEvent) => {
     if (!e.dataTransfer.types.includes('application/task-id')) return;
@@ -60,18 +63,20 @@ export default function KanbanColumn({
 
       {/* Cards */}
       <div className={cn(
-        'flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden rounded-b-[20px] px-2 pb-2 transition-colors duration-150',
+        'flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-b-[20px] px-2 pb-2 transition-colors duration-150',
         dragOver && 'border-t border-dashed border-primary/30 bg-primary/[0.03]',
       )}>
-        {tasks.map((task, index) => (
-          <div key={task.id} className="motion-card" style={{ '--motion-delay': `${index * 35 + 120}ms` } as React.CSSProperties}>
-            <TaskCard
-              task={task}
-              runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
-              allLabels={allLabels}
-              onClick={() => onTaskClick(task)}
-            />
-          </div>
+        {animatedTasks.map(({ item: task, leaving }, index) => (
+          <AnimatedListItem key={task.id} leaving={leaving} gapClassName="pb-1.5 last:pb-0">
+            <div className="motion-card" style={{ '--motion-delay': `${index * 35 + 120}ms` } as React.CSSProperties}>
+              <TaskCard
+                task={task}
+                runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
+                allLabels={allLabels}
+                onClick={() => onTaskClick(task)}
+              />
+            </div>
+          </AnimatedListItem>
         ))}
       </div>
     </div>

@@ -8,6 +8,8 @@ import { ListTodo, ChevronDown, Check, Circle, Repeat } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
+import { useAnimatedList } from '@/hooks/useAnimatedList';
+import AnimatedListItem from '@/components/AnimatedListItem';
 
 function TodoRow({
   task,
@@ -153,6 +155,8 @@ export default function TodoView() {
 
   const uncompleted = tasks.filter((t) => t.status !== 'done');
   const completed = tasks.filter((t) => t.status === 'done');
+  const uncompletedAnimated = useAnimatedList(uncompleted);
+  const completedAnimated = useAnimatedList(completed);
 
   const inProgressCount = uncompleted.filter((t) => t.status === 'in_progress').length;
   const failedCount = uncompleted.filter((t) => t.status === 'failed').length;
@@ -219,7 +223,7 @@ export default function TodoView() {
               {uncompleted.length}
             </span>
           </div>
-          {uncompleted.length === 0 ? (
+          {uncompletedAnimated.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/45 px-3 py-10 gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/8">
                 <Circle className="h-4 w-4 text-emerald-500/50" />
@@ -227,15 +231,17 @@ export default function TodoView() {
               <p className="text-[13px] text-muted-foreground/50">No open tasks</p>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {uncompleted.map((task) => (
-                <TodoRow key={task.id} task={task} allLabels={allLabels} onCheck={() => handleCheck(task)} />
+            <div className="flex flex-col">
+              {uncompletedAnimated.map(({ item: task, leaving }) => (
+                <AnimatedListItem key={task.id} leaving={leaving} gapClassName="pb-1.5 last:pb-0">
+                  <TodoRow task={task} allLabels={allLabels} onCheck={() => handleCheck(task)} checked={leaving} />
+                </AnimatedListItem>
               ))}
             </div>
           )}
         </section>
 
-        {completed.length > 0 && (
+        {completedAnimated.length > 0 && (
           <section>
             <button
               type="button"
@@ -263,9 +269,11 @@ export default function TodoView() {
               )}
             >
               <div className="min-h-0 overflow-hidden">
-                <div className="space-y-1">
-                  {completed.map((task) => (
-                    <TodoRow key={task.id} task={task} allLabels={allLabels} checked />
+                <div className="flex flex-col">
+                  {completedAnimated.map(({ item: task, leaving }) => (
+                    <AnimatedListItem key={task.id} leaving={leaving} gapClassName="pb-1 last:pb-0">
+                      <TodoRow task={task} allLabels={allLabels} checked />
+                    </AnimatedListItem>
                   ))}
                 </div>
               </div>
