@@ -58,6 +58,30 @@ if ('serviceWorker' in navigator) {
   }
 }
 
+// Block iOS edge-swipe navigation; left-edge swipe opens the drawer instead
+(() => {
+  const EDGE = 30;
+  const THRESHOLD = 60;
+  let startX = -1;
+  let fired = false;
+  document.addEventListener('touchstart', (e) => {
+    const x = e.touches[0].clientX;
+    startX = x < EDGE || x > window.innerWidth - EDGE ? x : -1;
+    fired = false;
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (startX < 0) return;
+    if (e.cancelable) e.preventDefault();
+    if (!fired && startX < EDGE) {
+      const dx = e.touches[0].clientX - startX;
+      if (dx > THRESHOLD) {
+        fired = true;
+        window.dispatchEvent(new CustomEvent('flowy:open-drawer'));
+      }
+    }
+  }, { passive: false });
+})();
+
 // Start listening for online/offline to trigger background sync
 startSyncListener();
 

@@ -132,6 +132,7 @@
     height: 100vh;
     overflow: hidden;
     overscroll-behavior: none;
+    touch-action: pan-y;
   }
 
   h1, .h1 { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; }
@@ -238,16 +239,13 @@
     box-shadow: inherit;
   }
 
-  html {
-    touch-action: manipulation;
-  }
-
   html,
   body,
   #root {
     height: 100vh;
     overflow: hidden;
     overscroll-behavior: none;
+    touch-action: pan-y;
   }
 
   .motion-page {
@@ -388,14 +386,3 @@ html.theme-transition *::after {
   }
 }
 
-/* Disable iOS PWA swipe-back/forward navigation gesture */
-@media all and (display-mode: standalone) {
-  html,
-  body {
-    overscroll-behavior-x: none;
-  }
-
-  #root {
-    touch-action: pan-y;
-  }
-}

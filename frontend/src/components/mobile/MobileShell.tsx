@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Menu, Plus } from 'lucide-react';
 import MobileDrawer from './MobileDrawer';
@@ -19,6 +19,12 @@ export default function MobileShell({ children }: MobileShellProps) {
 
   const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);
+  }, []);
+
+  useEffect(() => {
+    const open = () => setDrawerOpen(true);
+    window.addEventListener('flowy:open-drawer', open);
+    return () => window.removeEventListener('flowy:open-drawer', open);
   }, []);
 
   const handleCreate = () => {

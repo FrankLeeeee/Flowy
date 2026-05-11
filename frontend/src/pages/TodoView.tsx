@@ -76,8 +76,11 @@ function TodoRow({
           {task.title}
         </span>
 
-        {(labels.length > 0 || task.recurrence_rule) && (
-          <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
+        <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
+            <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', statusStyles.pill)}>
+              {STATUS_CONFIG[task.status].icon}
+              {STATUS_CONFIG[task.status].label}
+            </span>
             {labels.map((label) => {
               const colorStyles = getLabelColorStyles(label, allLabels);
               return (
@@ -93,20 +96,9 @@ function TodoRow({
               </span>
             )}
           </div>
-        )}
       </div>
 
-      <span
-        className={cn(
-          'hidden shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 md:inline-flex',
-          statusStyles.pill,
-        )}
-      >
-        {STATUS_CONFIG[task.status].icon}
-        {STATUS_CONFIG[task.status].label}
-      </span>
-
-      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
+      <span className="hidden shrink-0 text-[11px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors md:inline">
         {task.task_key}
       </span>
     </div>

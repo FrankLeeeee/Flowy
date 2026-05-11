@@ -10,6 +10,7 @@ import AnimatedListItem from '@/components/AnimatedListItem';
 function TodoRow({
   task,
   onCheck,
+  onUncheck,
   onRowClick,
   allLabels,
   runner,
@@ -17,6 +18,7 @@ function TodoRow({
 }: {
   task: Task;
   onCheck?: () => void;
+  onUncheck?: () => void;
   onRowClick?: () => void;
   allLabels: Label[];
   runner?: Runner;
@@ -27,17 +29,24 @@ function TodoRow({
   const showPriority = !checked && task.priority !== 'none';
   const labels: string[] = JSON.parse(task.labels || '[]');
   const [optimistic, setOptimistic] = useState(false);
+  const [optimisticUncheck, setOptimisticUncheck] = useState(false);
 
   const handleCheck = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (checked || optimistic || !onCheck) return;
+    if (checked) {
+      if (optimisticUncheck || !onUncheck) return;
+      setOptimisticUncheck(true);
+      onUncheck();
+      return;
+    }
+    if (optimistic || !onCheck) return;
     setOptimistic(true);
     onCheck();
   };
 
-  const isChecked = checked || optimistic;
+  const isChecked = (checked && !optimisticUncheck) || optimistic;
   const isRecurring = !!task.recurrence_rule;
-  const hasMetadata = labels.length > 0 || runner || task.ai_provider || showPriority || isRecurring;
+  const hasMetadata = true;
 
   return (
     <div
@@ -52,13 +61,12 @@ function TodoRow({
       <button
         type="button"
         onClick={handleCheck}
-        disabled={isChecked}
-        aria-label={isChecked ? 'Completed' : 'Mark as complete'}
+        aria-label={isChecked ? 'Mark as backlog' : 'Mark as complete'}
         className={cn(
-          'shrink-0 mt-0.5 h-[18px] w-[18px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-150',
+          'shrink-0 mt-0.5 h-[18px] w-[18px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-150 cursor-pointer',
           isChecked
-            ? 'border-emerald-500/60 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400'
-            : 'border-foreground/20 hover:border-primary/50 hover:bg-primary/[0.06] cursor-pointer',
+            ? 'border-emerald-500/60 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 hover:border-emerald-500/40 hover:bg-emerald-500/6'
+            : 'border-foreground/20 hover:border-primary/50 hover:bg-primary/[0.06]',
         )}
       >
         {isChecked && <Check className="h-2.5 w-2.5 stroke-[2.5]" />}
@@ -78,6 +86,10 @@ function TodoRow({
 
         {hasMetadata && (
           <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
+            <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', statusStyles.pill)}>
+              {STATUS_CONFIG[task.status].icon}
+              {STATUS_CONFIG[task.status].label}
+            </span>
             {showPriority && (
               <span className={cn('inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 [&>svg]:h-2.5 [&>svg]:w-2.5', priorityStyles.pill)}>
                 {PRIORITY_ICON[task.priority]}
@@ -115,17 +127,7 @@ function TodoRow({
         )}
       </div>
 
-      <span
-        className={cn(
-          'hidden shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 md:inline-flex',
-          statusStyles.pill,
-        )}
-      >
-        {STATUS_CONFIG[task.status].icon}
-        {STATUS_CONFIG[task.status].label}
-      </span>
-
-      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
+      <span className="hidden shrink-0 text-[11px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors md:inline">
         {task.task_key}
       </span>
     </div>
@@ -221,6 +223,7 @@ export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTa
                       allLabels={allLabels}
                       runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
                       checked
+                      onUncheck={() => onStatusChange(task.id, 'backlog')}
                       onRowClick={() => onTaskClick(task)}
                     />
                   </AnimatedListItem>
