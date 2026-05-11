@@ -336,9 +336,12 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Prevent iOS Safari from zooming when focusing inputs/textareas with font-size < 16px */
+/* Prevent iOS Safari from zooming when focusing inputs/textareas with font-size < 16px.
+   Date/time inputs are excluded because iOS opens a native picker on focus, so the
+   underlying font-size doesn't trigger zoom — and forcing 16px breaks the visual
+   consistency of pill-style date/time fields that share a row with smaller text. */
 @media screen and (max-width: 768px) {
-  input,
+  input:not([type='date']):not([type='time']):not([type='datetime-local']),
   textarea,
   select {
     font-size: max(16px, 1em) !important;
