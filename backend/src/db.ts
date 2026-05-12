@@ -76,6 +76,7 @@ function migrate(): void {
 
     CREATE TABLE IF NOT EXISTS tasks (
       id            TEXT PRIMARY KEY,
+      client_mutation_id TEXT UNIQUE,
       list_id       TEXT REFERENCES lists(id) ON DELETE CASCADE,
       task_number   INTEGER NOT NULL,
       task_key      TEXT NOT NULL UNIQUE,
@@ -166,6 +167,8 @@ function migrate(): void {
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('runners', 'cli_update_requested_at', 'TEXT');
   ensureColumn('runners', 'cli_versions', 'TEXT');
+  ensureColumn('tasks', 'client_mutation_id', 'TEXT');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_client_mutation_id ON tasks(client_mutation_id) WHERE client_mutation_id IS NOT NULL');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
   ensureTaskScheduleColumns();
   ensureColumn('tasks', 'recurrence_rule', 'TEXT');

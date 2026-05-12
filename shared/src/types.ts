@@ -78,6 +78,7 @@ export interface RecurrenceRule {
 
 export interface Task {
   id: string;
+  client_mutation_id: string | null;
   list_id: string | null;
   task_number: number;
   task_key: string;
