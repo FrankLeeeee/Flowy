@@ -50,6 +50,18 @@ async function postTask(body: Record<string, unknown>) {
   };
 }
 
+async function putTask(id: string, body: Record<string, unknown>) {
+  const res = await fetch(`${baseUrl}/tasks/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return {
+    status: res.status,
+    body: await res.json() as Record<string, unknown>,
+  };
+}
+
 describe('tasks route', () => {
   beforeEach(async () => {
     await setupApp();
@@ -81,6 +93,84 @@ describe('tasks route', () => {
 
     const rows = db.getDb().prepare('SELECT id, client_mutation_id FROM tasks').all() as Array<{ id: string; client_mutation_id: string | null }>;
     expect(rows).toEqual([{ id: first.body.id, client_mutation_id: 'mutation-1' }]);
+  });
+
+  it('persists scheduledDurationMinutes when valid and 5-minute-aligned', async () => {
+    const created = await postTask({
+      title: 'Has a duration',
+      scheduledDate: '2026-05-12',
+      scheduledTime: '09:30',
+      scheduledDurationMinutes: 90,
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.scheduled_duration_minutes).toBe(90);
+
+    const updated = await putTask(created.body.id as string, { scheduledDurationMinutes: 45 });
+    expect(updated.status).toBe(200);
+    expect(updated.body.scheduled_duration_minutes).toBe(45);
+  });
+
+  it('treats a zero duration as cleared', async () => {
+    const created = await postTask({
+      title: 'Zero duration is no duration',
+      scheduledDate: '2026-05-12',
+      scheduledDurationMinutes: 0,
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.scheduled_duration_minutes).toBeNull();
+  });
+
+  it('rejects a duration that is not a multiple of 5', async () => {
+    const created = await postTask({
+      title: 'Off-step duration',
+      scheduledDate: '2026-05-12',
+      scheduledDurationMinutes: 7,
+    });
+    expect(created.status).toBe(400);
+    expect(created.body.error).toMatch(/multiple of 5/);
+  });
+
+  it('rejects a negative or absurdly large duration', async () => {
+    const negative = await postTask({
+      title: 'Negative duration',
+      scheduledDate: '2026-05-12',
+      scheduledDurationMinutes: -15,
+    });
+    expect(negative.status).toBe(400);
+
+    const huge = await postTask({
+      title: 'Huge duration',
+      scheduledDate: '2026-05-12',
+      scheduledDurationMinutes: 60 * 24 + 5,
+    });
+    expect(huge.status).toBe(400);
+  });
+
+  it('preserves the existing duration on PUT when the field is omitted', async () => {
+    const created = await postTask({
+      title: 'Keep duration on partial update',
+      scheduledDate: '2026-05-12',
+      scheduledTime: '10:00',
+      scheduledDurationMinutes: 30,
+    });
+    expect(created.status).toBe(201);
+
+    const updated = await putTask(created.body.id as string, { title: 'Renamed' });
+    expect(updated.status).toBe(200);
+    expect(updated.body.scheduled_duration_minutes).toBe(30);
+  });
+
+  it('clears the duration on PUT when explicitly null', async () => {
+    const created = await postTask({
+      title: 'Clear via null',
+      scheduledDate: '2026-05-12',
+      scheduledDurationMinutes: 60,
+    });
+    expect(created.status).toBe(201);
+
+    const updated = await putTask(created.body.id as string, { scheduledDurationMinutes: null });
+    expect(updated.status).toBe(200);
+    expect(updated.body.scheduled_duration_minutes).toBeNull();
   });
 
   it('does not consume an extra list task number for an idempotent replay', async () => {

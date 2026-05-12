@@ -93,6 +93,7 @@ export interface Task {
   output: string | null;
   scheduled_date: string;
   scheduled_time: string | null;
+  scheduled_duration_minutes: number | null;
   recurrence_rule: string | null;
   started_at: string | null;
   completed_at: string | null;
