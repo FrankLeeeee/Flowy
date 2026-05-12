@@ -69,17 +69,30 @@ router.get('/', (req: Request, res: Response) => {
 
 // POST /api/tasks
 router.post('/', (req: Request, res: Response) => {
-  const { listId, title, description, priority, labels, scheduledDate, scheduledTime, runnerId, aiProvider, harnessConfig, recurrenceRule } = req.body as {
+  const { listId, title, description, priority, labels, scheduledDate, scheduledTime, runnerId, aiProvider, harnessConfig, recurrenceRule, clientMutationId } = req.body as {
     listId?: string | null; title?: string; description?: string; priority?: string; labels?: string[];
     scheduledDate?: string; scheduledTime?: string | null;
     runnerId?: string | null; aiProvider?: string | null; harnessConfig?: unknown;
     recurrenceRule?: RecurrenceRule | null;
+    clientMutationId?: string;
   };
   if (!title) { res.status(400).json({ error: 'title is required' }); return; }
+  const normalizedClientMutationId = clientMutationId?.trim() || null;
+  if (normalizedClientMutationId && normalizedClientMutationId.length > 128) {
+    res.status(400).json({ error: 'clientMutationId must be 128 characters or less' });
+    return;
+  }
   const schedule = parseSchedule({ scheduledDate, scheduledTime });
   if (schedule.error) { res.status(400).json({ error: schedule.error }); return; }
 
   const db = getDb();
+  if (normalizedClientMutationId) {
+    const existing = db.prepare('SELECT * FROM tasks WHERE client_mutation_id = ?').get(normalizedClientMutationId) as Task | undefined;
+    if (existing) {
+      res.status(200).json(existing);
+      return;
+    }
+  }
 
   let resolvedListId: string | null = null;
   let taskNumber: number;
@@ -111,10 +124,10 @@ router.post('/', (req: Request, res: Response) => {
   const now = utcNow();
   const insertTask = db.transaction(() => {
     db.prepare(`
-      INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels, scheduled_date, scheduled_time, recurrence_rule, status, runner_id, ai_provider, harness_config, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, client_mutation_id, list_id, task_number, task_key, title, description, priority, labels, scheduled_date, scheduled_time, recurrence_rule, status, runner_id, ai_provider, harness_config, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      id, resolvedListId, taskNumber, taskKey, title, description ?? '', priority ?? 'none',
+      id, normalizedClientMutationId, resolvedListId, taskNumber, taskKey, title, description ?? '', priority ?? 'none',
       JSON.stringify(labels ?? []), schedule.scheduledDate, schedule.scheduledTime, serializedRecurrence, initialStatus,
       resolvedRunnerId, resolvedAiProvider, normalizedHarness, now, now,
     );

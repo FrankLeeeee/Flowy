@@ -180,37 +180,44 @@ export async function createTask(body: {
   scheduledDate?: string; scheduledTime?: string | null;
   runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
   recurrenceRule?: RecurrenceRule | null;
+  clientMutationId?: string;
 }): Promise<Task> {
+  const mutationBody = {
+    ...body,
+    clientMutationId: body.clientMutationId ?? crypto.randomUUID(),
+  };
+
   if (isOnline()) {
-    const { data } = await api.post<Task>('/tasks', body);
+    const { data } = await api.post<Task>('/tasks', mutationBody);
     return data;
   }
 
   const now = nowIso();
   const optimistic: Task = {
     id: tempId(),
-    list_id: body.listId ?? null,
+    client_mutation_id: mutationBody.clientMutationId,
+    list_id: mutationBody.listId ?? null,
     task_number: 0,
     task_key: 'PENDING',
-    title: body.title,
-    description: body.description ?? '',
+    title: mutationBody.title,
+    description: mutationBody.description ?? '',
     status: 'backlog',
-    priority: ((body.priority as TaskPriority | undefined) ?? 'none'),
-    runner_id: body.runnerId ?? null,
-    ai_provider: (body.aiProvider as AiProvider | null | undefined) ?? null,
-    harness_config: JSON.stringify(body.harnessConfig ?? {}),
-    labels: JSON.stringify(body.labels ?? []),
+    priority: ((mutationBody.priority as TaskPriority | undefined) ?? 'none'),
+    runner_id: mutationBody.runnerId ?? null,
+    ai_provider: (mutationBody.aiProvider as AiProvider | null | undefined) ?? null,
+    harness_config: JSON.stringify(mutationBody.harnessConfig ?? {}),
+    labels: JSON.stringify(mutationBody.labels ?? []),
     output: null,
-    scheduled_date: body.scheduledDate ?? new Date().toISOString().slice(0, 10),
-    scheduled_time: body.scheduledTime ?? null,
-    recurrence_rule: body.recurrenceRule ? JSON.stringify(body.recurrenceRule) : null,
+    scheduled_date: mutationBody.scheduledDate ?? new Date().toISOString().slice(0, 10),
+    scheduled_time: mutationBody.scheduledTime ?? null,
+    recurrence_rule: mutationBody.recurrenceRule ? JSON.stringify(mutationBody.recurrenceRule) : null,
     started_at: null,
     completed_at: null,
     created_at: now,
     updated_at: now,
   };
   await patchSwCacheByPathname<Task>('/api/tasks', (tasks) => [...tasks, optimistic]);
-  await queueMutation('/api/tasks', 'POST', body);
+  await queueMutation('/api/tasks', 'POST', mutationBody);
   return optimistic;
 }
 

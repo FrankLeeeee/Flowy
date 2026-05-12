@@ -32,7 +32,7 @@ export default function CreateTaskModal({
   open: boolean;
   lists: List[];
   defaultListId?: string;
-  onSubmit: (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledDate: string; scheduledTime: string | null; recurrenceRule: RecurrenceRule | null }) => void;
+  onSubmit: (data: { listId: string | null; title: string; description: string; priority: TaskPriority; labels: string[]; scheduledDate: string; scheduledTime: string | null; recurrenceRule: RecurrenceRule | null }) => void | Promise<void>;
   onClose: () => void;
 }) {
   const [listSelection, setListSelection] = useState(defaultListId ?? INBOX_VALUE);
@@ -46,6 +46,7 @@ export default function CreateTaskModal({
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [allTemplates, setAllTemplates] = useState<Template[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('_none');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isMobile = useIsMobile();
 
   const selectedList = lists.find((list) => list.id === listSelection);
@@ -65,6 +66,7 @@ export default function CreateTaskModal({
       setScheduledTime('');
       setRecurrenceRule(null);
       setSelectedTemplateId('_none');
+      setIsSubmitting(false);
     }
   }, [open]);
 
@@ -81,24 +83,30 @@ export default function CreateTaskModal({
     setLabels((prev) => prev.filter((l) => l !== label));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !scheduledDate) return;
+    if (isSubmitting || !title.trim() || !scheduledDate) return;
     const listId = listSelection === INBOX_VALUE ? null : listSelection;
-    onSubmit({
-      listId,
-      title: title.trim(),
-      description,
-      priority,
-      labels,
-      scheduledDate,
-      scheduledTime: scheduledTime || null,
-      recurrenceRule,
-    });
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        listId,
+        title: title.trim(),
+        description,
+        priority,
+        labels,
+        scheduledDate,
+        scheduledTime: scheduledTime || null,
+        recurrenceRule,
+      });
+    } catch (error) {
+      setIsSubmitting(false);
+      throw error;
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !isSubmitting) onClose(); }}>
       <AppDialogContent className="mb-[calc(env(safe-area-inset-bottom)+4.5rem)] flex max-h-[calc(100svh-6rem)] flex-col gap-0 overflow-hidden sm:mb-0 sm:max-h-[80svh] sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
@@ -424,11 +432,11 @@ export default function CreateTaskModal({
 
           <AppDialogFooter>
             <div className={cn('flex items-center gap-2', isMobile ? 'w-full justify-center' : '')}>
-              <Button type="button" variant={isMobile ? 'outline' : 'ghost'} onClick={onClose} className={cn('rounded-full text-[11px]', isMobile ? 'flex-1 border-border/60 text-muted-foreground' : 'px-3.5 text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground')}>
+              <Button type="button" variant={isMobile ? 'outline' : 'ghost'} onClick={onClose} disabled={isSubmitting} className={cn('rounded-full text-[11px]', isMobile ? 'flex-1 border-border/60 text-muted-foreground' : 'px-3.5 text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground')}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={!title.trim() || !scheduledDate} className={cn('rounded-full text-[11px]', isMobile ? 'flex-1' : 'px-4')}>
-                Create task
+              <Button type="submit" disabled={isSubmitting || !title.trim() || !scheduledDate} className={cn('rounded-full text-[11px]', isMobile ? 'flex-1' : 'px-4')}>
+                {isSubmitting ? 'Creating...' : 'Create task'}
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </div>
