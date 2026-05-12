@@ -155,6 +155,7 @@ export default function CreateTaskModal({
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
                     <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars</span>
                       {availableTemplates.length > 0 && (
                         <Select
                           value={selectedTemplateId}
@@ -181,7 +182,6 @@ export default function CreateTaskModal({
                           </SelectContent>
                         </Select>
                       )}
-                      <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars · Markdown</span>
                     </div>
                   </div>
                   <MarkdownEditor

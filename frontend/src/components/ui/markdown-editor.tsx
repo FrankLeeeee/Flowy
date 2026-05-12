@@ -129,7 +129,7 @@ export function MarkdownEditor({
       type="button"
       onClick={() => setRawMarkdown((v) => !v)}
       aria-pressed={rawMarkdown}
-      title={rawMarkdown ? 'Switch to rich text' : 'Switch to raw markdown'}
+      title={rawMarkdown ? 'Switch to Markdown' : 'Switch to raw text'}
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors',
         rawMarkdown
@@ -138,7 +138,7 @@ export function MarkdownEditor({
       )}
     >
       {rawMarkdown ? <Eye className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
-      {rawMarkdown ? 'Rich text' : 'Markdown'}
+      {rawMarkdown ? 'Markdown' : 'Raw text'}
     </button>
   ) : null;
 
@@ -224,7 +224,7 @@ export function MarkdownEditor({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? 'Add description...'}
-        aria-label={`${ariaLabel ?? 'Description'} (raw markdown)`}
+        aria-label={`${ariaLabel ?? 'Description'} (raw text)`}
         rows={rows}
         hidden={!rawMarkdown}
         style={{ minHeight: minH }}
