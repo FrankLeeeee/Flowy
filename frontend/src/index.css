@@ -337,11 +337,15 @@
 /* Prevent iOS Safari from zooming when focusing inputs/textareas with font-size < 16px.
    Date/time inputs are excluded because iOS opens a native picker on focus, so the
    underlying font-size doesn't trigger zoom — and forcing 16px breaks the visual
-   consistency of pill-style date/time fields that share a row with smaller text. */
+   consistency of pill-style date/time fields that share a row with smaller text.
+   [contenteditable] covers rich-text editors (e.g. TipTap-based MarkdownEditor)
+   that render a focusable div rather than a textarea. */
 @media screen and (max-width: 768px) {
   input:not([type='date']):not([type='time']):not([type='datetime-local']),
   textarea,
-  select {
+  select,
+  [contenteditable='true'],
+  [contenteditable='plaintext-only'] {
     font-size: max(16px, 1em) !important;
   }
 }
