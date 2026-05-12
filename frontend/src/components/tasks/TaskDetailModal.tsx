@@ -311,7 +311,10 @@ export default function TaskDetailModal({
                         <span className="font-medium">Status</span>
                       </div>
                       <Select value={status} onValueChange={(value) => { const s = value as TaskStatus; setStatus(s); saveField({ status: s }); }}>
-                        <SelectTrigger className="h-auto w-auto gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0">
+                        <SelectTrigger
+                          hideChevron
+                          className="h-auto w-auto gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                        >
                           <SelectValue>
                             {STATUS_OPTIONS.find((item) => item.value === status)?.label}
                           </SelectValue>
@@ -335,7 +338,10 @@ export default function TaskDetailModal({
                         <span className="font-medium">Priority</span>
                       </div>
                       <Select value={priority} onValueChange={(value) => { const p = value as TaskPriority; setPriority(p); saveField({ priority: p }); }}>
-                        <SelectTrigger className="h-auto w-auto gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0">
+                        <SelectTrigger
+                          hideChevron
+                          className="h-auto w-auto gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                        >
                           <SelectValue>
                             {PRIORITY_OPTIONS.find((item) => item.value === priority)?.label}
                           </SelectValue>

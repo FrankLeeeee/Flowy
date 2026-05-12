@@ -225,7 +225,10 @@ export default function CreateTaskModal({
                         <span className="font-medium">List</span>
                       </div>
                       <Select value={listSelection} onValueChange={setListSelection}>
-                        <SelectTrigger className="h-auto w-auto max-w-[180px] gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0">
+                        <SelectTrigger
+                          hideChevron
+                          className="h-auto w-auto max-w-[180px] gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                        >
                           <SelectValue placeholder="List" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
@@ -250,7 +253,10 @@ export default function CreateTaskModal({
                         <span className="font-medium">Priority</span>
                       </div>
                       <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-                        <SelectTrigger className="h-auto w-auto gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0">
+                        <SelectTrigger
+                          hideChevron
+                          className="h-auto w-auto gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                        >
                           <SelectValue>
                             {PRIORITIES.find((item) => item.value === priority)?.label}
                           </SelectValue>
