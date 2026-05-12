@@ -19,6 +19,7 @@ import { cn, formatLocalDateTime } from '@/lib/utils';
 import { normalizeScheduledTime } from '@/lib/taskSchedule';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { getHarnessConfigBadges, parseHarnessConfig } from '../../lib/harnessConfig';
+import { getTaskRunnerActionState } from '../../lib/taskRunnerActions';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
@@ -144,6 +145,7 @@ export default function TaskDetailModal({
         aiProvider: assignAiProvider,
         harnessConfig: assignHarnessConfig,
       });
+      setStatus(updated.status);
       onUpdate(updated);
       setAssigning(false);
     } finally {
@@ -155,6 +157,7 @@ export default function TaskDetailModal({
     setSavingAssignment(true);
     try {
       const updated = await updateTask(task.id, { runnerId: null, aiProvider: null });
+      setStatus(updated.status);
       onUpdate(updated);
       setAssigning(false);
     } finally {
@@ -166,6 +169,7 @@ export default function TaskDetailModal({
     setRunning(true);
     try {
       const updated = await runTask(task.id);
+      setStatus(updated.status);
       onUpdate(updated);
     } finally {
       setRunning(false);
@@ -181,7 +185,12 @@ export default function TaskDetailModal({
   const statusStyles = getTaskStatusStyles(status);
   const priorityStyles = getTaskPriorityStyles(priority);
 
-  const canRun = !!task.runner_id && !!task.ai_provider && status !== 'in_progress' && status !== 'todo';
+  const { canAssignRunner, canRun } = getTaskRunnerActionState({
+    status,
+    hasRunnerAssignment: !!task.runner_id,
+    hasAiProvider: !!task.ai_provider,
+    running,
+  });
   const isRerun = TERMINAL_STATUSES.includes(status);
 
   const syncLabels = (nextLabels: string[]) => {
@@ -688,24 +697,26 @@ export default function TaskDetailModal({
                   )}
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={enterAssignMode}
-                className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground"
-              >
-                {task.runner_id ? (
-                  <>
-                    <UserCog className="mr-1.5 h-3 w-3" />
-                    Re-Assign
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="mr-1.5 h-3 w-3" />
-                    Assign
-                  </>
-                )}
-              </Button>
+              {canAssignRunner && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={enterAssignMode}
+                  className="h-8 rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground"
+                >
+                  {task.runner_id ? (
+                    <>
+                      <UserCog className="mr-1.5 h-3 w-3" />
+                      Re-Assign
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-1.5 h-3 w-3" />
+                      Assign
+                    </>
+                  )}
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
