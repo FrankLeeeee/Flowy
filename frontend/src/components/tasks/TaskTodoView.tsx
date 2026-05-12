@@ -51,7 +51,7 @@ const TodoRow = memo(function TodoRow({
   return (
     <div
       className={cn(
-        'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border transition-all duration-150 group cursor-pointer',
+        'flex w-full min-w-0 items-start gap-2.5 overflow-hidden px-3 py-2.5 rounded-lg border transition-all duration-150 group cursor-pointer',
         isChecked
           ? 'border-border/25 bg-card/40 hover:bg-card/60'
           : 'border-border/45 bg-card shadow-soft hover:border-border/75 hover:shadow-elevated motion-safe:hover:-translate-y-px',
@@ -73,10 +73,10 @@ const TodoRow = memo(function TodoRow({
       </button>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
-              'min-w-0 text-[13px] font-medium leading-snug truncate',
+              'min-w-0 flex-1 text-[13px] font-medium leading-snug truncate',
               isChecked ? 'line-through text-muted-foreground/40' : 'text-foreground',
             )}
           >
