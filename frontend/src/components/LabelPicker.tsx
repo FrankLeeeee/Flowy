@@ -101,7 +101,10 @@ export default function LabelPicker({
           collisionPadding={12}
           avoidCollisions
           onOpenAutoFocus={(event) => event.preventDefault()}
-          className="z-[60] w-48 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border/60 bg-popover p-1 shadow-lg"
+          className={cn(
+            'z-[60] max-w-[calc(100vw-1.5rem)] rounded-xl border border-border/60 bg-popover p-1 shadow-lg',
+            compact ? 'w-56' : 'w-48',
+          )}
         >
           <div className="px-2 pb-1 pt-1">
             <input
@@ -110,7 +113,10 @@ export default function LabelPicker({
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCreatingColor(null); }}
               placeholder={allowCreate ? 'Search or create label...' : 'Search labels...'}
-              className="w-full bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/50 outline-none"
+              className={cn(
+                'w-full bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none',
+                compact ? 'text-[13px]' : 'text-[12px]',
+              )}
             />
           </div>
           <div className="border-t border-border/40" />
@@ -128,7 +134,8 @@ export default function LabelPicker({
                     type="button"
                     onClick={() => onToggle(label.name)}
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-medium transition-colors hover:bg-accent',
+                      'flex w-full items-center gap-2 rounded-lg px-2 font-medium transition-colors hover:bg-accent',
+                      compact ? 'py-2.5 text-[13px]' : 'py-1.5 text-[11px]',
                       selected && 'bg-accent'
                     )}
                   >
@@ -143,7 +150,10 @@ export default function LabelPicker({
                 <button
                   type="button"
                   onClick={() => setCreatingColor('blue')}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-medium text-primary transition-colors hover:bg-accent"
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-lg px-2 font-medium text-primary transition-colors hover:bg-accent',
+                    compact ? 'py-2.5 text-[13px]' : 'py-1.5 text-[11px]',
+                  )}
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Create "{trimmed}"
@@ -151,7 +161,7 @@ export default function LabelPicker({
               )}
 
               {filtered.length === 0 && !showCreate && (
-                <p className="px-2 py-2 text-[11px] text-muted-foreground/70">No labels found</p>
+                <p className={cn('px-2 py-2 text-muted-foreground/70', compact ? 'text-[13px]' : 'text-[11px]')}>No labels found</p>
               )}
             </div>
           ) : (
