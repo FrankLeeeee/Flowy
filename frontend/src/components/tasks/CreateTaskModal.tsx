@@ -191,6 +191,7 @@ export default function CreateTaskModal({
                     placeholder="Add supporting context, expected outcome, or constraints..."
                     textareaClassName="min-h-[92px]"
                     ariaLabel="Task description"
+                    enableRawToggle
                   />
                 </AppDialogSection>
 
