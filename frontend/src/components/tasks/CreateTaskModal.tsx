@@ -14,7 +14,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
 import { getTodayDateInputValue } from '@/lib/taskSchedule';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles, FileText } from 'lucide-react';
+import { CalendarDays, Circle, Clock3, FolderKanban, Inbox, ArrowRight, X, Sparkles, FileText, Tag, Repeat } from 'lucide-react';
 
 const INBOX_VALUE = '_inbox';
 
@@ -107,6 +107,12 @@ export default function CreateTaskModal({
             <Sparkles className="h-3 w-3" />
             New Task
           </AppDialogEyebrow>
+          <div className="flex items-center justify-between gap-3 sm:hidden">
+            <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">New task</h2>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-border/60">
+              {selectedList ? (selectedList.icon ? `${selectedList.icon} ${selectedList.name}` : selectedList.name) : 'Inbox'}
+            </div>
+          </div>
           <div className="hidden flex-wrap items-end justify-between gap-3 sm:flex">
             <div className="min-w-0">
               <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Add a task to the queue</h2>
@@ -201,99 +207,227 @@ export default function CreateTaskModal({
                 )}
               </AppDialogBody>
 
-              <div className="flex flex-col gap-2 border-t border-border/40 bg-foreground/[0.015] px-4 py-3 sm:px-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select value={listSelection} onValueChange={setListSelection}>
-                    <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                      <SelectValue placeholder="List" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                      <SelectItem value={INBOX_VALUE} className="rounded-lg py-2 text-[11px]">
-                        <span className="inline-flex items-center gap-1.5"><Inbox className="h-3 w-3 opacity-60" /> Inbox</span>
-                      </SelectItem>
-                      {lists.map((list) => (
-                        <SelectItem key={list.id} value={list.id} className="rounded-lg py-2 text-[11px]">
-                          <span className="inline-flex items-center gap-1.5">
-                            {list.icon ? <span className="leading-none">{list.icon}</span> : <FolderKanban className="h-3 w-3 opacity-60" />}
-                            {list.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {isMobile ? (
+                <div className="border-t border-border/40">
+                  <div className="divide-y divide-border/30">
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                        <FolderKanban className="h-4 w-4 shrink-0 opacity-60" />
+                        <span className="font-medium">List</span>
+                      </div>
+                      <Select value={listSelection} onValueChange={setListSelection}>
+                        <SelectTrigger className="h-auto w-auto max-w-[180px] gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0">
+                          <SelectValue placeholder="List" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value={INBOX_VALUE} className="rounded-lg py-2.5 text-[13px]">
+                            <span className="inline-flex items-center gap-1.5"><Inbox className="h-3.5 w-3.5 opacity-60" /> Inbox</span>
+                          </SelectItem>
+                          {lists.map((list) => (
+                            <SelectItem key={list.id} value={list.id} className="rounded-lg py-2.5 text-[13px]">
+                              <span className="inline-flex items-center gap-1.5">
+                                {list.icon ? <span className="leading-none">{list.icon}</span> : <FolderKanban className="h-3.5 w-3.5 opacity-60" />}
+                                {list.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-                    <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                      <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
-                      <SelectValue>
-                        {PRIORITIES.find((item) => item.value === priority)?.label}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                      {PRIORITIES.map((item) => (
-                        <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
-                          <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
-                            <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
-                            {item.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                        <span className={cn('h-3 w-3 shrink-0 rounded-full', priorityStyles.dot)} />
+                        <span className="font-medium">Priority</span>
+                      </div>
+                      <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                        <SelectTrigger className="h-auto w-auto gap-1.5 border-0 bg-transparent px-0 text-[13px] font-medium text-foreground shadow-none focus:ring-0 focus:ring-offset-0">
+                          <SelectValue>
+                            {PRIORITIES.find((item) => item.value === priority)?.label}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          {PRIORITIES.map((item) => (
+                            <SelectItem key={item.value} value={item.value} className="rounded-lg py-2.5 pl-8 pr-3 text-[13px] font-medium">
+                              <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
+                                <span className={cn('h-2.5 w-2.5 rounded-full', getTaskPriorityStyles(item.value).dot)} />
+                                {item.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <LabelPicker
-                    selectedLabels={labels}
-                    allLabels={allLabels}
-                    onToggle={toggleLabel}
-                    onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
-                    allowCreate={!isMobile}
-                  />
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                        <Tag className="h-4 w-4 shrink-0 opacity-60" />
+                        <span className="font-medium">Labels</span>
+                      </div>
+                      <LabelPicker
+                        selectedLabels={labels}
+                        allLabels={allLabels}
+                        onToggle={toggleLabel}
+                        onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
+                        allowCreate={false}
+                        compact
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                        <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+                        <span className="font-medium">Date</span>
+                      </div>
+                      <Input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        required
+                        className="h-auto w-[130px] border-0 bg-transparent p-0 text-right text-[13px] font-medium text-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                        <Clock3 className="h-4 w-4 shrink-0 opacity-60" />
+                        <span className="font-medium">Time</span>
+                      </div>
+                      <Input
+                        type="time"
+                        step={60}
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="h-auto w-[90px] border-0 bg-transparent p-0 text-right text-[13px] font-medium text-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                        <Repeat className="h-4 w-4 shrink-0 opacity-60" />
+                        <span className="font-medium">Repeat</span>
+                      </div>
+                      {recurrenceRule ? (
+                        <button
+                          type="button"
+                          onClick={() => setRecurrenceRule(null)}
+                          className="text-[13px] font-medium text-primary"
+                        >
+                          {recurrenceRule.frequency === 'day' ? 'Daily' : recurrenceRule.frequency === 'week' ? 'Weekly' : 'Monthly'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { if (!recurrenceRule) setRecurrenceRule(defaultRecurrenceRule()); }}
+                          className="text-[13px] font-medium text-muted-foreground"
+                        >
+                          Off
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {recurrenceRule && (
+                    <div className="border-t border-border/30 px-4 py-3">
+                      <RecurrencePanel value={recurrenceRule} onChange={(rule) => setRecurrenceRule(rule)} />
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <div className="flex flex-col gap-2 border-t border-border/40 bg-foreground/[0.015] px-4 py-3 sm:px-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={listSelection} onValueChange={setListSelection}>
+                      <SelectTrigger className="h-8 w-auto min-w-[148px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                        <SelectValue placeholder="List" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                        <SelectItem value={INBOX_VALUE} className="rounded-lg py-2 text-[11px]">
+                          <span className="inline-flex items-center gap-1.5"><Inbox className="h-3 w-3 opacity-60" /> Inbox</span>
+                        </SelectItem>
+                        {lists.map((list) => (
+                          <SelectItem key={list.id} value={list.id} className="rounded-lg py-2 text-[11px]">
+                            <span className="inline-flex items-center gap-1.5">
+                              {list.icon ? <span className="leading-none">{list.icon}</span> : <FolderKanban className="h-3 w-3 opacity-60" />}
+                              {list.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium shadow-soft">
-                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      type="date"
-                      value={scheduledDate}
-                      onChange={(e) => setScheduledDate(e.target.value)}
-                      required
-                      className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                      <SelectTrigger className="h-8 w-auto min-w-[132px] gap-2 rounded-full border-border/60 bg-card px-3 text-[11px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                        <span className={cn('h-2 w-2 rounded-full', priorityStyles.dot)} />
+                        <SelectValue>
+                          {PRIORITIES.find((item) => item.value === priority)?.label}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                        {PRIORITIES.map((item) => (
+                          <SelectItem key={item.value} value={item.value} className="rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium">
+                            <span className={cn('inline-flex items-center gap-2', getTaskPriorityStyles(item.value).text)}>
+                              <span className={cn('h-2 w-2 rounded-full', getTaskPriorityStyles(item.value).dot)} />
+                              {item.label}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <LabelPicker
+                      selectedLabels={labels}
+                      allLabels={allLabels}
+                      onToggle={toggleLabel}
+                      onLabelsChange={() => fetchLabels().then(setAllLabels).catch(() => {})}
+                      allowCreate
                     />
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium shadow-soft">
-                    <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      step={60}
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium shadow-soft">
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        required
+                        className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-[11px] font-medium shadow-soft">
+                      <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="time"
+                        step={60}
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+
+                    <RecurrenceTrigger
+                      active={!!recurrenceRule}
+                      onEnable={() => { if (!recurrenceRule) setRecurrenceRule(defaultRecurrenceRule()); }}
+                      onDisable={() => setRecurrenceRule(null)}
                     />
                   </div>
 
-                  <RecurrenceTrigger
-                    active={!!recurrenceRule}
-                    onEnable={() => { if (!recurrenceRule) setRecurrenceRule(defaultRecurrenceRule()); }}
-                    onDisable={() => setRecurrenceRule(null)}
-                  />
+                  {recurrenceRule && (
+                    <RecurrencePanel value={recurrenceRule} onChange={(rule) => setRecurrenceRule(rule)} />
+                  )}
                 </div>
-
-                {recurrenceRule && (
-                  <RecurrencePanel value={recurrenceRule} onChange={(rule) => setRecurrenceRule(rule)} />
-                )}
-              </div>
+              )}
 
             </div>
           </div>
 
           <AppDialogFooter>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" onClick={onClose} className="rounded-full px-3.5 text-[11px] text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground">
+            <div className={cn('flex items-center gap-2', isMobile ? 'w-full justify-center' : '')}>
+              <Button type="button" variant={isMobile ? 'outline' : 'ghost'} onClick={onClose} className={cn('rounded-full text-[11px]', isMobile ? 'flex-1 border-border/60 text-muted-foreground' : 'px-3.5 text-muted-foreground/85 hover:bg-foreground/[0.04] hover:text-foreground')}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={!title.trim() || !scheduledDate} className="rounded-full px-4 text-[11px]">
+              <Button type="submit" disabled={!title.trim() || !scheduledDate} className={cn('rounded-full text-[11px]', isMobile ? 'flex-1' : 'px-4')}>
                 Create task
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
