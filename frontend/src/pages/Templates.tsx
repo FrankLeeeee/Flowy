@@ -284,6 +284,7 @@ export default function TemplatesPage() {
                   placeholder="Write the template content that will pre-fill the task description..."
                   textareaClassName="min-h-[140px]"
                   ariaLabel="Template content"
+                  enableRawToggle
                 />
               </AppDialogSection>
             </AppDialogBody>
@@ -370,6 +371,7 @@ export default function TemplatesPage() {
                   placeholder="Write the template content that will pre-fill the task description..."
                   textareaClassName="min-h-[140px]"
                   ariaLabel="Template content"
+                  enableRawToggle
                 />
               </AppDialogSection>
             </AppDialogBody>

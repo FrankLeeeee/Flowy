@@ -14,6 +14,8 @@ import {
   ListOrdered,
   ListChecks,
   Code as CodeIcon,
+  Code2,
+  Eye,
   Link as LinkIcon,
   Quote,
 } from 'lucide-react';
@@ -42,6 +44,8 @@ export interface MarkdownEditorProps {
   className?: string;
   defaultPreviewVisible?: boolean;
   ariaLabel?: string;
+  enableRawToggle?: boolean;
+  defaultRawMarkdown?: boolean;
 }
 
 export function MarkdownEditor({
@@ -51,8 +55,11 @@ export function MarkdownEditor({
   rows = 5,
   className,
   ariaLabel,
+  enableRawToggle = false,
+  defaultRawMarkdown = false,
 }: MarkdownEditorProps) {
   const suppressUpdate = React.useRef(false);
+  const [rawMarkdown, setRawMarkdown] = React.useState(defaultRawMarkdown);
 
   const editor = useEditor({
     extensions: [
@@ -103,86 +110,123 @@ export function MarkdownEditor({
 
   const minH = `${Math.max(rows * 1.625, 3)}rem`;
 
+  const toggleButton = enableRawToggle ? (
+    <button
+      type="button"
+      onClick={() => setRawMarkdown((v) => !v)}
+      aria-pressed={rawMarkdown}
+      title={rawMarkdown ? 'Switch to rich text' : 'Switch to raw markdown'}
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors',
+        rawMarkdown
+          ? 'bg-foreground/[0.08] text-foreground'
+          : 'text-muted-foreground/60 hover:text-muted-foreground',
+      )}
+    >
+      {rawMarkdown ? <Eye className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
+      {rawMarkdown ? 'Rich text' : 'Markdown'}
+    </button>
+  ) : null;
+
   return (
     <div
       className={cn('flex min-w-0 flex-col gap-2', className)}
       style={{ '--editor-min-h': minH } as React.CSSProperties}
     >
-      {editor && (
-        <div className="flex flex-wrap items-center gap-0.5">
-          <ToolbarButton
-            icon={Bold}
-            label="Bold"
-            active={editor.isActive('bold')}
-            onAction={() => editor.chain().focus().toggleBold().run()}
-          />
-          <ToolbarButton
-            icon={Italic}
-            label="Italic"
-            active={editor.isActive('italic')}
-            onAction={() => editor.chain().focus().toggleItalic().run()}
-          />
-          <ToolbarButton
-            icon={Heading}
-            label="Heading"
-            active={editor.isActive('heading')}
-            onAction={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          />
-          <ToolbarButton
-            icon={Quote}
-            label="Quote"
-            active={editor.isActive('blockquote')}
-            onAction={() => editor.chain().focus().toggleBlockquote().run()}
-          />
-          <ToolbarButton
-            icon={ListIcon}
-            label="Bulleted list"
-            active={editor.isActive('bulletList')}
-            onAction={() => editor.chain().focus().toggleBulletList().run()}
-          />
-          <ToolbarButton
-            icon={ListOrdered}
-            label="Numbered list"
-            active={editor.isActive('orderedList')}
-            onAction={() => editor.chain().focus().toggleOrderedList().run()}
-          />
-          <ToolbarButton
-            icon={ListChecks}
-            label="Task list"
-            active={editor.isActive('taskList')}
-            onAction={() => editor.chain().focus().toggleTaskList().run()}
-          />
-          <ToolbarButton
-            icon={CodeIcon}
-            label="Inline code"
-            active={editor.isActive('code')}
-            onAction={() => editor.chain().focus().toggleCode().run()}
-          />
-          <ToolbarButton
-            icon={LinkIcon}
-            label="Link"
-            active={editor.isActive('link')}
-            onAction={() => {
-              if (editor.isActive('link')) {
-                editor.chain().focus().unsetLink().run();
-              } else {
-                const url = window.prompt('URL');
-                if (url) editor.chain().focus().setLink({ href: url }).run();
-              }
-            }}
-          />
+      {(editor || enableRawToggle) && (
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <div className="flex flex-wrap items-center gap-0.5">
+            {editor && !rawMarkdown && (
+              <>
+                <ToolbarButton
+                  icon={Bold}
+                  label="Bold"
+                  active={editor.isActive('bold')}
+                  onAction={() => editor.chain().focus().toggleBold().run()}
+                />
+                <ToolbarButton
+                  icon={Italic}
+                  label="Italic"
+                  active={editor.isActive('italic')}
+                  onAction={() => editor.chain().focus().toggleItalic().run()}
+                />
+                <ToolbarButton
+                  icon={Heading}
+                  label="Heading"
+                  active={editor.isActive('heading')}
+                  onAction={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                />
+                <ToolbarButton
+                  icon={Quote}
+                  label="Quote"
+                  active={editor.isActive('blockquote')}
+                  onAction={() => editor.chain().focus().toggleBlockquote().run()}
+                />
+                <ToolbarButton
+                  icon={ListIcon}
+                  label="Bulleted list"
+                  active={editor.isActive('bulletList')}
+                  onAction={() => editor.chain().focus().toggleBulletList().run()}
+                />
+                <ToolbarButton
+                  icon={ListOrdered}
+                  label="Numbered list"
+                  active={editor.isActive('orderedList')}
+                  onAction={() => editor.chain().focus().toggleOrderedList().run()}
+                />
+                <ToolbarButton
+                  icon={ListChecks}
+                  label="Task list"
+                  active={editor.isActive('taskList')}
+                  onAction={() => editor.chain().focus().toggleTaskList().run()}
+                />
+                <ToolbarButton
+                  icon={CodeIcon}
+                  label="Inline code"
+                  active={editor.isActive('code')}
+                  onAction={() => editor.chain().focus().toggleCode().run()}
+                />
+                <ToolbarButton
+                  icon={LinkIcon}
+                  label="Link"
+                  active={editor.isActive('link')}
+                  onAction={() => {
+                    if (editor.isActive('link')) {
+                      editor.chain().focus().unsetLink().run();
+                    } else {
+                      const url = window.prompt('URL');
+                      if (url) editor.chain().focus().setLink({ href: url }).run();
+                    }
+                  }}
+                />
+              </>
+            )}
+          </div>
+          {toggleButton}
         </div>
       )}
 
-      <EditorContent
-        editor={editor}
-        className={cn(
-          '[&_.tiptap_p.is-editor-empty:first-child::before]:text-muted-foreground/45 [&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap_p.is-editor-empty:first-child::before]:float-left [&_.tiptap_p.is-editor-empty:first-child::before]:h-0 [&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child::before]:text-[13px]',
-          '[&_.tiptap_ul[data-type=taskList]]:list-none [&_.tiptap_ul[data-type=taskList]]:pl-0',
-          '[&_.tiptap_ul[data-type=taskList]_li]:flex [&_.tiptap_ul[data-type=taskList]_li]:items-start [&_.tiptap_ul[data-type=taskList]_li]:gap-2',
-          '[&_.tiptap_ul[data-type=taskList]_li_label_input]:mt-1',
-        )}
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder ?? 'Add description...'}
+        aria-label={`${ariaLabel ?? 'Description'} (raw markdown)`}
+        rows={rows}
+        hidden={!rawMarkdown}
+        style={{ minHeight: minH }}
+        className="w-full resize-y rounded-md border-0 bg-transparent p-0 font-mono text-[12px] leading-relaxed text-foreground/90 placeholder:text-muted-foreground/45 focus:outline-none"
       />
+      <div hidden={rawMarkdown}>
+        <EditorContent
+          editor={editor}
+          className={cn(
+            '[&_.tiptap_p.is-editor-empty:first-child::before]:text-muted-foreground/45 [&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap_p.is-editor-empty:first-child::before]:float-left [&_.tiptap_p.is-editor-empty:first-child::before]:h-0 [&_.tiptap_p.is-editor-empty:first-child::before]:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child::before]:text-[13px]',
+            '[&_.tiptap_ul[data-type=taskList]]:list-none [&_.tiptap_ul[data-type=taskList]]:pl-0',
+            '[&_.tiptap_ul[data-type=taskList]_li]:flex [&_.tiptap_ul[data-type=taskList]_li]:items-start [&_.tiptap_ul[data-type=taskList]_li]:gap-2',
+            '[&_.tiptap_ul[data-type=taskList]_li_label_input]:mt-1',
+          )}
+        />
+      </div>
     </div>
   );
 }

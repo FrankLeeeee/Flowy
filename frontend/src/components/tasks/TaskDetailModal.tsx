@@ -23,7 +23,7 @@ import { getTaskRunnerActionState } from '../../lib/taskRunnerActions';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { CalendarDays, Clock3, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog, Code2, Eye, Tag, Repeat } from 'lucide-react';
+import { CalendarDays, Clock3, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog, Tag, Repeat } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -71,7 +71,6 @@ export default function TaskDetailModal({
   const listWorkspaces: Workspace[] = taskList ? parseWorkspaces(taskList.workspaces) : [];
 
   const [logs, setLogs] = useState<TaskLog[]>([]);
-  const [rawMarkdown, setRawMarkdown] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
@@ -268,39 +267,14 @@ export default function TaskDetailModal({
 
               {/* Description — always editable, with raw markdown toggle */}
               <div className="rounded-xl border border-border/40 bg-foreground/[0.01] px-3 py-2.5">
-                {rawMarkdown ? (
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add description..."
-                    aria-label="Task description (raw markdown)"
-                    rows={6}
-                    className="w-full resize-y rounded-md border-0 bg-transparent p-0 font-mono text-[12px] leading-relaxed text-foreground/90 placeholder:text-muted-foreground/45 focus:outline-none"
-                  />
-                ) : (
-                  <MarkdownEditor
-                    value={description}
-                    onChange={setDescription}
-                    rows={3}
-                    placeholder="Add description..."
-                    ariaLabel="Task description"
-                  />
-                )}
-                <div className="mt-1.5 flex items-center justify-start">
-                  <button
-                    type="button"
-                    onClick={() => setRawMarkdown((v) => !v)}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors',
-                      rawMarkdown
-                        ? 'bg-foreground/[0.08] text-foreground'
-                        : 'text-muted-foreground/60 hover:text-muted-foreground',
-                    )}
-                  >
-                    {rawMarkdown ? <Eye className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
-                    {rawMarkdown ? 'Rich text' : 'Markdown'}
-                  </button>
-                </div>
+                <MarkdownEditor
+                  value={description}
+                  onChange={setDescription}
+                  rows={3}
+                  placeholder="Add description..."
+                  ariaLabel="Task description"
+                  enableRawToggle
+                />
               </div>
 
               {/* Labels with remove */}
