@@ -6,7 +6,7 @@ import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/com
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { MarkdownEditor, MARKDOWN_LINK_COMPONENTS } from '@/components/ui/markdown-editor';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -585,7 +585,7 @@ export default function TaskDetailModal({
                   </div>
                   <ScrollArea className="h-64 min-w-0 max-w-full">
                     <div className={cn(OUTPUT_MARKDOWN_CLASSNAME, 'w-full')}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_LINK_COMPONENTS}>{output}</ReactMarkdown>
                     </div>
                   </ScrollArea>
                 </div>
@@ -729,7 +729,7 @@ export default function TaskDetailModal({
           <ScrollArea className="min-h-0 min-w-0 flex-1 bg-muted/20">
             <div className="w-full min-w-0 px-4 py-4 sm:px-6 sm:py-6">
               <div className={cn(OUTPUT_MARKDOWN_CLASSNAME, 'min-h-full w-full bg-background shadow-soft')}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_LINK_COMPONENTS}>{output}</ReactMarkdown>
               </div>
             </div>
           </ScrollArea>

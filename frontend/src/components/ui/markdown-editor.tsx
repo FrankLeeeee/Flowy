@@ -19,7 +19,14 @@ import {
   Link as LinkIcon,
   Quote,
 } from 'lucide-react';
+import type { Components } from 'react-markdown';
 import { cn } from '@/lib/utils';
+
+export const MARKDOWN_LINK_COMPONENTS: Components = {
+  a: ({ node: _node, ...props }) => (
+    <a {...props} target="_blank" rel="noopener noreferrer nofollow" />
+  ),
+};
 
 export const MARKDOWN_PROSE_CLASSNAME = `min-w-0 max-w-full overflow-hidden text-[13px] leading-relaxed break-words [overflow-wrap:anywhere] prose prose-sm prose-neutral dark:prose-invert max-w-none
   prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5
@@ -68,7 +75,14 @@ export function MarkdownEditor({
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Link.configure({ openOnClick: false, autolink: true }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
+        },
+      }),
       Placeholder.configure({ placeholder: placeholder ?? 'Add description...' }),
       Markdown.configure({
         html: false,

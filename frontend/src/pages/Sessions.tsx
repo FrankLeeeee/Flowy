@@ -7,7 +7,7 @@ import {
 } from '../api/client';
 import { Session, SessionMessage, Runner } from '../types';
 import PageTitle from '@/components/PageTitle';
-import { MARKDOWN_PROSE_CLASSNAME } from '@/components/ui/markdown-editor';
+import { MARKDOWN_PROSE_CLASSNAME, MARKDOWN_LINK_COMPONENTS } from '@/components/ui/markdown-editor';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -506,7 +506,7 @@ const MessageBubble = memo(function MessageBubble({ message, isBusy, isLast }: {
             <pre className="whitespace-pre-wrap break-words font-sans">{message.content}</pre>
           ) : (
             <div className={MARKDOWN_PROSE_CLASSNAME}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || '…'}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_LINK_COMPONENTS}>{message.content || '…'}</ReactMarkdown>
             </div>
           )}
         </div>
