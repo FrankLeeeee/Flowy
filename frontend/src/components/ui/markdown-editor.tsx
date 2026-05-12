@@ -65,7 +65,6 @@ export function MarkdownEditor({
   enableRawToggle = false,
   defaultRawMarkdown = false,
 }: MarkdownEditorProps) {
-  const suppressUpdate = React.useRef(false);
   const [rawMarkdown, setRawMarkdown] = React.useState(defaultRawMarkdown);
 
   const editor = useEditor({
@@ -102,7 +101,6 @@ export function MarkdownEditor({
       },
     },
     onUpdate: ({ editor: e }) => {
-      suppressUpdate.current = true;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const md = (e.storage as any).markdown.getMarkdown() as string;
       onChange(md);
@@ -111,15 +109,11 @@ export function MarkdownEditor({
 
   React.useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    if (suppressUpdate.current) {
-      suppressUpdate.current = false;
-      return;
-    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const md = (editor.storage as any).markdown.getMarkdown() as string;
-    if (md !== value) {
-      editor.commands.setContent(value);
-    }
+    if (md === value) return;
+    // emitUpdate:false avoids re-entering onUpdate, which can swallow a subsequent external value change when the markdown round-trips to the same string.
+    editor.commands.setContent(value, { emitUpdate: false });
   }, [value, editor]);
 
   const minH = `${Math.max(rows * 1.625, 3)}rem`;
