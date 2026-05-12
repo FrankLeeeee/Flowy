@@ -15,3 +15,17 @@ export function getDesktopPageContainerClassName(options: {
     lockToViewport ? 'h-full min-h-0 overflow-hidden' : 'min-h-full pb-10',
   );
 }
+
+/**
+ * Mobile pages scroll vertically inside a container whose width is bound to the
+ * viewport. `overflow-x-hidden` is explicit because `overflow-y: auto` alone
+ * computes `overflow-x` to `auto`, which would let a wider child (e.g. a task
+ * card with a long unbroken title) introduce horizontal scrolling.
+ */
+export function getMobileScrollContainerClassName(): string {
+  return cn(
+    'flex-1 min-h-0',
+    'overflow-y-auto overflow-x-hidden overscroll-contain',
+    '[-webkit-overflow-scrolling:touch]',
+  );
+}

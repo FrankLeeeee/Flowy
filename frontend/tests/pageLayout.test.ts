@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { getDesktopPageContainerClassName } from '../src/lib/pageLayout';
+import {
+  getDesktopPageContainerClassName,
+  getMobileScrollContainerClassName,
+} from '../src/lib/pageLayout';
 
 describe('getDesktopPageContainerClassName', () => {
   describe('default (scrollable content) mode', () => {
@@ -63,5 +66,26 @@ describe('getDesktopPageContainerClassName', () => {
     expect(getDesktopPageContainerClassName({ lockToViewport: false })).toBe(
       getDesktopPageContainerClassName(),
     );
+  });
+});
+
+describe('getMobileScrollContainerClassName', () => {
+  const cls = getMobileScrollContainerClassName();
+
+  it('fills the remaining vertical space and allows internal scrolling', () => {
+    expect(cls).toContain('flex-1');
+    expect(cls).toContain('min-h-0');
+    expect(cls).toContain('overflow-y-auto');
+  });
+
+  it('locks horizontal scrolling so a wide task card cannot drag the viewport sideways', () => {
+    // overflow-y: auto alone causes browsers to compute overflow-x as auto,
+    // which would let a long unbroken task title introduce horizontal scroll.
+    // The explicit overflow-x-hidden is the safety net.
+    expect(cls).toContain('overflow-x-hidden');
+  });
+
+  it('contains overscroll so pull-to-refresh does not chain to the outer page', () => {
+    expect(cls).toContain('overscroll-contain');
   });
 });

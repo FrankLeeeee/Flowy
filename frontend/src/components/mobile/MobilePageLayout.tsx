@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { getMobileScrollContainerClassName } from "@/lib/pageLayout";
 
 interface MobilePageLayoutProps {
   header: React.ReactNode;
@@ -16,7 +17,7 @@ export default function MobilePageLayout({
       <div className="shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-lg px-4 pt-4 pb-3">
         {header}
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+      <div className={getMobileScrollContainerClassName()}>
         {children}
       </div>
     </div>
