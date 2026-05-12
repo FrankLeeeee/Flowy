@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { formatDateLabel } from '@/lib/mobileDateBar';
 import { getTodayDateString } from '@/lib/dateFilter';
+import { sortTasksBySchedule } from '@/lib/taskSchedule';
 
 interface MobileHomeProps {
   selectedDate: string;
@@ -43,7 +44,7 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
         if (selectedDate === today && t.scheduled_date < today && t.status !== 'done') return true;
         return false;
       });
-      setTasks(filtered);
+      setTasks(sortTasksBySchedule(filtered));
       setAllLists(ls);
       setAllLabels(labels);
       setRunners(r);

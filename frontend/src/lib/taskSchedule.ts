@@ -1,4 +1,5 @@
 import { formatIsoDate } from 'flowy-shared';
+import type { Task } from '@/types';
 
 export function getTodayDateInputValue(date = new Date()): string {
   return formatIsoDate(date);
@@ -36,4 +37,15 @@ export function formatTaskScheduleCompact(date: string, time: string | null): st
     : date;
 
   return time ? `${formattedDate} ${time}` : formattedDate;
+}
+
+export function compareTasksBySchedule(a: Task, b: Task): number {
+  const dateOrder = a.scheduled_date.localeCompare(b.scheduled_date);
+  if (dateOrder !== 0) return dateOrder;
+
+  return (a.scheduled_time || '00:00').localeCompare(b.scheduled_time || '00:00');
+}
+
+export function sortTasksBySchedule<T extends Task>(tasks: T[]): T[] {
+  return [...tasks].sort(compareTasksBySchedule);
 }

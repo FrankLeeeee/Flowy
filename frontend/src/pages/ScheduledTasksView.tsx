@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTodayDateString, getWeekRange } from '@/lib/dateFilter';
 import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
+import { sortTasksBySchedule } from '@/lib/taskSchedule';
 
 type ViewMode = 'today' | 'week' | 'all';
 
@@ -45,20 +46,20 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
   const filterTasks = useCallback((all: Task[]): Task[] => {
     const nonCancelled = all.filter((t) => t.status !== 'cancelled');
 
-    if (mode === 'all') return nonCancelled;
+    if (mode === 'all') return sortTasksBySchedule(nonCancelled);
 
     if (mode === 'today') {
       const today = getTodayDateString();
-      return nonCancelled.filter((t) =>
+      return sortTasksBySchedule(nonCancelled.filter((t) =>
         t.scheduled_date === today || (t.scheduled_date < today && t.status !== 'done'),
-      );
+      ));
     }
 
     const { start, end } = getWeekRange();
-    return nonCancelled.filter((t) =>
+    return sortTasksBySchedule(nonCancelled.filter((t) =>
       (t.scheduled_date >= start && t.scheduled_date <= end) ||
       (t.scheduled_date < start && t.status !== 'done'),
-    );
+    ));
   }, [mode]);
 
   const loadData = useCallback(async () => {

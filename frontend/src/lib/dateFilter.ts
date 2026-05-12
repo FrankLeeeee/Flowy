@@ -1,5 +1,6 @@
 import { formatIsoDate } from 'flowy-shared';
 import { Task } from '../types';
+import { sortTasksBySchedule } from './taskSchedule';
 
 export type DateFilterMode = 'today' | 'week' | 'custom';
 
@@ -64,11 +65,11 @@ export function filterTasksByDate(tasks: Task[], filter: DateFilterState): Task[
   const { start, end } = getEffectiveDateRange(filter);
   const includeOverdue = filter.mode === 'today' || filter.mode === 'week';
 
-  return tasks.filter((task) => {
+  return sortTasksBySchedule(tasks.filter((task) => {
     if (task.scheduled_date >= start && task.scheduled_date <= end) return true;
     if (includeOverdue && task.scheduled_date < start && !DONE_STATUSES.has(task.status)) return true;
     return false;
-  });
+  }));
 }
 
 export function formatDateFilterLabel(filter: DateFilterState): string {

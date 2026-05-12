@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
 import AnimatedListItem from '@/components/AnimatedListItem';
+import { sortTasksBySchedule } from '@/lib/taskSchedule';
 
 function TodoRow({
   task,
@@ -120,7 +121,7 @@ export default function TodoView() {
   const loadData = useCallback(async () => {
     try {
       const [all, labels] = await Promise.all([fetchTasks(), fetchLabels()]);
-      setTasks(all.filter((t) => t.status !== 'cancelled'));
+      setTasks(sortTasksBySchedule(all.filter((t) => t.status !== 'cancelled')));
       setAllLabels(labels);
       setError('');
     } catch (e) {

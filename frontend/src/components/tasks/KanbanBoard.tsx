@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Task, Runner, Label, TaskStatus } from '../../types';
 import { TASK_STATUSES } from '@/lib/taskConstants';
+import { compareTasksBySchedule } from '@/lib/taskSchedule';
 import KanbanColumn from './KanbanColumn';
 
 export default function KanbanBoard({
@@ -18,6 +19,7 @@ export default function KanbanBoard({
     const list = grouped.get(t.status);
     if (list) list.push(t);
   }
+  for (const list of grouped.values()) list.sort(compareTasksBySchedule);
 
   const handleDrop = (taskId: string, newStatus: TaskStatus) => {
     const task = tasks.find((t) => t.id === taskId);
