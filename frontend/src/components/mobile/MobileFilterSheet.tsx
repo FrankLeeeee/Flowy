@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogContent, AppDialogHeader, AppDialogFooter } from '@/components/ui/app-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { DateFilterState, defaultDateFilter, DateFilterMode, getTodayDateString } from '@/lib/dateFilter';
@@ -124,21 +125,21 @@ export default function MobileFilterSheet({
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="text-[11px] text-muted-foreground/70">From</label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={activeDateFilter.startDate}
-                    onChange={(e) => onDateFilterChange({ mode: 'custom', startDate: e.target.value, endDate: activeDateFilter.endDate >= e.target.value ? activeDateFilter.endDate : e.target.value })}
-                    className="h-10 rounded-xl text-[13px]"
+                    onChange={(next) => onDateFilterChange({ mode: 'custom', startDate: next, endDate: activeDateFilter.endDate >= next ? activeDateFilter.endDate : next })}
+                    ariaLabel="Date filter start"
+                    className="h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-[13px]"
                   />
                 </div>
                 <div className="flex-1">
                   <label className="text-[11px] text-muted-foreground/70">To</label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={activeDateFilter.endDate}
+                    onChange={(next) => onDateFilterChange({ mode: 'custom', startDate: activeDateFilter.startDate, endDate: next })}
                     min={activeDateFilter.startDate}
-                    onChange={(e) => onDateFilterChange({ mode: 'custom', startDate: activeDateFilter.startDate, endDate: e.target.value })}
-                    className="h-10 rounded-xl text-[13px]"
+                    ariaLabel="Date filter end"
+                    className="h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-[13px]"
                   />
                 </div>
               </div>
