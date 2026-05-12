@@ -27,14 +27,17 @@ export default function AnimatedListItem({
     <div
       data-leaving={leaving || undefined}
       className={cn(
-        'grid transition-[grid-template-rows,opacity,transform,padding,margin] duration-[280ms] ease-[var(--ease-out-quart)] motion-reduce:transition-none',
+        // `grid-cols-[minmax(0,1fr)]` keeps the implicit column from inheriting
+        // a child's max-content width — without it a non-wrapping title can
+        // stretch the row past its container on mobile.
+        'grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows,opacity,transform,padding,margin] duration-[280ms] ease-[var(--ease-out-quart)] motion-reduce:transition-none',
         leaving
           ? 'grid-rows-[0fr] opacity-0 -translate-x-1.5 scale-[0.985] pointer-events-none m-0 p-0'
           : cn('grid-rows-[1fr] opacity-100', gapClassName),
         className,
       )}
     >
-      <div className={cn('min-h-0', leaving && 'overflow-hidden')}>{children}</div>
+      <div className={cn('min-h-0 min-w-0', leaving && 'overflow-hidden')}>{children}</div>
     </div>
   );
 }
