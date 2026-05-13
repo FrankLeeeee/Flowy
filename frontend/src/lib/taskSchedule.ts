@@ -1,5 +1,6 @@
 import { formatIsoDate } from 'flowy-shared';
 import type { Task } from '@/types';
+import { formatDurationMinutes } from './taskDuration';
 
 export function getTodayDateInputValue(date = new Date()): string {
   return formatIsoDate(date);
@@ -37,6 +38,18 @@ export function formatTaskScheduleCompact(date: string, time: string | null): st
     : date;
 
   return time ? `${formattedDate} ${time}` : formattedDate;
+}
+
+export function formatTaskTimeDurationPill(
+  time: string | null | undefined,
+  durationMinutes: number | null | undefined,
+): string | null {
+  const hasTime = !!time;
+  const hasDuration = durationMinutes != null && Number.isFinite(durationMinutes) && durationMinutes > 0;
+  if (!hasTime && !hasDuration) return null;
+  if (hasTime && hasDuration) return `${time} → ${formatDurationMinutes(durationMinutes)}`;
+  if (hasTime) return time as string;
+  return formatDurationMinutes(durationMinutes);
 }
 
 export function compareTasksBySchedule(a: Task, b: Task): number {

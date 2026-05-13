@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatTaskSchedule,
   formatTaskScheduleCompact,
+  formatTaskTimeDurationPill,
   getTodayDateInputValue,
   normalizeScheduledTime,
   sortTasksBySchedule,
@@ -66,6 +67,39 @@ describe('taskSchedule helpers', () => {
 
     it('returns just the formatted date when time is null', () => {
       expect(formatTaskScheduleCompact('2026-05-05', null)).not.toMatch(/\d{2}:\d{2}/);
+    });
+  });
+
+  describe('formatTaskTimeDurationPill', () => {
+    it('returns null when neither time nor duration is set', () => {
+      expect(formatTaskTimeDurationPill(null, null)).toBeNull();
+      expect(formatTaskTimeDurationPill(undefined, undefined)).toBeNull();
+      expect(formatTaskTimeDurationPill('', 0)).toBeNull();
+      expect(formatTaskTimeDurationPill('', null)).toBeNull();
+      expect(formatTaskTimeDurationPill(null, 0)).toBeNull();
+    });
+
+    it('returns just the time when only time is set', () => {
+      expect(formatTaskTimeDurationPill('09:30', null)).toBe('09:30');
+      expect(formatTaskTimeDurationPill('09:30', 0)).toBe('09:30');
+      expect(formatTaskTimeDurationPill('09:30', undefined)).toBe('09:30');
+    });
+
+    it('returns just the duration when only duration is set', () => {
+      expect(formatTaskTimeDurationPill(null, 30)).toBe('30m');
+      expect(formatTaskTimeDurationPill('', 90)).toBe('1h 30m');
+      expect(formatTaskTimeDurationPill(undefined, 60)).toBe('1h');
+    });
+
+    it('joins time and duration with an arrow when both are set', () => {
+      expect(formatTaskTimeDurationPill('09:30', 30)).toBe('09:30 → 30m');
+      expect(formatTaskTimeDurationPill('14:00', 90)).toBe('14:00 → 1h 30m');
+    });
+
+    it('treats negative or non-finite durations as not set', () => {
+      expect(formatTaskTimeDurationPill('09:30', -10)).toBe('09:30');
+      expect(formatTaskTimeDurationPill('09:30', Number.NaN)).toBe('09:30');
+      expect(formatTaskTimeDurationPill(null, -5)).toBeNull();
     });
   });
 
