@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { RecurrenceRule, RecurrenceFrequency } from '../types';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Repeat, X } from 'lucide-react';
@@ -128,12 +130,11 @@ export function RecurrencePanel({ value, onChange }: RecurrencePanelProps) {
           <div className="h-5 w-9 rounded-full bg-foreground/10 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-muted-foreground/60 after:transition-all after:content-[''] peer-checked:bg-primary/20 peer-checked:after:translate-x-full peer-checked:after:bg-primary" />
         </label>
         {rule.time && (
-          <Input
-            type="time"
-            step={60}
+          <TimePicker
             value={rule.time}
-            onChange={(e) => update({ time: e.target.value || null })}
-            className="h-7 w-[100px] border-border/60 bg-card text-[12px] shadow-soft"
+            onChange={(next) => update({ time: next || null })}
+            ariaLabel="Recurrence time"
+            className="h-7 min-w-[60px] rounded-md border border-border/60 bg-card px-2.5 text-[12px] font-medium shadow-soft"
           />
         )}
       </div>
@@ -160,11 +161,11 @@ export function RecurrencePanel({ value, onChange }: RecurrencePanelProps) {
           </SelectContent>
         </Select>
         {rule.endDate && (
-          <Input
-            type="date"
+          <DatePicker
             value={rule.endDate}
-            onChange={(e) => update({ endDate: e.target.value || null })}
-            className="h-7 w-[130px] border-border/60 bg-card text-[12px] shadow-soft"
+            onChange={(next) => update({ endDate: next || null })}
+            ariaLabel="Recurrence end date"
+            className="h-7 min-w-[120px] rounded-md border border-border/60 bg-card px-2.5 text-[12px] font-medium shadow-soft"
           />
         )}
       </div>

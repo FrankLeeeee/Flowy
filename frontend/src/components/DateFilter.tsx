@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Button } from '@/components/ui/button';
 
 interface DateFilterProps {
@@ -89,21 +89,21 @@ export default function DateFilter({ value, onChange, className }: DateFilterPro
           <div className="mt-1 flex flex-col gap-2 px-2 pb-2">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/75">From</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="h-8 rounded-lg border-border/60 text-[12px]"
+                onChange={setCustomStart}
+                ariaLabel="Custom range start"
+                className="h-8 w-full rounded-lg border border-border/60 bg-background px-2.5 text-[12px]"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/75">To</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={customEnd}
+                onChange={setCustomEnd}
                 min={customStart}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="h-8 rounded-lg border-border/60 text-[12px]"
+                ariaLabel="Custom range end"
+                className="h-8 w-full rounded-lg border border-border/60 bg-background px-2.5 text-[12px]"
               />
             </div>
             <Button size="sm" onClick={handleCustomApply} className="h-7 rounded-full px-3 text-[11px]">

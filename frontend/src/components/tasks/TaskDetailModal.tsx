@@ -6,6 +6,8 @@ import { RecurrenceTrigger, RecurrencePanel, defaultRecurrenceRule } from '@/com
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { MarkdownEditor, MARKDOWN_LINK_COMPONENTS } from '@/components/ui/markdown-editor';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -380,12 +382,13 @@ export default function TaskDetailModal({
                         <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
                         <span className="font-medium">Date</span>
                       </div>
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={scheduledDate}
-                        onChange={(e) => { setScheduledDate(e.target.value); if (e.target.value) saveField({ scheduledDate: e.target.value }); }}
+                        onChange={(next) => { setScheduledDate(next); if (next) saveField({ scheduledDate: next }); }}
                         required
-                        className="h-auto w-[130px] border-0 bg-transparent p-0 text-right text-[13px] font-medium text-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        align="end"
+                        ariaLabel="Scheduled date"
+                        className="justify-end text-right text-[13px] font-medium"
                       />
                     </div>
 
@@ -394,12 +397,13 @@ export default function TaskDetailModal({
                         <Clock3 className="h-4 w-4 shrink-0 opacity-60" />
                         <span className="font-medium">Time</span>
                       </div>
-                      <Input
-                        type="time"
-                        step={60}
+                      <TimePicker
                         value={scheduledTime}
-                        onChange={(e) => { setScheduledTime(e.target.value); saveField({ scheduledTime: e.target.value || null }); }}
-                        className="h-auto w-[90px] border-0 bg-transparent p-0 text-right text-[13px] font-medium text-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        onChange={(next) => { setScheduledTime(next); saveField({ scheduledTime: next || null }); }}
+                        align="end"
+                        ariaLabel="Scheduled time"
+                        allowClear
+                        className="justify-end text-right text-[13px] font-medium"
                       />
                     </div>
 
@@ -498,23 +502,23 @@ export default function TaskDetailModal({
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
                       <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={scheduledDate}
-                        onChange={(e) => { setScheduledDate(e.target.value); if (e.target.value) saveField({ scheduledDate: e.target.value }); }}
+                        onChange={(next) => { setScheduledDate(next); if (next) saveField({ scheduledDate: next }); }}
                         required
-                        className="h-5 w-[118px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        ariaLabel="Scheduled date"
+                        className="h-5 min-w-[110px] p-0 text-[11px]"
                       />
                     </div>
 
                     <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
                       <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        type="time"
-                        step={60}
+                      <TimePicker
                         value={scheduledTime}
-                        onChange={(e) => { setScheduledTime(e.target.value); saveField({ scheduledTime: e.target.value || null }); }}
-                        className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        onChange={(next) => { setScheduledTime(next); saveField({ scheduledTime: next || null }); }}
+                        ariaLabel="Scheduled time"
+                        allowClear
+                        className="h-5 min-w-[44px] p-0 text-[11px]"
                       />
                     </div>
 
