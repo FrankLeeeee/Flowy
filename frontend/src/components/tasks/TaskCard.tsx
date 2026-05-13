@@ -3,8 +3,9 @@ import { Task, Runner, Label } from '../../types';
 import { PRIORITY_ICON } from '@/lib/taskConstants';
 import { cn, formatElapsedTime } from '@/lib/utils';
 import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
+import { formatDurationMinutes } from '@/lib/taskDuration';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
-import { CalendarDays, Clock3, Repeat } from 'lucide-react';
+import { CalendarDays, Clock3, Hourglass, Repeat } from 'lucide-react';
 
 export default memo(function TaskCard({
   task, runner, allLabels = [], onClick,
@@ -14,6 +15,8 @@ export default memo(function TaskCard({
   const labels: string[] = useMemo(() => JSON.parse(task.labels || '[]'), [task.labels]);
   const priorityStyles = getTaskPriorityStyles(task.priority);
   const elapsed = formatElapsedTime(task.started_at, task.completed_at);
+  const showTimeAndDuration = !!task.scheduled_time && !!task.scheduled_duration_minutes;
+  const durationLabel = task.scheduled_duration_minutes ? formatDurationMinutes(task.scheduled_duration_minutes) : '';
 
   return (
     <button
@@ -42,6 +45,20 @@ export default memo(function TaskCard({
 
       {/* Title */}
       <p className="text-[13px] font-medium text-foreground leading-snug line-clamp-2">{task.title}</p>
+
+      {/* Time + duration (shown above pills when both are set) */}
+      {showTimeAndDuration && (
+        <div className="mt-1.5 flex items-center gap-2 text-[11px] font-medium text-muted-foreground/85">
+          <span className="inline-flex items-center gap-1">
+            <Clock3 className="h-3 w-3" />
+            {task.scheduled_time}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Hourglass className="h-3 w-3" />
+            {durationLabel}
+          </span>
+        </div>
+      )}
 
       {/* Meta */}
       {(labels.length > 0 || runner || task.ai_provider || task.recurrence_rule) && (

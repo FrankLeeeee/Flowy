@@ -177,7 +177,7 @@ export async function fetchTasks(filters?: {
 
 export async function createTask(body: {
   listId?: string | null; title: string; description?: string; priority?: string; labels?: string[];
-  scheduledDate?: string; scheduledTime?: string | null;
+  scheduledDate?: string; scheduledTime?: string | null; scheduledDurationMinutes?: number | null;
   runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
   recurrenceRule?: RecurrenceRule | null;
   clientMutationId?: string;
@@ -210,6 +210,7 @@ export async function createTask(body: {
     output: null,
     scheduled_date: mutationBody.scheduledDate ?? new Date().toISOString().slice(0, 10),
     scheduled_time: mutationBody.scheduledTime ?? null,
+    scheduled_duration_minutes: mutationBody.scheduledDurationMinutes ?? null,
     recurrence_rule: mutationBody.recurrenceRule ? JSON.stringify(mutationBody.recurrenceRule) : null,
     started_at: null,
     completed_at: null,
@@ -228,6 +229,7 @@ export async function getTask(id: string): Promise<Task> {
 export async function updateTask(id: string, body: {
   title?: string; description?: string; status?: string; priority?: string;
   labels?: string[]; scheduledDate?: string; scheduledTime?: string | null;
+  scheduledDurationMinutes?: number | null;
   runnerId?: string | null; aiProvider?: string | null; harnessConfig?: HarnessConfig | null;
   recurrenceRule?: RecurrenceRule | null;
 }): Promise<Task> {
@@ -250,6 +252,7 @@ export async function updateTask(id: string, body: {
       labels: body.labels !== undefined ? JSON.stringify(body.labels) : task.labels,
       scheduled_date: body.scheduledDate !== undefined ? body.scheduledDate : task.scheduled_date,
       scheduled_time: body.scheduledTime !== undefined ? body.scheduledTime : task.scheduled_time,
+      scheduled_duration_minutes: body.scheduledDurationMinutes !== undefined ? body.scheduledDurationMinutes : task.scheduled_duration_minutes,
       recurrence_rule: body.recurrenceRule !== undefined ? (body.recurrenceRule ? JSON.stringify(body.recurrenceRule) : null) : task.recurrence_rule,
       updated_at: nowIso(),
     };

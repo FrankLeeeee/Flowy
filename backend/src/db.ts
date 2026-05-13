@@ -93,6 +93,7 @@ function migrate(): void {
       output        TEXT,
       scheduled_date TEXT NOT NULL DEFAULT (date('now')),
       scheduled_time TEXT,
+      scheduled_duration_minutes INTEGER,
       recurrence_rule TEXT,
       started_at    TEXT,
       completed_at  TEXT,
@@ -171,6 +172,7 @@ function migrate(): void {
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_client_mutation_id ON tasks(client_mutation_id) WHERE client_mutation_id IS NOT NULL');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);
   ensureTaskScheduleColumns();
+  ensureColumn('tasks', 'scheduled_duration_minutes', 'INTEGER');
   ensureColumn('tasks', 'recurrence_rule', 'TEXT');
   ensureColumn('lists', 'icon', 'TEXT');
   ensureColumn('lists', 'position', 'INTEGER NOT NULL DEFAULT 0');

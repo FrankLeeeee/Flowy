@@ -81,12 +81,12 @@ export function spawnNextRecurrence(task: Task): Task | null {
   const spawn = db.transaction(() => {
     db.prepare(`
       INSERT INTO tasks (id, list_id, task_number, task_key, title, description, priority, labels,
-        scheduled_date, scheduled_time, recurrence_rule, status, runner_id, ai_provider, harness_config,
+        scheduled_date, scheduled_time, scheduled_duration_minutes, recurrence_rule, status, runner_id, ai_provider, harness_config,
         created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, task.list_id, taskNumber, taskKey, task.title, task.description, task.priority,
-      task.labels, nextDate, scheduledTime, task.recurrence_rule, initialStatus,
+      task.labels, nextDate, scheduledTime, task.scheduled_duration_minutes, task.recurrence_rule, initialStatus,
       task.runner_id, task.ai_provider, task.harness_config, now, now,
     );
 

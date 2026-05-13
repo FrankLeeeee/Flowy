@@ -23,7 +23,8 @@ import { getTaskRunnerActionState } from '../../lib/taskRunnerActions';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { STATUS_CONFIG, AI_LABELS, TASK_STATUSES } from '../../lib/taskConstants';
-import { CalendarDays, Clock3, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog, Tag, Repeat } from 'lucide-react';
+import DurationPicker from './DurationPicker';
+import { CalendarDays, Clock3, Hourglass, Trash2, Download, ArrowRight, X, Expand, Play, RotateCcw, UserPlus, UserCog, Tag, Repeat } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = TASK_STATUSES.map((value) => ({
   value,
@@ -78,6 +79,7 @@ export default function TaskDetailModal({
   const [priority, setPriority] = useState(task.priority);
   const [scheduledDate, setScheduledDate] = useState(task.scheduled_date);
   const [scheduledTime, setScheduledTime] = useState(normalizeScheduledTime(task.scheduled_time));
+  const [scheduledDurationMinutes, setScheduledDurationMinutes] = useState<number | null>(task.scheduled_duration_minutes);
   const [labelsText, setLabelsText] = useState<string>(task.labels ? (JSON.parse(task.labels || '[]') as string[]).join(', ') : '');
   const [assignRunnerId, setAssignRunnerId] = useState(task.runner_id ?? '');
   const [assignAiProvider, setAssignAiProvider] = useState<AiProvider | ''>((task.ai_provider as AiProvider | null) ?? '');
@@ -403,6 +405,18 @@ export default function TaskDetailModal({
 
                     <div className="flex items-center justify-between gap-3 py-3">
                       <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                        <Hourglass className="h-4 w-4 shrink-0 opacity-60" />
+                        <span className="font-medium">Duration</span>
+                      </div>
+                      <DurationPicker
+                        value={scheduledDurationMinutes}
+                        onChange={(next) => { setScheduledDurationMinutes(next); saveField({ scheduledDurationMinutes: next }); }}
+                        variant="inline"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 py-3">
+                      <div className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
                         <Repeat className="h-4 w-4 shrink-0 opacity-60" />
                         <span className="font-medium">Repeat</span>
                       </div>
@@ -501,6 +515,14 @@ export default function TaskDetailModal({
                         value={scheduledTime}
                         onChange={(e) => { setScheduledTime(e.target.value); saveField({ scheduledTime: e.target.value || null }); }}
                         className="h-5 w-[78px] border-0 bg-transparent p-0 text-[11px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-foreground/[0.04] px-3 py-1.5 text-[11px] font-medium shadow-none">
+                      <Hourglass className="h-3.5 w-3.5 text-muted-foreground" />
+                      <DurationPicker
+                        value={scheduledDurationMinutes}
+                        onChange={(next) => { setScheduledDurationMinutes(next); saveField({ scheduledDurationMinutes: next }); }}
                       />
                     </div>
 
