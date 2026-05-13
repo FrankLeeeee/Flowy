@@ -203,13 +203,25 @@ router.put('/:id', (req: Request, res: Response) => {
     ? (recurrenceRule ? JSON.stringify(recurrenceRule) : null)
     : task.recurrence_rule;
 
+  const now = utcNow();
+  // Stamp completed_at when a task transitions into 'done', and clear it on
+  // transitions back to a non-terminal status so the field reliably reflects
+  // the most recent completion time for ordering.
+  let resolvedCompletedAt = task.completed_at;
+  if (resolvedStatus === 'done' && task.status !== 'done') {
+    resolvedCompletedAt = now;
+  } else if (resolvedStatus !== 'done' && resolvedStatus !== 'failed' && task.status === 'done') {
+    resolvedCompletedAt = null;
+  }
+
   db.prepare(`
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
       labels = ?, scheduled_date = ?, scheduled_time = ?,
       scheduled_duration_minutes = ?,
       recurrence_rule = ?,
-      runner_id = ?, ai_provider = ?, harness_config = ?, updated_at = ?
+      runner_id = ?, ai_provider = ?, harness_config = ?,
+      completed_at = ?, updated_at = ?
     WHERE id = ?
   `).run(
     title ?? task.title,
@@ -224,7 +236,8 @@ router.put('/:id', (req: Request, res: Response) => {
     resolvedRunnerId,
     resolvedAiProvider,
     harnessConfig !== undefined ? normalizeHarnessConfig(harnessConfig) : task.harness_config,
-    utcNow(),
+    resolvedCompletedAt,
+    now,
     req.params.id,
   );
 

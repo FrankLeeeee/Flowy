@@ -17,7 +17,7 @@ import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import TaskDetailModal from "@/components/tasks/TaskDetailModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { cn, applyStatusChange } from "@/lib/utils";
 import { getToneStyles } from "@/lib/semanticColors";
 import {
   DateFilterState,
@@ -121,7 +121,7 @@ export default function MobileInbox() {
     }
   };
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? applyStatusChange(t, newStatus) : t)));
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };

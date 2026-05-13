@@ -16,7 +16,7 @@ import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Inbox as InboxIcon, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, applyStatusChange } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
@@ -84,7 +84,7 @@ export default function Inbox() {
     try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); }
   };
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? applyStatusChange(t, newStatus) : t)));
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };

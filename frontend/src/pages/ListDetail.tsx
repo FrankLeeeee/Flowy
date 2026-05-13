@@ -25,7 +25,7 @@ import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppDialogBody, AppDialogContent, AppDialogEyebrow, AppDialogFooter, AppDialogHeader, AppDialogSection, APP_DIALOG_TONE_STYLES } from '@/components/ui/app-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { FolderOpen, Plus, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, applyStatusChange } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { DateFilterState, defaultDateFilter, filterTasksByDate } from '@/lib/dateFilter';
 import { getDesktopPageContainerClassName } from '@/lib/pageLayout';
@@ -99,7 +99,7 @@ export default function ListDetail() {
   const handleTaskUpdate = (updated: Task) => { setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); setDetailTask(updated); };
   const handleTaskClick = async (task: Task) => { try { setDetailTask(await getTask(task.id)); } catch { setDetailTask(task); } };
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? applyStatusChange(t, newStatus) : t)));
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };

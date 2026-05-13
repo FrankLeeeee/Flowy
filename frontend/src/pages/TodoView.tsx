@@ -3,7 +3,7 @@ import { Label, Task } from '../types';
 import { fetchLabels, fetchTasks, updateTask } from '../api/client';
 import { STATUS_CONFIG, PRIORITY_ICON } from '@/lib/taskConstants';
 import { getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles, getToneStyles } from '@/lib/semanticColors';
-import { cn } from '@/lib/utils';
+import { cn, sortByCompletedAtDesc, applyStatusChange } from '@/lib/utils';
 import { ListTodo, ChevronDown, Check, Circle, Repeat } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -138,7 +138,7 @@ export default function TodoView() {
   }, [loadData]);
 
   const handleCheck = async (task: Task) => {
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: 'done' } : t)));
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? applyStatusChange(t, 'done') : t)));
     try {
       await updateTask(task.id, { status: 'done' });
     } catch {
@@ -147,7 +147,7 @@ export default function TodoView() {
   };
 
   const uncompleted = tasks.filter((t) => t.status !== 'done');
-  const completed = tasks.filter((t) => t.status === 'done');
+  const completed = sortByCompletedAtDesc(tasks.filter((t) => t.status === 'done'));
   const uncompletedAnimated = useAnimatedList(uncompleted);
   const completedAnimated = useAnimatedList(completed);
 

@@ -173,6 +173,64 @@ describe('tasks route', () => {
     expect(updated.body.scheduled_duration_minutes).toBeNull();
   });
 
+  it('stamps completed_at when status transitions to done', async () => {
+    const created = await postTask({
+      title: 'Mark me done',
+      scheduledDate: '2026-05-12',
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.completed_at).toBeNull();
+
+    const updated = await putTask(created.body.id as string, { status: 'done' });
+    expect(updated.status).toBe(200);
+    expect(updated.body.status).toBe('done');
+    expect(updated.body.completed_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  });
+
+  it('does not restamp completed_at when status is already done', async () => {
+    const created = await postTask({
+      title: 'Stable completion time',
+      scheduledDate: '2026-05-12',
+    });
+    const firstDone = await putTask(created.body.id as string, { status: 'done' });
+    const firstCompletedAt = firstDone.body.completed_at as string;
+    expect(firstCompletedAt).toBeTruthy();
+
+    // Wait a tick so a re-stamp would differ from the original timestamp.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const renamed = await putTask(created.body.id as string, { title: 'Renamed but still done' });
+    expect(renamed.body.completed_at).toBe(firstCompletedAt);
+  });
+
+  it('clears completed_at when moving a done task back to a non-terminal status', async () => {
+    // Without a runner/provider the task lands in 'backlog' rather than 'todo',
+    // but the completed_at lifecycle should fire regardless of which
+    // non-terminal status it ends up in.
+    const created = await postTask({
+      title: 'Reopen me',
+      scheduledDate: '2026-05-12',
+    });
+    await putTask(created.body.id as string, { status: 'done' });
+
+    const reopened = await putTask(created.body.id as string, { status: 'todo' });
+    expect(reopened.body.status).toBe('backlog');
+    expect(reopened.body.completed_at).toBeNull();
+  });
+
+  it('preserves completed_at when moving from done to failed', async () => {
+    const created = await postTask({
+      title: 'Done then failed',
+      scheduledDate: '2026-05-12',
+    });
+    const done = await putTask(created.body.id as string, { status: 'done' });
+    const completedAt = done.body.completed_at as string;
+
+    const failed = await putTask(created.body.id as string, { status: 'failed' });
+    expect(failed.body.status).toBe('failed');
+    expect(failed.body.completed_at).toBe(completedAt);
+  });
+
   it('does not consume an extra list task number for an idempotent replay', async () => {
     db.getDb().prepare(`
       INSERT INTO lists (id, name, description, next_task_num)

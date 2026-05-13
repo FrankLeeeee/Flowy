@@ -7,7 +7,7 @@ import TaskDetailModal from '../../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import MobilePageLayout from '@/components/mobile/MobilePageLayout';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { cn, applyStatusChange } from '@/lib/utils';
 import { getToneStyles } from '@/lib/semanticColors';
 import { formatDateLabel } from '@/lib/mobileDateBar';
 import { getTodayDateString } from '@/lib/dateFilter';
@@ -85,7 +85,7 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
   };
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? applyStatusChange(t, newStatus) : t)));
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };
