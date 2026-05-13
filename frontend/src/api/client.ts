@@ -3,6 +3,7 @@ import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, Harnes
 import { getCached, setCached } from '../lib/offlineStore';
 import { isOnline, queueMutation } from '../lib/syncQueue';
 import { patchSwCache, patchSwCacheByPathname, removeById, tempId, upsertById } from '../lib/optimisticCache';
+import { generateId } from '../lib/utils';
 
 const api = axios.create({ baseURL: '/api', withCredentials: true });
 
@@ -184,7 +185,7 @@ export async function createTask(body: {
 }): Promise<Task> {
   const mutationBody = {
     ...body,
-    clientMutationId: body.clientMutationId ?? crypto.randomUUID(),
+    clientMutationId: body.clientMutationId ?? generateId(),
   };
 
   if (isOnline()) {

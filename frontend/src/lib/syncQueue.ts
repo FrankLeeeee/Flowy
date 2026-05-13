@@ -1,3 +1,5 @@
+import { generateId } from './utils';
+
 export interface QueuedMutation {
   id: string;
   url: string;
@@ -17,7 +19,7 @@ export async function queueMutation(
   body?: unknown,
 ): Promise<void> {
   const payload: QueuedMutation = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     url,
     method,
     headers: { 'Content-Type': 'application/json' },

@@ -7,12 +7,14 @@
  * we patch the cached response in place so the next read sees the change.
  */
 
+import { generateId } from './utils';
+
 const CACHE_NAME = 'flowy-api-v1';
 
 export const TEMP_ID_PREFIX = 'tmp-';
 
 export function tempId(): string {
-  return `${TEMP_ID_PREFIX}${crypto.randomUUID()}`;
+  return `${TEMP_ID_PREFIX}${generateId()}`;
 }
 
 export function isTempId(id: string | null | undefined): boolean {
