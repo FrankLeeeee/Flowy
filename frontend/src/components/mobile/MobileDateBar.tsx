@@ -49,9 +49,9 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
     setDragging(false);
     if (isDraggingUp.current) {
       if (pullY.current > PULL_THRESHOLD) setShowCalendar(true);
-    } else if (translateX < -SWIPE_THRESHOLD) {
-      onDateChange(addDays(currentDate, 1));
     } else if (translateX > SWIPE_THRESHOLD) {
+      onDateChange(addDays(currentDate, 1));
+    } else if (translateX < -SWIPE_THRESHOLD) {
       onDateChange(addDays(currentDate, -1));
     }
     setTranslateX(0);
@@ -119,7 +119,7 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
             <span
               className={cn(
                 'absolute left-0 text-[12px] text-muted-foreground/60 transition-opacity pointer-events-none',
-                translateX > 30 ? 'opacity-100' : 'opacity-0',
+                translateX < -30 ? 'opacity-100' : 'opacity-0',
               )}
             >
               ← {formatDateLabel(addDays(currentDate, -1))}
@@ -127,7 +127,7 @@ export default function MobileDateBar({ currentDate, onDateChange, onMenuClick, 
             <span
               className={cn(
                 'absolute right-0 text-[12px] text-muted-foreground/60 transition-opacity pointer-events-none',
-                translateX < -30 ? 'opacity-100' : 'opacity-0',
+                translateX > 30 ? 'opacity-100' : 'opacity-0',
               )}
             >
               {formatDateLabel(addDays(currentDate, 1))} →
