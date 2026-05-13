@@ -65,17 +65,17 @@ jobs:
           # Collect commits since last version tag (or all commits if no tag exists)
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$LAST_TAG" ]; then
-            COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+            COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges | grep -v "^- chore: bump version")
           else
-            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges | grep -v "^- chore: bump version")
           fi
 
           # Build the new changelog entry
           ENTRY=$(printf "## v%s (%s)\n\n%s" "$NEW_VERSION" "$DATE" "$COMMITS")
 
-          # Insert after the header line
+          # Insert after the preamble (blank line following the description line)
           awk -v entry="$ENTRY" '
-            /^# Changelog/ { print; getline; print; print entry; print ""; next }
+            /^All notable changes/ { print; getline; print; print entry; print ""; next }
             { print }
           ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
 
@@ -95,6 +95,7 @@ jobs:
 
       - name: Create pull request
         if: ${{ !inputs.dry_run }}
+        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -106,3 +107,4 @@ jobs:
           - \`backend\`
           - \`frontend\`
           - \`runner\`"
+
