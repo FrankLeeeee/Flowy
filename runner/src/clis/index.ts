@@ -17,6 +17,8 @@ export interface CLICommand {
   args: string[];
   cwd?: string;
   streamOutput: boolean;
+  /** Extra environment variables merged on top of the parent process env. */
+  env?: Record<string, string>;
 }
 
 /**

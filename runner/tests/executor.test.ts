@@ -8,6 +8,7 @@ describe('buildCommandWithConfig', () => {
       args: ['-p', '--permission-mode', 'bypassPermissions', 'Write a test'],
       cwd: undefined,
       streamOutput: true,
+      env: { IS_SANDBOX: '1' },
     });
   });
 
@@ -55,6 +56,7 @@ describe('buildCommandWithConfig', () => {
       ],
       cwd: '/tmp/project',
       streamOutput: true,
+      env: { IS_SANDBOX: '1' },
     });
   });
 
