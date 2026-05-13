@@ -1,13 +1,12 @@
 import { memo, useState, useMemo } from 'react';
 import { Label, Runner, Task, TaskStatus } from '@/types';
-import { ChevronDown, Check, Circle, Clock3, Hourglass, Repeat } from 'lucide-react';
+import { ChevronDown, Check, Circle, Clock3, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL } from '@/lib/taskConstants';
-import { formatDurationMinutes } from '@/lib/taskDuration';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
 import AnimatedListItem from '@/components/AnimatedListItem';
-import { sortTasksBySchedule } from '@/lib/taskSchedule';
+import { formatTaskTimeDurationPill, sortTasksBySchedule } from '@/lib/taskSchedule';
 
 const TodoRow = memo(function TodoRow({
   task,
@@ -30,8 +29,7 @@ const TodoRow = memo(function TodoRow({
   const priorityStyles = getTaskPriorityStyles(task.priority);
   const showPriority = !checked && task.priority !== 'none';
   const labels: string[] = useMemo(() => JSON.parse(task.labels || '[]'), [task.labels]);
-  const showTimeAndDuration = !!task.scheduled_time && !!task.scheduled_duration_minutes;
-  const durationLabel = task.scheduled_duration_minutes ? formatDurationMinutes(task.scheduled_duration_minutes) : '';
+  const timeDurationLabel = formatTaskTimeDurationPill(task.scheduled_time, task.scheduled_duration_minutes);
   const [optimistic, setOptimistic] = useState(false);
   const [optimisticUncheck, setOptimisticUncheck] = useState(false);
 
@@ -88,25 +86,18 @@ const TodoRow = memo(function TodoRow({
           </span>
         </div>
 
-        {showTimeAndDuration && (
-          <div className={cn('flex items-center gap-2 text-[11px] font-medium text-muted-foreground/85', isChecked && 'opacity-50')}>
-            <span className="inline-flex items-center gap-1">
-              <Clock3 className="h-3 w-3" />
-              {task.scheduled_time}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Hourglass className="h-3 w-3" />
-              {durationLabel}
-            </span>
-          </div>
-        )}
-
         {hasMetadata && (
           <div className={cn('flex min-w-0 flex-wrap items-center gap-1', isChecked && 'opacity-50')}>
             <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', statusStyles.pill)}>
               {STATUS_CONFIG[task.status].icon}
               {STATUS_CONFIG[task.status].label}
             </span>
+            {timeDurationLabel && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-foreground/8">
+                <Clock3 className="h-2.5 w-2.5" />
+                {timeDurationLabel}
+              </span>
+            )}
             {showPriority && (
               <span className={cn('inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 [&>svg]:h-2.5 [&>svg]:w-2.5', priorityStyles.pill)}>
                 {PRIORITY_ICON[task.priority]}
