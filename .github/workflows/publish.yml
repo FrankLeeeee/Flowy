@@ -46,6 +46,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify bundled dependencies
+        run: |
+          for pkg in backend runner; do
+            npm pack --workspace=$pkg --dry-run 2>&1 | grep -q "bundled deps: 1" \
+              || { echo "ERROR: $pkg is missing bundled flowy-shared"; exit 1; }
+          done
+
       - name: Publish @frankleeeee/flowy
         if: inputs.package == 'flowy' || inputs.package == 'both'
         run: |
