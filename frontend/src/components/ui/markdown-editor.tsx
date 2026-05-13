@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import type { Components } from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { getMarkdownEditorViewState } from '@/lib/markdownEditorState';
 
 export const MARKDOWN_LINK_COMPONENTS: Components = {
   a: ({ node: _node, ...props }) => (
@@ -67,6 +69,12 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const suppressUpdate = React.useRef(false);
   const [rawMarkdown, setRawMarkdown] = React.useState(defaultRawMarkdown);
+  const isMobile = useIsMobile();
+  const { showToggle, showRawText, toggleLabel } = getMarkdownEditorViewState(
+    enableRawToggle,
+    rawMarkdown,
+    isMobile,
+  );
 
   const editor = useEditor({
     extensions: [
@@ -124,21 +132,21 @@ export function MarkdownEditor({
 
   const minH = `${Math.max(rows * 1.625, 3)}rem`;
 
-  const toggleButton = enableRawToggle ? (
+  const toggleButton = showToggle ? (
     <button
       type="button"
       onClick={() => setRawMarkdown((v) => !v)}
-      aria-pressed={rawMarkdown}
-      title={rawMarkdown ? 'Switch to Markdown' : 'Switch to raw text'}
+      aria-pressed={showRawText}
+      title={showRawText ? 'Switch to Markdown' : 'Switch to raw text'}
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors',
-        rawMarkdown
+        showRawText
           ? 'bg-foreground/[0.08] text-foreground'
           : 'text-muted-foreground/60 hover:text-muted-foreground',
       )}
     >
-      {rawMarkdown ? <Eye className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
-      {rawMarkdown ? 'Markdown' : 'Raw text'}
+      {showRawText ? <Code2 className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      {toggleLabel}
     </button>
   ) : null;
 
@@ -147,10 +155,10 @@ export function MarkdownEditor({
       className={cn('flex min-w-0 flex-col gap-2', className)}
       style={{ '--editor-min-h': minH } as React.CSSProperties}
     >
-      {(editor || enableRawToggle) && (
+      {(editor || showToggle) && (
         <div className="flex flex-wrap items-center justify-between gap-1">
           <div className="flex flex-wrap items-center gap-0.5">
-            {editor && !rawMarkdown && (
+            {editor && !showRawText && (
               <>
                 <ToolbarButton
                   icon={Bold}
@@ -226,11 +234,11 @@ export function MarkdownEditor({
         placeholder={placeholder ?? 'Add description...'}
         aria-label={`${ariaLabel ?? 'Description'} (raw text)`}
         rows={rows}
-        hidden={!rawMarkdown}
+        hidden={!showRawText}
         style={{ minHeight: minH }}
-        className="w-full resize-y rounded-md border-0 bg-transparent p-0 font-mono text-[12px] leading-relaxed text-foreground/90 placeholder:text-muted-foreground/45 focus:outline-none"
+        className="w-full resize-y rounded-md border-0 bg-transparent p-0 text-[13px] leading-relaxed text-foreground/90 placeholder:text-muted-foreground/45 focus:outline-none"
       />
-      <div hidden={rawMarkdown}>
+      <div hidden={showRawText}>
         <EditorContent
           editor={editor}
           className={cn(
