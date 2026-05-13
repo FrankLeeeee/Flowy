@@ -63,7 +63,7 @@ router.get('/', (req: Request, res: Response) => {
   if (search) { conditions.push('(t.title LIKE ? OR t.description LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const rows = getDb().prepare(`SELECT t.* FROM tasks t ${where} ORDER BY t.updated_at DESC`).all(...params) as Task[];
+  const rows = getDb().prepare(`SELECT t.* FROM tasks t ${where} ORDER BY t.scheduled_date ASC, COALESCE(NULLIF(t.scheduled_time, ''), '00:00') ASC`).all(...params) as Task[];
   res.json(rows);
 });
 

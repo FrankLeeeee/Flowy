@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Task, Runner, TaskStatus } from '../../types';
 import { STATUS_CONFIG, PRIORITY_ICON, TASK_STATUSES } from '@/lib/taskConstants';
 import { cn } from '@/lib/utils';
-import { formatTaskScheduleCompact } from '@/lib/taskSchedule';
+import { compareTasksBySchedule, formatTaskScheduleCompact } from '@/lib/taskSchedule';
 import { getTaskPriorityStyles, getTaskStatusStyles } from '@/lib/semanticColors';
 import { GripVertical, Repeat } from 'lucide-react';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
@@ -137,6 +137,7 @@ export default function TaskListView({
     const list = grouped.get(t.status);
     if (list) list.push(t);
   }
+  for (const list of grouped.values()) list.sort(compareTasksBySchedule);
 
   // Only show statuses that have tasks, or all if drag-and-drop is enabled
   const visibleStatuses = TASK_STATUSES.filter(

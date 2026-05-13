@@ -6,6 +6,7 @@ import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL } from '@/lib/taskConstant
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
 import AnimatedListItem from '@/components/AnimatedListItem';
+import { sortTasksBySchedule } from '@/lib/taskSchedule';
 
 const TodoRow = memo(function TodoRow({
   task,
@@ -146,8 +147,14 @@ export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTa
   const runnerMap = new Map(runners.map((r) => [r.id, r]));
   const [completedOpen, setCompletedOpen] = useState(false);
 
-  const uncompleted = tasks.filter((t) => t.status !== 'done' && t.status !== 'cancelled');
-  const completed = tasks.filter((t) => t.status === 'done');
+  const uncompleted = useMemo(
+    () => sortTasksBySchedule(tasks.filter((t) => t.status !== 'done' && t.status !== 'cancelled')),
+    [tasks],
+  );
+  const completed = useMemo(
+    () => sortTasksBySchedule(tasks.filter((t) => t.status === 'done')),
+    [tasks],
+  );
   const uncompletedAnimated = useAnimatedList(uncompleted);
   const completedAnimated = useAnimatedList(completed);
 
