@@ -8,9 +8,13 @@
   "files": [
     "dist/"
   ],
+  "bundledDependencies": [
+    "flowy-shared"
+  ],
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/cli.ts --",
     "build": "tsc",
+    "prepack": "rm -rf node_modules/flowy-shared && mkdir -p node_modules/flowy-shared && cp -r ../shared/dist ../shared/package.json node_modules/flowy-shared/",
     "start": "node dist/cli.js"
   },
   "dependencies": {
