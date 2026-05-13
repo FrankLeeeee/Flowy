@@ -8,7 +8,7 @@ import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetailModal from '../components/tasks/TaskDetailModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { getToneStyles } from '@/lib/semanticColors';
-import { cn } from '@/lib/utils';
+import { cn, applyStatusChange } from '@/lib/utils';
 import { CalendarDays, CalendarRange, Layers, Plus } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
 import { Button } from '@/components/ui/button';
@@ -100,7 +100,7 @@ export default function ScheduledTasksView({ mode }: { mode: ViewMode }) {
   };
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? applyStatusChange(t, newStatus) : t)));
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };

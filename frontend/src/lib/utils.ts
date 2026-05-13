@@ -1,11 +1,49 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { parseUtcTimestamp } from 'flowy-shared';
+import type { Task } from '@/types';
 
 export { parseUtcTimestamp } from 'flowy-shared';
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Sort completed tasks so the most recently completed appears first.
+ * Falls back to `updated_at` for legacy rows where `completed_at` is null
+ * (older manually-completed tasks predating the completed_at stamp).
+ */
+export function sortByCompletedAtDesc<T extends Pick<Task, 'completed_at' | 'updated_at'>>(tasks: T[]): T[] {
+  return [...tasks].sort((a, b) => {
+    const aTime = parseUtcTimestamp(a.completed_at ?? a.updated_at);
+    const bTime = parseUtcTimestamp(b.completed_at ?? b.updated_at);
+    const aValid = Number.isFinite(aTime);
+    const bValid = Number.isFinite(bTime);
+    if (!aValid && !bValid) return 0;
+    if (!aValid) return 1;
+    if (!bValid) return -1;
+    return bTime - aTime;
+  });
+}
+
+/**
+ * Apply a status change to a task in local state, mirroring the backend's
+ * completed_at lifecycle: stamp completed_at when entering 'done', clear it
+ * on transitions back to non-terminal statuses. Keeps optimistic UI ordering
+ * consistent with the server's view.
+ */
+export function applyStatusChange<T extends Pick<Task, 'status' | 'completed_at'>>(
+  task: T,
+  newStatus: Task['status'],
+): T {
+  if (newStatus === 'done' && task.status !== 'done') {
+    return { ...task, status: newStatus, completed_at: new Date().toISOString() };
+  }
+  if (task.status === 'done' && newStatus !== 'done' && newStatus !== 'failed') {
+    return { ...task, status: newStatus, completed_at: null };
+  }
+  return { ...task, status: newStatus };
 }
 
 /** Human-readable relative time string for a UTC ISO timestamp. */

@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { Task, Runner, Label, TaskStatus } from '../../types';
 import { TASK_STATUSES } from '@/lib/taskConstants';
 import { compareTasksBySchedule } from '@/lib/taskSchedule';
+import { sortByCompletedAtDesc } from '@/lib/utils';
 import KanbanColumn from './KanbanColumn';
 
 export default function KanbanBoard({
@@ -19,7 +20,11 @@ export default function KanbanBoard({
     const list = grouped.get(t.status);
     if (list) list.push(t);
   }
-  for (const list of grouped.values()) list.sort(compareTasksBySchedule);
+  for (const [status, list] of grouped) {
+    if (status === 'done') continue;
+    list.sort(compareTasksBySchedule);
+  }
+  grouped.set('done', sortByCompletedAtDesc(grouped.get('done') ?? []));
 
   const handleDrop = (taskId: string, newStatus: TaskStatus) => {
     const task = tasks.find((t) => t.id === taskId);

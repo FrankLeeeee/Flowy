@@ -1,7 +1,7 @@
 import { memo, useState, useMemo } from 'react';
 import { Label, Runner, Task, TaskStatus } from '@/types';
 import { ChevronDown, Check, Circle, Clock3, Repeat } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, sortByCompletedAtDesc } from '@/lib/utils';
 import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL } from '@/lib/taskConstants';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
@@ -159,7 +159,7 @@ export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTa
     [tasks],
   );
   const completed = useMemo(
-    () => sortTasksBySchedule(tasks.filter((t) => t.status === 'done')),
+    () => sortByCompletedAtDesc(tasks.filter((t) => t.status === 'done')),
     [tasks],
   );
   const uncompletedAnimated = useAnimatedList(uncompleted);

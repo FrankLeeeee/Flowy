@@ -36,7 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { cn, applyStatusChange } from "@/lib/utils";
 import { getToneStyles } from "@/lib/semanticColors";
 import {
   ArrowLeft,
@@ -169,7 +169,7 @@ export default function MobileListDetail() {
     }
   };
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? applyStatusChange(t, newStatus) : t)));
     try { await updateTask(taskId, { status: newStatus }); }
     catch { loadData(); }
   };
