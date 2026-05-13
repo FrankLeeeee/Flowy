@@ -36,6 +36,9 @@ export const claudeCodeProvider: CLIProvider = {
       args,
       cwd: config.workspace,
       streamOutput: true,
+      // Claude refuses --permission-mode bypassPermissions when running as
+      // root/sudo unless IS_SANDBOX=1 signals an opted-in sandboxed environment.
+      env: { IS_SANDBOX: '1' },
     };
   },
 };

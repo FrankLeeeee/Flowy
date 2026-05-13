@@ -20,7 +20,7 @@ export interface SpawnHandle {
 /** Shared child-process spawning logic used by both task and session executors. */
 export function spawnCliProcess(options: SpawnOptions): SpawnHandle {
   const { command, onOutput, flushIntervalMs, captureFullOutput, gateFlushOnStream } = options;
-  const { cmd, args, cwd, streamOutput } = command;
+  const { cmd, args, cwd, streamOutput, env: extraEnv } = command;
 
   let child: ChildProcess;
   let fullOutput = '';
@@ -33,7 +33,7 @@ export function spawnCliProcess(options: SpawnOptions): SpawnHandle {
     child = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd,
-      env: { ...process.env },
+      env: { ...process.env, ...extraEnv },
     });
 
     const flush = () => {
