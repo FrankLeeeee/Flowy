@@ -193,6 +193,8 @@ export default function TaskDetailModal({
     hasRunnerAssignment: !!task.runner_id,
     hasAiProvider: !!task.ai_provider,
     running,
+    scheduledDate,
+    scheduledTime,
   });
   const isRerun = TERMINAL_STATUSES.includes(status);
 
