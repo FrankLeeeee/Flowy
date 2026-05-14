@@ -16,6 +16,12 @@ export interface ClaudeCodeHarnessConfig {
   workspace?: string;
   model?: string;
   worktree?: string;
+  /**
+   * When `false`, the runner launches `claude` inside a detached tmux session
+   * and pipes the pane output back instead of invoking `claude -p`. Defaults
+   * to `true` (preserves the historical `-p` behaviour).
+   */
+  runWithPrint?: boolean;
 }
 
 export interface CursorAgentHarnessConfig {

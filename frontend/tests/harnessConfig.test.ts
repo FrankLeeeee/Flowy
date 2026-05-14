@@ -39,7 +39,22 @@ describe('harnessConfig', () => {
         workspace: '/path',
         model: 'opus',
         worktree: 'feature-branch',
+        runWithPrint: undefined,
       });
+    });
+
+    it('parses claudeCode.runWithPrint=false (tmux mode)', () => {
+      const result = parseHarnessConfig(JSON.stringify({
+        claudeCode: { workspace: '/path', runWithPrint: false },
+      }));
+      expect(result.claudeCode?.runWithPrint).toBe(false);
+    });
+
+    it('ignores non-boolean runWithPrint values', () => {
+      const result = parseHarnessConfig(JSON.stringify({
+        claudeCode: { workspace: '/path', runWithPrint: 'no' },
+      }));
+      expect(result.claudeCode?.runWithPrint).toBeUndefined();
     });
 
     it('parses cursorAgent config with all fields', () => {
@@ -109,6 +124,21 @@ describe('harnessConfig', () => {
       });
       expect(badges).toContain('Workspace: /path');
       expect(badges).toContain('Worktree: feat');
+      expect(badges).not.toContain('Mode: tmux (no -p)');
+    });
+
+    it('adds the tmux-mode badge when claudeCode.runWithPrint is false', () => {
+      const badges = getHarnessConfigBadges('claude-code', {
+        claudeCode: { workspace: '/path', runWithPrint: false },
+      });
+      expect(badges).toContain('Mode: tmux (no -p)');
+    });
+
+    it('omits the tmux-mode badge when claudeCode.runWithPrint is true', () => {
+      const badges = getHarnessConfigBadges('claude-code', {
+        claudeCode: { workspace: '/path', runWithPrint: true },
+      });
+      expect(badges).not.toContain('Mode: tmux (no -p)');
     });
 
     it('builds cursor-agent badges', () => {

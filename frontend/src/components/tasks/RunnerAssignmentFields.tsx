@@ -295,6 +295,22 @@ export default function RunnerAssignmentFields({
                 className={FIELD_CLASSNAME}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium">Run with --print (-p)</Label>
+              <Select
+                value={claudeConfig.runWithPrint === false ? 'tmux' : 'print'}
+                onValueChange={(value) => updateClaudeConfig({ runWithPrint: value === 'tmux' ? false : undefined })}
+              >
+                <SelectTrigger className={SELECT_TRIGGER_CLASSNAME}><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                  <SelectItem value="print" className="rounded-lg py-2 text-[11px]">Yes — use `claude -p`</SelectItem>
+                  <SelectItem value="tmux" className="rounded-lg py-2 text-[11px]">No — run inside tmux</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground/70">
+                tmux mode launches `claude` interactively in a detached tmux session and streams the pane back. Use this when `-p` is unavailable; requires tmux on the runner.
+              </p>
+            </div>
           </div>
         </AppDialogSection>
       )}

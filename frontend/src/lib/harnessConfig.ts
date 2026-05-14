@@ -26,6 +26,7 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
         workspace: getString(claudeCode.workspace),
         model: getString(claudeCode.model),
         worktree: getString(claudeCode.worktree),
+        runWithPrint: typeof claudeCode.runWithPrint === 'boolean' ? claudeCode.runWithPrint : undefined,
       } : undefined,
       cursorAgent: cursorAgent ? {
         workspace: getString(cursorAgent.workspace),
@@ -68,6 +69,7 @@ export function getHarnessConfigBadges(provider: AiProvider | null, config: Harn
         harness.workspace ? `Workspace: ${harness.workspace}` : null,
         harness.model ? `Model: ${harness.model}` : null,
         harness.worktree ? `Worktree: ${harness.worktree}` : null,
+        harness.runWithPrint === false ? 'Mode: tmux (no -p)' : null,
       ].filter((entry): entry is string => Boolean(entry));
     }
     case 'cursor-agent': {

@@ -105,7 +105,7 @@ Copy the registration command from the hub's `Runners` page. The command include
 5. **Execute** — When a task is picked up, the runner spawns the appropriate AI CLI tool as a child process:
    | Provider | Command |
    |----------|---------|
-   | `claude-code` | `claude -p "<task description>"` |
+   | `claude-code` | `claude -p "<task description>"` (default) or `claude` inside a tmux session when `Run with --print` is set to *No* in the harness config (requires `tmux` on the runner) |
    | `codex` | `codex exec "<task description>"` |
    | `cursor-agent` | `agent --print --force "<task description>"` |
 

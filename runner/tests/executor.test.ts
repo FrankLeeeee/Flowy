@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { buildCommandWithConfig, prepareCommandWithConfig } from '../src/executor';
+import {
+  CLAUDE_TMUX_IDLE_ENV,
+  CLAUDE_TMUX_MODEL_ENV,
+  CLAUDE_TMUX_PROMPT_ENV,
+  CLAUDE_TMUX_WORKTREE_ENV,
+  CLAUDE_TMUX_WRAPPER_SCRIPT,
+} from '../src/clis/claudeTmux';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -129,9 +136,144 @@ describe('buildCommandWithConfig', () => {
     });
   });
 
+  it('keeps `-p` when claudeCode.runWithPrint is explicitly true', () => {
+    expect(buildCommandWithConfig('claude-code', 'Ship it', JSON.stringify({
+      claudeCode: { runWithPrint: true, model: 'sonnet' },
+    }))).toEqual({
+      cmd: 'claude',
+      args: ['-p', '--model', 'sonnet', '--permission-mode', 'bypassPermissions', 'Ship it'],
+      cwd: undefined,
+      streamOutput: true,
+      env: { IS_SANDBOX: '1' },
+    });
+  });
+
+  it('wraps claude in a tmux script when runWithPrint is false', () => {
+    const result = buildCommandWithConfig('claude-code', 'Refactor the executor', JSON.stringify({
+      claudeCode: {
+        workspace: '/tmp/project',
+        model: 'sonnet',
+        worktree: 'feature-x',
+        runWithPrint: false,
+      },
+    }));
+
+    expect(result.cmd).toBe('bash');
+    expect(result.args[0]).toBe('-c');
+    expect(result.args[1]).toBe(CLAUDE_TMUX_WRAPPER_SCRIPT);
+    expect(result.cwd).toBe('/tmp/project');
+    expect(result.streamOutput).toBe(true);
+    expect(result.env).toMatchObject({
+      IS_SANDBOX: '1',
+      [CLAUDE_TMUX_PROMPT_ENV]: 'Refactor the executor',
+      [CLAUDE_TMUX_MODEL_ENV]: 'sonnet',
+      [CLAUDE_TMUX_WORKTREE_ENV]: 'feature-x',
+    });
+    expect(result.args.some((a) => a === '-p')).toBe(false);
+  });
+
+  it('omits model/worktree env vars when not set in tmux mode', () => {
+    const result = buildCommandWithConfig('claude-code', 'Ship it', JSON.stringify({
+      claudeCode: { runWithPrint: false },
+    }));
+    expect(result.env).toEqual({
+      IS_SANDBOX: '1',
+      [CLAUDE_TMUX_PROMPT_ENV]: 'Ship it',
+    });
+  });
+
+  it('threads through FLOWY_CLAUDE_IDLE_S from the runner environment in tmux mode', () => {
+    const previous = process.env[CLAUDE_TMUX_IDLE_ENV];
+    process.env[CLAUDE_TMUX_IDLE_ENV] = '90';
+    try {
+      const result = buildCommandWithConfig('claude-code', 'Ship it', JSON.stringify({
+        claudeCode: { runWithPrint: false },
+      }));
+      expect(result.env?.[CLAUDE_TMUX_IDLE_ENV]).toBe('90');
+    } finally {
+      if (previous === undefined) delete process.env[CLAUDE_TMUX_IDLE_ENV];
+      else process.env[CLAUDE_TMUX_IDLE_ENV] = previous;
+    }
+  });
+
   it('throws for unsupported providers', () => {
     expect(() => buildCommandWithConfig('unknown', 'Prompt')).toThrow('Unknown AI provider: unknown');
   });
+});
+
+describe('claudeTmux wrapper script', () => {
+  it('expands env-var references to the bash-visible names', () => {
+    // Sanity-check that TS template interpolation produced literal bash
+    // parameter expansions for each input — protects against accidentally
+    // baking the env value into the script at compile time.
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('${FLOWY_CLAUDE_PROMPT');
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('${FLOWY_CLAUDE_MODEL');
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('${FLOWY_CLAUDE_WORKTREE');
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('${FLOWY_CLAUDE_IDLE_S');
+  });
+
+  it('runs the claude command (no -p) inside tmux new-session', () => {
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('tmux new-session');
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('claude --permission-mode bypassPermissions');
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).not.toContain('claude -p');
+  });
+
+  it('sets up cleanup on EXIT/INT/TERM so kill propagates to tmux', () => {
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('trap cleanup EXIT INT TERM');
+    expect(CLAUDE_TMUX_WRAPPER_SCRIPT).toContain('tmux kill-session');
+  });
+
+  it('parses as valid bash syntax', () => {
+    const result = execFileSync('bash', ['-n', '-c', CLAUDE_TMUX_WRAPPER_SCRIPT], { stdio: ['ignore', 'pipe', 'pipe'] });
+    expect(result.toString()).toBe('');
+  });
+
+  // Runs the real wrapper end-to-end against a fake `claude` binary so we can
+  // assert that the orchestration actually captures and forwards the prompt's
+  // output. Skipped automatically when tmux is unavailable.
+  it('captures fake-claude output through the tmux pipeline', () => {
+    try {
+      execFileSync('tmux', ['-V'], { stdio: 'ignore' });
+    } catch {
+      return;
+    }
+
+    const shimDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowy-claude-shim-'));
+    try {
+      const shim = path.join(shimDir, 'claude');
+      // Fake claude: print a marker, read one line of "user input", echo it,
+      // then exit. The wrapper's send-keys will deliver the prompt.
+      fs.writeFileSync(shim,
+        '#!/bin/bash\n' +
+        'echo "FAKE_CLAUDE_READY"\n' +
+        'read -r line\n' +
+        'echo "FAKE_CLAUDE_GOT:$line"\n' +
+        'sleep 0.2\n' +
+        'echo "FAKE_CLAUDE_DONE"\n',
+        { mode: 0o755 },
+      );
+
+      const env = {
+        ...process.env,
+        PATH: `${shimDir}:${process.env.PATH ?? ''}`,
+        [CLAUDE_TMUX_PROMPT_ENV]: 'hello-tmux',
+        // Use a tight idle window so the test finishes fast (3s poll × 2 windows + slack).
+        [CLAUDE_TMUX_IDLE_ENV]: '4',
+      };
+
+      const out = execFileSync('bash', ['-c', CLAUDE_TMUX_WRAPPER_SCRIPT], {
+        env,
+        encoding: 'utf8',
+        timeout: 20_000,
+      });
+
+      expect(out).toContain('FAKE_CLAUDE_READY');
+      expect(out).toContain('FAKE_CLAUDE_GOT:hello-tmux');
+      expect(out).toContain('FAKE_CLAUDE_DONE');
+    } finally {
+      fs.rmSync(shimDir, { recursive: true, force: true });
+    }
+  }, 25_000);
 });
 
 describe('prepareCommandWithConfig (codex worktree)', () => {
