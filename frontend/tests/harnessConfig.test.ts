@@ -21,12 +21,13 @@ describe('harnessConfig', () => {
 
     it('parses codex config', () => {
       const result = parseHarnessConfig(JSON.stringify({
-        codex: { workspace: '/path', model: 'gpt-4', sandbox: 'read-only' },
+        codex: { workspace: '/path', model: 'gpt-4', sandbox: 'read-only', worktree: 'feat' },
       }));
       expect(result.codex).toEqual({
         workspace: '/path',
         model: 'gpt-4',
         sandbox: 'read-only',
+        worktree: 'feat',
       });
     });
 
@@ -94,11 +95,12 @@ describe('harnessConfig', () => {
 
     it('builds codex badges', () => {
       const badges = getHarnessConfigBadges('codex', {
-        codex: { workspace: '/path', model: 'gpt-4', sandbox: 'read-only' },
+        codex: { workspace: '/path', model: 'gpt-4', sandbox: 'read-only', worktree: 'feat' },
       });
       expect(badges).toContain('Workspace: /path');
       expect(badges).toContain('Model: gpt-4');
       expect(badges).toContain('Sandbox: read-only');
+      expect(badges).toContain('Worktree: feat');
     });
 
     it('builds claude-code badges', () => {

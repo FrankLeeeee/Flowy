@@ -1,4 +1,5 @@
-import { buildCommandWithConfig } from './executor';
+import { prepareCommandWithConfig } from './executor';
+import { CLICommand } from './clis';
 import { spawnCliProcess } from './spawnCli';
 
 export interface SessionMessageHistory {
@@ -50,15 +51,38 @@ export function executeSessionTurn(
   onOutput: (chunk: string) => void,
 ): SessionExecution {
   const fullPrompt = composeSessionPrompt(params.history, params.prompt);
-  const command = buildCommandWithConfig(params.aiProvider, fullPrompt, params.harnessConfig);
 
-  const handle = spawnCliProcess({
-    command,
-    onOutput,
-    flushIntervalMs: 1500,
-    captureFullOutput: false,
-    gateFlushOnStream: false,
-  });
+  let killed = false;
+  let activeKill: (() => void) | null = null;
 
-  return { promise: handle.promise, kill: handle.kill };
+  const promise = (async (): Promise<{ success: boolean; output: string }> => {
+    let command: CLICommand;
+    try {
+      command = await prepareCommandWithConfig(params.aiProvider, fullPrompt, params.harnessConfig);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const errMsg = `\n[Error preparing command: ${message}]`;
+      onOutput(errMsg);
+      return { success: false, output: errMsg };
+    }
+
+    if (killed) return { success: false, output: '' };
+
+    const handle = spawnCliProcess({
+      command,
+      onOutput,
+      flushIntervalMs: 1500,
+      captureFullOutput: false,
+      gateFlushOnStream: false,
+    });
+    activeKill = handle.kill;
+    return handle.promise;
+  })();
+
+  const kill = () => {
+    killed = true;
+    if (activeKill) activeKill();
+  };
+
+  return { promise, kill };
 }

@@ -20,6 +20,7 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
         workspace: getString(codex.workspace),
         model: getString(codex.model),
         sandbox: getString(codex.sandbox) as 'read-only' | 'workspace-write' | 'danger-full-access' | undefined,
+        worktree: getString(codex.worktree),
       } : undefined,
       claudeCode: claudeCode ? {
         workspace: getString(claudeCode.workspace),
@@ -57,6 +58,7 @@ export function getHarnessConfigBadges(provider: AiProvider | null, config: Harn
         harness.workspace ? `Workspace: ${harness.workspace}` : null,
         harness.model ? `Model: ${harness.model}` : null,
         harness.sandbox ? `Sandbox: ${harness.sandbox}` : null,
+        harness.worktree ? `Worktree: ${harness.worktree}` : null,
       ].filter((entry): entry is string => Boolean(entry));
     }
     case 'claude-code': {

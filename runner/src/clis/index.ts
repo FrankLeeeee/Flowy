@@ -42,6 +42,29 @@ export interface CLIProvider {
    * @returns The command descriptor to spawn.
    */
   buildCommand(prompt: string, rawHarnessConfig: string | null | undefined): CLICommand;
+
+  /**
+   * Optional async hook for providers that need to prepare the environment
+   * before the CLI is spawned (e.g. provisioning a git worktree for CLIs that
+   * lack native worktree support). When omitted, the default behaviour is to
+   * call `buildCommand` synchronously.
+   */
+  prepareCommand?(prompt: string, rawHarnessConfig: string | null | undefined): Promise<CLICommand>;
+}
+
+/**
+ * Resolve a provider command, awaiting any async preparation (worktree setup, etc.).
+ * Falls back to the synchronous `buildCommand` when no `prepareCommand` is defined.
+ */
+export async function prepareProviderCommand(
+  provider: CLIProvider,
+  prompt: string,
+  rawHarnessConfig: string | null | undefined,
+): Promise<CLICommand> {
+  if (provider.prepareCommand) {
+    return provider.prepareCommand(prompt, rawHarnessConfig);
+  }
+  return provider.buildCommand(prompt, rawHarnessConfig);
 }
 
 const providers: CLIProvider[] = [

@@ -9,6 +9,7 @@ export interface CodexHarnessConfig {
   workspace?: string;
   model?: string;
   sandbox?: 'read-only' | 'workspace-write' | 'danger-full-access';
+  worktree?: string;
 }
 
 export interface ClaudeCodeHarnessConfig {

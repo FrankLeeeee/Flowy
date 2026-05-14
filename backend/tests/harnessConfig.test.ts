@@ -12,12 +12,13 @@ describe('normalizeHarnessConfig', () => {
 
   it('normalizes codex config', () => {
     const result = JSON.parse(normalizeHarnessConfig({
-      codex: { workspace: '/path', model: 'gpt-4', sandbox: 'read-only' },
+      codex: { workspace: '/path', model: 'gpt-4', sandbox: 'read-only', worktree: 'feat' },
     }));
     expect(result.codex).toEqual({
       workspace: '/path',
       model: 'gpt-4',
       sandbox: 'read-only',
+      worktree: 'feat',
     });
   });
 
