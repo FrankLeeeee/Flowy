@@ -21,6 +21,7 @@ function normalizeConfigObject(input: unknown): RecordLike {
       workspace: getString(codex.workspace),
       model: getString(codex.model),
       sandbox: getString(codex.sandbox),
+      worktree: getString(codex.worktree),
     }) : undefined,
     claudeCode: claudeCode ? pruneObject({
       workspace: getString(claudeCode.workspace),

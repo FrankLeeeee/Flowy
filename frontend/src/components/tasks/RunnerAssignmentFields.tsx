@@ -213,7 +213,7 @@ export default function RunnerAssignmentFields({
         <AppDialogSection className="space-y-4">
           <div>
             <h3 className="text-[13px] font-semibold text-foreground">Codex settings</h3>
-            <p className="mt-1 text-[12px] text-muted-foreground/80">Maps to `codex exec` flags for workspace, model, and sandbox.</p>
+            <p className="mt-1 text-[12px] text-muted-foreground/80">Maps to `codex exec` flags for workspace, model, and sandbox. Leave worktree blank to run against the workspace directly.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
@@ -247,6 +247,15 @@ export default function RunnerAssignmentFields({
                   <SelectItem value="danger-full-access" className="rounded-lg py-2 text-[11px]">danger-full-access</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium">Worktree name</Label>
+              <Input
+                value={codexConfig.worktree ?? ''}
+                onChange={(e) => updateCodexConfig({ worktree: e.target.value || undefined })}
+                placeholder="feature-branch"
+                className={FIELD_CLASSNAME}
+              />
             </div>
           </div>
         </AppDialogSection>
