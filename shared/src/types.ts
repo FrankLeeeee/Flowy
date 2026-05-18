@@ -170,3 +170,29 @@ export interface TaskLog {
   data: string;
   created_at: string;
 }
+
+// ── Runner CLI activity log ───────────────────────────────────────────────
+
+export type RunnerCliLogEvent =
+  | 'refresh_requested'
+  | 'update_requested'
+  | 'scan_completed';
+
+/**
+ * How a CLI scan/check was triggered:
+ * - `manual`   — a refresh/update was requested from the dashboard
+ * - `periodic` — an automatic scan (e.g. on runner startup/reconnect)
+ * - `refresh`  — scan completed in response to a manual re-check
+ * - `update`   — scan completed after a manual CLI update
+ */
+export type RunnerCliLogSource = 'manual' | 'periodic' | 'refresh' | 'update';
+
+export interface RunnerCliLog {
+  id: string;
+  runner_id: string;
+  event: RunnerCliLogEvent;
+  source: RunnerCliLogSource;
+  /** JSON payload. For `scan_completed`: `{ providers: string[]; versions: Record<string,string> }`. */
+  data: string;
+  created_at: string;
+}

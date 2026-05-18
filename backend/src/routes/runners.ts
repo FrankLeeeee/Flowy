@@ -2,8 +2,9 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
+import type Database from 'better-sqlite3';
 import { getDb } from '../db';
-import { Runner, Task, TaskLog } from '../types';
+import { Runner, Task, TaskLog, RunnerCliLog, RunnerCliLogEvent, RunnerCliLogSource } from '../types';
 import { authenticateRunner } from '../middleware/runnerAuth';
 import { requireUserAuth } from '../middleware/userAuth';
 import { loadSettings } from '../storage';
@@ -45,6 +46,18 @@ export function isTaskDue(task: Pick<Task, 'scheduled_date' | 'scheduled_time'>,
   return scheduledTimeMs !== null && scheduledTimeMs <= nowMs;
 }
 
+function recordCliLog(
+  db: Database.Database,
+  runnerId: string,
+  event: RunnerCliLogEvent,
+  source: RunnerCliLogSource,
+  data: Record<string, unknown> = {},
+): void {
+  db.prepare(
+    'INSERT INTO runner_cli_logs (id, runner_id, event, source, data, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+  ).run(uuid(), runnerId, event, source, JSON.stringify(data), utcNow());
+}
+
 // ── In-memory browse-request store ────────────────────────────────────────
 interface PendingBrowseRequest {
   requestId: string;
@@ -82,6 +95,38 @@ router.get('/', requireUserAuth, (_req: Request, res: Response) => {
   const rows = getDb().prepare('SELECT * FROM runners ORDER BY created_at DESC').all() as Runner[];
   const safe = rows.map(({ token: _t, ...rest }) => rest);
   res.json(safe);
+});
+
+// GET /api/runners/:id/tasks — most recent tasks handled by this runner
+router.get('/:id/tasks', requireUserAuth, (req: Request, res: Response) => {
+  const db = getDb();
+  const runner = db.prepare('SELECT id FROM runners WHERE id = ?').get(req.params.id) as { id: string } | undefined;
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+
+  const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
+  const tasks = db.prepare(`
+    SELECT * FROM tasks
+    WHERE runner_id = ?
+    ORDER BY updated_at DESC, created_at DESC
+    LIMIT ?
+  `).all(req.params.id, limit) as Task[];
+  res.json(tasks);
+});
+
+// GET /api/runners/:id/cli-logs — recent periodic/manual CLI check & update activity
+router.get('/:id/cli-logs', requireUserAuth, (req: Request, res: Response) => {
+  const db = getDb();
+  const runner = db.prepare('SELECT id FROM runners WHERE id = ?').get(req.params.id) as { id: string } | undefined;
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+
+  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+  const logs = db.prepare(`
+    SELECT * FROM runner_cli_logs
+    WHERE runner_id = ?
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).all(req.params.id, limit) as RunnerCliLog[];
+  res.json(logs);
 });
 
 // POST /api/runners/register — register a new runner
@@ -171,6 +216,7 @@ router.post('/:id/update-providers', requireUserAuth, (req: Request, res: Respon
     SET cli_update_requested_at = ?, updated_at = ?
     WHERE id = ?
   `).run(now, now, runner.id);
+  recordCliLog(db, runner.id, 'update_requested', 'manual');
 
   res.json({ ok: true });
 });
@@ -191,6 +237,7 @@ router.post('/:id/refresh-providers', requireUserAuth, (req: Request, res: Respo
     SET cli_refresh_requested_at = ?, updated_at = ?
     WHERE id = ?
   `).run(now, now, runner.id);
+  recordCliLog(db, runner.id, 'refresh_requested', 'manual');
 
   res.json({ ok: true });
 });
@@ -236,6 +283,22 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
 
   const refreshCli = isNewerThanScan(current?.cli_refresh_requested_at);
   const updateCli = isNewerThanScan(current?.cli_update_requested_at);
+
+  // A scan completed when the runner reports a CLI scan time newer than the
+  // one we last stored (startup/reconnect scans, or a finished refresh/update).
+  const previousScanAt = current?.last_cli_scan_at ?? null;
+  const scanCompleted = Boolean(
+    lastCliScanAt && (!previousScanAt || parseUtcTimestamp(lastCliScanAt) > parseUtcTimestamp(previousScanAt)),
+  );
+  if (scanCompleted) {
+    let source: RunnerCliLogSource = 'periodic';
+    if (!updateCli && current?.cli_update_requested_at) source = 'update';
+    else if (!refreshCli && current?.cli_refresh_requested_at) source = 'refresh';
+    recordCliLog(db, runner.id, 'scan_completed', source, {
+      providers: aiProviders ?? [],
+      versions: cliVersions ?? {},
+    });
+  }
 
   if (!refreshCli && current?.cli_refresh_requested_at) {
     db.prepare(`

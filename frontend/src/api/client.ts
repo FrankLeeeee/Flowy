@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage, RecurrenceRule, Template, Workspace } from '../types';
+import { Settings, List, Task, TaskStatus, TaskPriority, Runner, TaskLog, RunnerCliLog, HarnessConfig, Label, LabelColor, Skill, AiProvider, Stats, Session, SessionMessage, RecurrenceRule, Template, Workspace } from '../types';
 import { getCached, setCached } from '../lib/offlineStore';
 import { isOnline, queueMutation } from '../lib/syncQueue';
 import { patchSwCache, patchSwCacheByPathname, removeById, tempId, upsertById } from '../lib/optimisticCache';
@@ -376,6 +376,16 @@ export async function refreshRunnerProviders(id: string): Promise<void> {
 
 export async function updateRunnerProviders(id: string): Promise<void> {
   await api.post(`/runners/${id}/update-providers`);
+}
+
+export async function fetchRunnerTasks(id: string, limit = 10): Promise<Task[]> {
+  const { data } = await api.get<Task[]>(`/runners/${id}/tasks`, { params: { limit } });
+  return data;
+}
+
+export async function fetchRunnerCliLogs(id: string, limit = 20): Promise<RunnerCliLog[]> {
+  const { data } = await api.get<RunnerCliLog[]>(`/runners/${id}/cli-logs`, { params: { limit } });
+  return data;
 }
 
 export interface BrowseEntry {
