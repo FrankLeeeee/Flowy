@@ -76,7 +76,9 @@ if ('serviceWorker' in navigator) {
       const dx = e.touches[0].clientX - startX;
       if (dx > THRESHOLD) {
         fired = true;
-        window.dispatchEvent(new CustomEvent('flowy:open-drawer'));
+        if (!document.querySelector('[role="dialog"]')) {
+          window.dispatchEvent(new CustomEvent('flowy:open-drawer'));
+        }
       }
     }
   }, { passive: false });

@@ -45,7 +45,9 @@ export function useSwipeToDismiss({
     startX.current = touch.clientX;
     startY.current = touch.clientY;
     horizontal.current = false;
+    dismissing.current = false;
     setAnimating(false);
+    setOffset(0);
   }, []);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
@@ -67,7 +69,12 @@ export function useSwipeToDismiss({
       dismissing.current = true;
       setAnimating(true);
       setOffset(dismissTranslateX(offset, window.innerWidth || 1));
-      window.setTimeout(onDismiss, SWIPE_EXIT_DURATION_MS);
+      window.setTimeout(() => {
+        onDismiss();
+        dismissing.current = false;
+        setOffset(0);
+        setAnimating(false);
+      }, SWIPE_EXIT_DURATION_MS);
     } else {
       setAnimating(true);
       setOffset(0);
