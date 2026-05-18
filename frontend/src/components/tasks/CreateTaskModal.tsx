@@ -113,7 +113,7 @@ export default function CreateTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !isSubmitting) onClose(); }}>
-      <AppDialogContent className="mb-[calc(env(safe-area-inset-bottom)+4.5rem)] flex max-h-[calc(100svh-6rem)] flex-col gap-0 overflow-hidden sm:mb-0 sm:max-h-[80svh] sm:max-w-2xl">
+      <AppDialogContent className="flex flex-col gap-0 overflow-hidden sm:max-h-[80svh] sm:max-w-2xl">
         <AppDialogHeader>
           <DialogTitle className="sr-only">Create a new task</DialogTitle>
           <DialogDescription className="sr-only">Create a new task with title, description, list, priority, and labels.</DialogDescription>

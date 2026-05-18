@@ -217,7 +217,7 @@ export default function TaskDetailModal({
       <AppDialogContent
         variant="drawer"
         onOpenAutoFocus={(event) => event.preventDefault()}
-        className="flex h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden rounded-none sm:h-full sm:max-h-none sm:min-h-0 sm:max-w-[520px]"
+        className="flex min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden rounded-none sm:h-full sm:min-h-0 sm:max-w-[520px]"
       >
         <AppDialogHeader className="shrink-0">
           <DialogTitle className="sr-only">{task.task_key} Details</DialogTitle>
@@ -744,8 +744,8 @@ export default function TaskDetailModal({
       </AppDialogContent>
 
       <Dialog open={outputFullscreenOpen} onOpenChange={setOutputFullscreenOpen}>
-        <AppDialogContent className="h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] w-full min-w-0 max-w-none gap-0 overflow-hidden bg-background sm:h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl">
-          <AppDialogHeader className="pr-14">
+        <AppDialogContent className="w-full min-w-0 max-w-none gap-0 overflow-hidden bg-background sm:h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl">
+          <AppDialogHeader>
             <DialogTitle className="sr-only">{task.title} output</DialogTitle>
             <DialogDescription className="sr-only">Full-screen task output</DialogDescription>
             <AppDialogEyebrow>Task output</AppDialogEyebrow>

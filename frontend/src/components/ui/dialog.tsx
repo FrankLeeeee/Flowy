@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { useSwipeToDismiss } from '@/hooks/useSwipeToDismiss';
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -26,44 +27,61 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { variant?: 'dialog' | 'drawer' }
->(({ className, children, variant = 'dialog', ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        // ── Base ──
-        'fixed z-50 grid w-full gap-4 border border-border/80 bg-background shadow-soft duration-200',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out',
-        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-        // ── Mobile: top-sheet (leaves the lower half free for the keyboard) ──
-        'inset-x-0 top-[max(env(safe-area-inset-top),0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] rounded-b-2xl p-0',
-        'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
-        // ── Desktop: variant-specific ──
-        variant === 'dialog' && [
-          'sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-h-none sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-0',
-          'sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
-          'sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]',
-          'sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]',
-          'sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0',
-        ],
-        variant === 'drawer' && [
-          'sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 sm:max-h-none sm:max-w-md sm:rounded-none sm:rounded-l-xl sm:border-r-0 sm:p-0',
-          'sm:data-[state=open]:slide-in-from-right sm:data-[state=closed]:slide-out-to-right',
-          'sm:data-[state=open]:slide-in-from-top-0 sm:data-[state=closed]:slide-out-to-top-0',
-        ],
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full border border-border/50 bg-background/85 p-1.5 text-muted-foreground/70 shadow-soft transition-colors hover:bg-background hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-        <X className="h-3.5 w-3.5" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
+>(({ className, children, variant = 'dialog', style, ...props }, ref) => {
+  const isMobile = useIsMobile();
+  const closeRef = React.useRef<HTMLButtonElement>(null);
+  const { swipeHandlers, swipeStyle } = useSwipeToDismiss({
+    enabled: isMobile,
+    onDismiss: () => closeRef.current?.click(),
+  });
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          // ── Base ──
+          'fixed z-50 grid w-full gap-4 border border-border/80 bg-background shadow-soft duration-200',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out',
+          'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+          // ── Mobile: full-screen sheet (swipe left/right to dismiss) ──
+          'inset-0 max-h-none w-full rounded-none p-0',
+          'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
+          'touch-pan-y data-[state=open]:slide-in-from-top',
+          // ── Desktop: variant-specific ──
+          variant === 'dialog' && [
+            'sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-h-none sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-0 sm:touch-auto',
+            'sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
+            'sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]',
+            'sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]',
+            'sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0',
+          ],
+          variant === 'drawer' && [
+            'sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 sm:max-h-none sm:max-w-md sm:rounded-none sm:rounded-l-xl sm:border-r-0 sm:p-0 sm:touch-auto',
+            'sm:data-[state=open]:slide-in-from-right sm:data-[state=closed]:slide-out-to-right',
+            'sm:data-[state=open]:slide-in-from-top-0 sm:data-[state=closed]:slide-out-to-top-0',
+          ],
+          className
+        )}
+        {...props}
+        {...swipeHandlers}
+        style={{ ...style, ...swipeStyle }}
+      >
+        {children}
+        {/* Hidden close target: lets the swipe gesture (and Esc/backdrop) close
+            the dialog through Radix while respecting the consumer's
+            onOpenChange guards. The visible "X" button was removed. */}
+        <DialogPrimitive.Close
+          ref={closeRef}
+          aria-hidden
+          tabIndex={-1}
+          className="sr-only"
+        />
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+});
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
