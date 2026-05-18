@@ -115,62 +115,6 @@ describe('parseModelLines', () => {
   });
 });
 
-describe('detectPtyModels', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('returns parsed models from the PTY script output', () => {
-    vi.spyOn(config.childProcess, 'spawnSync').mockReturnValue({
-      status: 0,
-      stdout: '  claude-sonnet-4-6\n  claude-opus-4-6\n  claude-haiku-4-5-20251001\n',
-      stderr: '',
-    } as ReturnType<typeof config.childProcess.spawnSync>);
-
-    expect(config.detectPtyModels('claude', '/model')).toEqual([
-      'claude-sonnet-4-6',
-      'claude-opus-4-6',
-      'claude-haiku-4-5-20251001',
-    ]);
-  });
-
-  it('passes command and slash command via environment variables', () => {
-    const spy = vi.spyOn(config.childProcess, 'spawnSync').mockReturnValue({
-      status: 0,
-      stdout: '  claude-sonnet-4-6\n',
-      stderr: '',
-    } as ReturnType<typeof config.childProcess.spawnSync>);
-
-    config.detectPtyModels('claude', '/model');
-
-    expect(spy).toHaveBeenCalledWith(
-      process.execPath,
-      ['-e', expect.any(String)],
-      expect.objectContaining({
-        env: expect.objectContaining({ FLOWY_PTY_CMD: 'claude', FLOWY_PTY_SLASH: '/model' }),
-      }),
-    );
-  });
-
-  it('returns [] when the node script fails', () => {
-    vi.spyOn(config.childProcess, 'spawnSync').mockReturnValue({
-      status: 1,
-      stdout: '',
-      stderr: 'script: not found',
-    } as ReturnType<typeof config.childProcess.spawnSync>);
-
-    expect(config.detectPtyModels('claude', '/model')).toEqual([]);
-  });
-
-  it('returns [] on Windows', () => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32');
-    const spawnSpy = vi.spyOn(config.childProcess, 'spawnSync');
-
-    expect(config.detectPtyModels('claude', '/model')).toEqual([]);
-    expect(spawnSpy).not.toHaveBeenCalled();
-  });
-});
-
 describe('parseCodexModels', () => {
   it('parses a JSON array of objects with id fields', () => {
     const output = '[{"id":"gpt-5.4"},{"slug":"gpt-5.3-codex"},{"name":"gpt-5.2-mini"}]';
@@ -192,7 +136,7 @@ describe('detectAvailableModels', () => {
     vi.restoreAllMocks();
   });
 
-  it('queries CLIs via non-interactive flags and via PTY for interactive-only providers', () => {
+  it('queries all CLIs via non-interactive flags including claude --print', () => {
     vi.spyOn(config.childProcess, 'spawnSync').mockImplementation(((cmd: string, args: string[]) => {
       if (cmd === 'agent' && args[0] === '--list-models') {
         return { status: 0, stdout: 'Available models:\n  gpt-5\n* auto\n', stderr: '' };
@@ -200,9 +144,8 @@ describe('detectAvailableModels', () => {
       if (cmd === 'codex' && args.join(' ') === 'debug models') {
         return { status: 0, stdout: '[{"id":"gpt-5.4"}]', stderr: '' };
       }
-      // PTY script for claude-code (spawned via node -e)
-      if (cmd === process.execPath && args[0] === '-e') {
-        return { status: 0, stdout: '  claude-sonnet-4-6\n  claude-opus-4-6\n', stderr: '' };
+      if (cmd === 'claude' && args[0] === '-p') {
+        return { status: 0, stdout: 'claude-sonnet-4-6\nclaude-opus-4-6\n', stderr: '' };
       }
       return { status: 1 };
     }) as unknown as typeof config.childProcess.spawnSync);
