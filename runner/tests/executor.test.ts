@@ -132,6 +132,30 @@ describe('buildCommandWithConfig', () => {
   it('throws for unsupported providers', () => {
     expect(() => buildCommandWithConfig('unknown', 'Prompt')).toThrow('Unknown AI provider: unknown');
   });
+
+  it('builds the standard -p command when useInteractiveMode is false', () => {
+    expect(buildCommandWithConfig('claude-code', 'Hello', JSON.stringify({
+      claudeCode: { model: 'sonnet', useInteractiveMode: false },
+    }))).toEqual({
+      cmd: 'claude',
+      args: ['-p', '--model', 'sonnet', '--permission-mode', 'bypassPermissions', 'Hello'],
+      cwd: undefined,
+      streamOutput: true,
+      env: { IS_SANDBOX: '1' },
+    });
+  });
+
+  it('builds the standard -p command when useInteractiveMode is absent', () => {
+    expect(buildCommandWithConfig('claude-code', 'Hello', JSON.stringify({
+      claudeCode: { model: 'opus' },
+    }))).toEqual({
+      cmd: 'claude',
+      args: ['-p', '--model', 'opus', '--permission-mode', 'bypassPermissions', 'Hello'],
+      cwd: undefined,
+      streamOutput: true,
+      env: { IS_SANDBOX: '1' },
+    });
+  });
 });
 
 describe('prepareCommandWithConfig (codex worktree)', () => {

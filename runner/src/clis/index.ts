@@ -50,6 +50,18 @@ export interface CLIProvider {
    * call `buildCommand` synchronously.
    */
   prepareCommand?(prompt: string, rawHarnessConfig: string | null | undefined): Promise<CLICommand>;
+
+  /**
+   * Optional custom execution path for providers that need a fundamentally
+   * different spawning mechanism (e.g. PTY-based interactive mode).
+   * Return a handle to manage the process, or `null` to fall back to the
+   * standard buildCommand + spawnCliProcess flow.
+   */
+  execute?(
+    prompt: string,
+    rawHarnessConfig: string | null | undefined,
+    onOutput: (chunk: string) => void,
+  ): { promise: Promise<{ success: boolean; output: string }>; kill: () => void } | null;
 }
 
 /**

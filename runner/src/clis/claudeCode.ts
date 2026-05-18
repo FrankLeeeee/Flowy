@@ -1,10 +1,12 @@
 import { CLICommand, CLIProvider } from './index';
 import { asRecord, getString, parseRootConfig } from './utils';
+import { spawnInteractiveClaude } from './ptyExecutor';
 
 export interface ClaudeCodeConfig {
   workspace?: string;
   model?: string;
   worktree?: string;
+  useInteractiveMode?: boolean;
 }
 
 function parseConfig(raw: string | null | undefined): ClaudeCodeConfig {
@@ -15,6 +17,10 @@ function parseConfig(raw: string | null | undefined): ClaudeCodeConfig {
     workspace: getString(section.workspace),
     model: getString(section.model),
     worktree: getString(section.worktree),
+    useInteractiveMode:
+      typeof section.useInteractiveMode === 'boolean'
+        ? section.useInteractiveMode
+        : undefined,
   };
 }
 
@@ -40,5 +46,22 @@ export const claudeCodeProvider: CLIProvider = {
       // root/sudo unless IS_SANDBOX=1 signals an opted-in sandboxed environment.
       env: { IS_SANDBOX: '1' },
     };
+  },
+
+  execute(
+    prompt: string,
+    rawHarnessConfig: string | null | undefined,
+    onOutput: (chunk: string) => void,
+  ) {
+    const config = parseConfig(rawHarnessConfig);
+    if (!config.useInteractiveMode) return null;
+
+    return spawnInteractiveClaude({
+      prompt,
+      model: config.model,
+      cwd: config.workspace,
+      worktree: config.worktree,
+      onOutput,
+    });
   },
 };

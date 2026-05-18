@@ -362,6 +362,19 @@ export default function RunnerAssignmentFields({
               />
             </div>
             <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium">Execution mode</Label>
+              <Select
+                value={claudeConfig.useInteractiveMode ? 'interactive' : 'print'}
+                onValueChange={(value) => updateClaudeConfig({ useInteractiveMode: value === 'interactive' ? true : undefined })}
+              >
+                <SelectTrigger className={SELECT_TRIGGER_CLASSNAME}><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                  <SelectItem value="print" className="rounded-lg py-2 text-[11px]">Print (-p)</SelectItem>
+                  <SelectItem value="interactive" className="rounded-lg py-2 text-[11px]">Interactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Worktree name</Label>
               <Input
                 value={claudeConfig.worktree ?? ''}

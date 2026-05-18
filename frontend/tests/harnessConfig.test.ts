@@ -42,6 +42,24 @@ describe('harnessConfig', () => {
       });
     });
 
+    it('parses claudeCode config with useInteractiveMode', () => {
+      const result = parseHarnessConfig(JSON.stringify({
+        claudeCode: { workspace: '/path', model: 'sonnet', useInteractiveMode: true },
+      }));
+      expect(result.claudeCode).toEqual({
+        workspace: '/path',
+        model: 'sonnet',
+        useInteractiveMode: true,
+      });
+    });
+
+    it('ignores non-boolean useInteractiveMode', () => {
+      const result = parseHarnessConfig(JSON.stringify({
+        claudeCode: { model: 'opus', useInteractiveMode: 'yes' },
+      }));
+      expect(result.claudeCode?.useInteractiveMode).toBeUndefined();
+    });
+
     it('parses cursorAgent config with all fields', () => {
       const result = parseHarnessConfig(JSON.stringify({
         cursorAgent: { workspace: '/path', model: 'gpt-4', mode: 'plan', sandbox: 'enabled', worktree: 'branch' },
@@ -109,6 +127,20 @@ describe('harnessConfig', () => {
       });
       expect(badges).toContain('Workspace: /path');
       expect(badges).toContain('Worktree: feat');
+    });
+
+    it('includes interactive mode badge when enabled', () => {
+      const badges = getHarnessConfigBadges('claude-code', {
+        claudeCode: { useInteractiveMode: true },
+      });
+      expect(badges).toContain('Mode: interactive');
+    });
+
+    it('omits interactive mode badge when disabled', () => {
+      const badges = getHarnessConfigBadges('claude-code', {
+        claudeCode: { model: 'opus' },
+      });
+      expect(badges).not.toContain('Mode: interactive');
     });
 
     it('builds cursor-agent badges', () => {
