@@ -200,7 +200,12 @@ router.post('/:id/refresh-providers', requireUserAuth, (req: Request, res: Respo
 // POST /api/runners/heartbeat
 router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   const db = getDb();
-  const { aiProviders, lastCliScanAt, cliVersions } = req.body as { aiProviders?: string[]; lastCliScanAt?: string; cliVersions?: Record<string, string> };
+  const { aiProviders, lastCliScanAt, cliVersions, cliModels } = req.body as {
+    aiProviders?: string[];
+    lastCliScanAt?: string;
+    cliVersions?: Record<string, string>;
+    cliModels?: Record<string, string[]>;
+  };
   const runner = req.runner!;
   const current = db.prepare(`
     SELECT status, cli_refresh_requested_at, cli_update_requested_at, last_cli_scan_at
@@ -221,6 +226,7 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   if (aiProviders) { sets.push('ai_providers = ?'); params.push(JSON.stringify(aiProviders)); }
   if (lastCliScanAt) { sets.push('last_cli_scan_at = ?'); params.push(lastCliScanAt); }
   if (cliVersions) { sets.push('cli_versions = ?'); params.push(JSON.stringify(cliVersions)); }
+  if (cliModels) { sets.push('cli_models = ?'); params.push(JSON.stringify(cliModels)); }
   params.push(runner.id);
   db.prepare(`UPDATE runners SET ${sets.join(', ')} WHERE id = ?`).run(...params);
 

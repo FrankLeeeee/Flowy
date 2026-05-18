@@ -168,6 +168,7 @@ function migrate(): void {
   ensureColumn('runners', 'cli_refresh_requested_at', 'TEXT');
   ensureColumn('runners', 'cli_update_requested_at', 'TEXT');
   ensureColumn('runners', 'cli_versions', 'TEXT');
+  ensureColumn('runners', 'cli_models', 'TEXT');
   ensureColumn('tasks', 'client_mutation_id', 'TEXT');
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_client_mutation_id ON tasks(client_mutation_id) WHERE client_mutation_id IS NOT NULL');
   ensureColumn('tasks', 'harness_config', `TEXT NOT NULL DEFAULT '{}'`);

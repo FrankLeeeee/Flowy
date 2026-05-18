@@ -3,7 +3,13 @@ import fs from 'fs';
 import path from 'path';
 import { RegisterResponse, RunnerConfig } from './types';
 import { RunnerApi, SessionCommand } from './api';
-import { deleteToken, detectAvailableProvidersWithVersions, saveToken, updateInstalledClis } from './config';
+import {
+  deleteToken,
+  detectAvailableModels,
+  detectAvailableProvidersWithVersions,
+  saveToken,
+  updateInstalledClis,
+} from './config';
 import { executeTask } from './executor';
 import { applySkillCommand, listSkills } from './skills';
 import { executeSessionTurn } from './sessionExecutor';
@@ -18,6 +24,7 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
   const api = new RunnerApi(config.url);
   let availableProviders = [...config.providers];
   let cliVersions = { ...config.cliVersions };
+  let cliModels = { ...config.cliModels };
   let lastCliScanAt = config.lastCliScanAt;
 
   let executing = false;
@@ -125,20 +132,24 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     }
   };
 
+  const rescanClis = () => {
+    ({ providers: availableProviders, versions: cliVersions } = detectAvailableProvidersWithVersions());
+    cliModels = detectAvailableModels(availableProviders);
+    lastCliScanAt = new Date().toISOString();
+  };
+
   const sendHeartbeat = async () => {
-    const response = await api.heartbeat(availableProviders, lastCliScanAt, cliVersions);
+    const response = await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels);
     if (response.updateCli) {
       console.log('Updating installed CLIs to latest versions...');
       updateInstalledClis(availableProviders);
-      ({ providers: availableProviders, versions: cliVersions } = detectAvailableProvidersWithVersions());
-      lastCliScanAt = new Date().toISOString();
+      rescanClis();
       console.log(`CLIs updated. Available: ${availableProviders.join(', ') || '(none)'}`);
-      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions);
+      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels);
     } else if (response.refreshCli) {
-      ({ providers: availableProviders, versions: cliVersions } = detectAvailableProvidersWithVersions());
-      lastCliScanAt = new Date().toISOString();
+      rescanClis();
       console.log(`Refreshing available CLIs: ${availableProviders.join(', ') || '(none)'}`);
-      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions);
+      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels);
     }
   };
 
