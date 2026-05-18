@@ -664,13 +664,13 @@ export default function Runners() {
         </AppDialogContent>
       </Dialog>
 
-      {selectedRunner && (
-        <RunnerDetailDrawer
-          open={!!selectedRunner}
-          runner={selectedRunner}
-          onClose={() => setSelectedRunnerId(null)}
-        />
-      )}
+      {/* Stays mounted so the drawer can play its slide-out animation; the
+          drawer renders nothing until a runner has been opened. */}
+      <RunnerDetailDrawer
+        open={!!selectedRunner}
+        runner={selectedRunner}
+        onClose={() => setSelectedRunnerId(null)}
+      />
     </div>
   );
 }

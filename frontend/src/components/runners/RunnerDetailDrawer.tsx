@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Runner, Task, RunnerCliLog, AiProvider } from '../../types';
 import { fetchRunnerTasks, fetchRunnerCliLogs } from '../../api/client';
+import { resolveDrawerRunner } from './runnerDrawerState';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AppDialogBody,
@@ -70,22 +71,29 @@ export default function RunnerDetailDrawer({
   onClose,
 }: {
   open: boolean;
-  runner: Runner;
+  runner: Runner | null;
   onClose: () => void;
 }) {
+  // Keep painting the last runner while the drawer animates closed; the parent
+  // drops its selection (runner -> null) the instant it starts closing.
+  const [displayRunner, setDisplayRunner] = useState<Runner | null>(runner);
+  useEffect(() => {
+    setDisplayRunner((prev) => resolveDrawerRunner(prev, runner));
+  }, [runner]);
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [cliLogs, setCliLogs] = useState<RunnerCliLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const providers: AiProvider[] = JSON.parse(runner.ai_providers || '[]');
-  const versions: Record<string, string> = JSON.parse(runner.cli_versions || '{}');
+  const runnerId = displayRunner?.id;
 
   const loadActivity = useCallback(async () => {
+    if (!runnerId) return;
     try {
       const [t, logs] = await Promise.all([
-        fetchRunnerTasks(runner.id, 10),
-        fetchRunnerCliLogs(runner.id, 20),
+        fetchRunnerTasks(runnerId, 10),
+        fetchRunnerCliLogs(runnerId, 20),
       ]);
       setTasks(t);
       setCliLogs(logs);
@@ -95,18 +103,34 @@ export default function RunnerDetailDrawer({
     } finally {
       setLoading(false);
     }
-  }, [runner.id]);
+  }, [runnerId]);
 
+  // Drop cached activity when the drawer targets a different runner so one
+  // runner's tasks never flash under another's header. `runnerId` is retained
+  // (not nulled) while closing, so this leaves the content intact mid-animation.
   useEffect(() => {
+    setTasks([]);
+    setCliLogs([]);
+  }, [runnerId]);
+
+  // Fetch when the drawer (re)opens or points at a different runner.
+  useEffect(() => {
+    if (!open) return;
     setLoading(true);
     loadActivity();
-  }, [loadActivity]);
+  }, [open, loadActivity]);
 
-  // Runner activity is live — refresh while the drawer stays open.
+  // Runner activity is live — refresh only while the drawer stays open.
   useEffect(() => {
+    if (!open) return;
     const iv = setInterval(loadActivity, 10_000);
     return () => clearInterval(iv);
-  }, [loadActivity]);
+  }, [open, loadActivity]);
+
+  if (!displayRunner) return null;
+
+  const providers: AiProvider[] = JSON.parse(displayRunner.ai_providers || '[]');
+  const versions: Record<string, string> = JSON.parse(displayRunner.cli_versions || '{}');
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
@@ -116,17 +140,17 @@ export default function RunnerDetailDrawer({
         className="flex h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] min-w-0 max-w-[100vw] flex-col gap-0 overflow-hidden rounded-none sm:h-full sm:max-h-none sm:min-h-0 sm:max-w-[520px]"
       >
         <AppDialogHeader className="shrink-0">
-          <DialogTitle className="sr-only">{runner.name} activity</DialogTitle>
+          <DialogTitle className="sr-only">{displayRunner.name} activity</DialogTitle>
           <DialogDescription className="sr-only">
             Recent tasks and CLI check activity for this runner
           </DialogDescription>
           <AppDialogEyebrow>Runner activity</AppDialogEyebrow>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-[15px] font-semibold leading-snug text-foreground">{runner.name}</span>
-            <RunnerStatusBadge status={runner.status} />
+            <span className="text-[15px] font-semibold leading-snug text-foreground">{displayRunner.name}</span>
+            <RunnerStatusBadge status={displayRunner.status} />
           </div>
-          {runner.device_info && (
-            <p className="mt-1 text-[12px] text-muted-foreground/80">{runner.device_info}</p>
+          {displayRunner.device_info && (
+            <p className="mt-1 text-[12px] text-muted-foreground/80">{displayRunner.device_info}</p>
           )}
         </AppDialogHeader>
 
@@ -150,10 +174,10 @@ export default function RunnerDetailDrawer({
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground/75">
-                  <div>Heartbeat: {timeAgo(runner.last_heartbeat)}</div>
-                  <div>CLI scan: {runner.last_cli_scan_at ? timeAgo(runner.last_cli_scan_at) : 'never'}</div>
-                  <div>Registered: {formatLocalDateTime(runner.created_at)}</div>
-                  <div>Updated: {formatLocalDateTime(runner.updated_at)}</div>
+                  <div>Heartbeat: {timeAgo(displayRunner.last_heartbeat)}</div>
+                  <div>CLI scan: {displayRunner.last_cli_scan_at ? timeAgo(displayRunner.last_cli_scan_at) : 'never'}</div>
+                  <div>Registered: {formatLocalDateTime(displayRunner.created_at)}</div>
+                  <div>Updated: {formatLocalDateTime(displayRunner.updated_at)}</div>
                 </div>
               </AppDialogSection>
 
