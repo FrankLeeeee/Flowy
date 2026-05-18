@@ -23,74 +23,20 @@ const PROVIDER_COMMAND: Record<string, string> = Object.fromEntries(
   SUPPORTED_PROVIDERS.map((p) => [p.id, p.command]),
 );
 
+const CLAUDE_MODEL_PROMPT = 'List every model ID you can be set to. One ID per line, nothing else.';
+
 /**
  * How to ask each CLI for the models it can run, without an interactive TUI.
  * Each entry in `argSets` is tried in order until one yields a parseable,
- * non-empty list. Providers that require PTY-based detection (Claude Code,
- * Gemini CLI) are handled separately via `detectPtyModels`.
+ * non-empty list. Claude Code uses `--print` with a lightweight prompt to
+ * extract model IDs non-interactively (its `/model` command opens an
+ * interactive TUI that cannot be driven through piped stdio).
  */
 const CLI_MODEL_QUERIES: Record<string, { argSets: string[][]; parse: (output: string) => string[] }> = {
+  'claude-code':  { argSets: [['-p', CLAUDE_MODEL_PROMPT, '--model', 'haiku']], parse: parseModelLines },
   'cursor-agent': { argSets: [['--list-models'], ['models']],                   parse: parseModelLines },
   'codex':        { argSets: [['debug', 'models'], ['debug', 'models', '--bundled']], parse: parseCodexModels },
 };
-
-/**
- * Providers whose model list is only accessible via an interactive prompt
- * (e.g. `/model`). We drive them through a pseudo-TTY allocated by the
- * system `script` command so the CLI believes it has a real terminal.
- */
-const PTY_MODEL_QUERIES: Record<string, { command: string; slashCommand: string }> = {
-  'claude-code': { command: 'claude', slashCommand: '/model' },
-};
-
-/**
- * Self-contained Node.js script spawned via `node -e` that uses the system
- * `script` command to allocate a PTY, starts the target CLI inside it,
- * sends a slash command, and prints the captured output to stdout.
- *
- * Communication with the parent process:
- *   FLOWY_PTY_CMD   – the CLI binary to run (e.g. "claude")
- *   FLOWY_PTY_SLASH – the slash command to send (e.g. "/model")
- *
- * Phases:
- *   0 – wait for the CLI to finish initialising (2 s of quiet)
- *   1 – send the slash command; collect output (1.5 s of quiet)
- *   then print collected output and tear down
- */
-const PTY_MODEL_SCRIPT = `
-'use strict';
-var spawn = require('child_process').spawn;
-var cmd = process.env.FLOWY_PTY_CMD;
-var slash = process.env.FLOWY_PTY_SLASH;
-if (!cmd || !slash) process.exit(1);
-var isLinux = process.platform === 'linux';
-var args = isLinux ? ['-qc', cmd, '/dev/null'] : ['-q', '/dev/null', cmd];
-var c = spawn('script', args, {
-  stdio: ['pipe', 'pipe', 'pipe'],
-  env: Object.assign({}, process.env, { TERM: 'dumb' })
-});
-var buf = '', phase = 0, t = null;
-function rt(ms, fn) { clearTimeout(t); t = setTimeout(fn, ms); }
-function finish() {
-  process.stdout.write(buf);
-  try { c.stdin.write('\\x1b'); } catch (_) {}
-  setTimeout(function () {
-    try { c.stdin.write('/exit\\n'); } catch (_) {}
-    setTimeout(function () { try { c.kill('SIGTERM'); } catch (_) {} process.exit(0); }, 500);
-  }, 200);
-}
-c.stdout.on('data', function (d) {
-  buf += d;
-  if (phase === 0) {
-    rt(2000, function () { phase = 1; buf = ''; c.stdin.write(slash + '\\n'); rt(2000, finish); });
-  } else if (phase === 1) {
-    rt(1500, finish);
-  }
-});
-c.stderr.on('data', function (d) { buf += d; });
-rt(12000, function () { process.exit(1); });
-setTimeout(function () { process.stdout.write(buf); try { c.kill('SIGTERM'); } catch (_) {} process.exit(0); }, 25000);
-`.trim();
 
 export function parseArgs(argv: string[]): RunnerConfig {
   const args = argv.slice(2);
@@ -207,23 +153,13 @@ function detectCliVersion(command: string): string {
 
 /**
  * Query every detected provider for its available models and return the
- * discovered model ids keyed by provider. Providers with a non-interactive
- * CLI flag are queried directly; those that only expose models through an
- * interactive prompt are driven via a pseudo-TTY. Best-effort: any failure
- * to spawn or parse leaves that provider out rather than throwing, so model
- * detection never blocks heartbeats or startup.
+ * discovered model ids keyed by provider. Best-effort: any failure to spawn
+ * or parse leaves that provider out rather than throwing, so model detection
+ * never blocks heartbeats or startup.
  */
 export function detectAvailableModels(providers: string[]): Record<string, string[]> {
   const models: Record<string, string[]> = {};
   for (const provider of providers) {
-    // PTY-based detection for interactive-only CLIs
-    const ptyQuery = PTY_MODEL_QUERIES[provider];
-    if (ptyQuery) {
-      const parsed = detectPtyModels(ptyQuery.command, ptyQuery.slashCommand);
-      if (parsed.length > 0) models[provider] = parsed;
-      continue;
-    }
-
     const query = CLI_MODEL_QUERIES[provider];
     const command = PROVIDER_COMMAND[provider];
     if (!query || !command) continue;
@@ -231,7 +167,7 @@ export function detectAvailableModels(providers: string[]): Record<string, strin
     for (const args of query.argSets) {
       const result = childProcess.spawnSync(command, args, {
         encoding: 'utf-8',
-        timeout: 10_000,
+        timeout: 30_000,
       });
       if (result.status !== 0) continue;
 
@@ -252,27 +188,6 @@ export function detectAvailableModels(providers: string[]): Record<string, strin
     }
   }
   return models;
-}
-
-/**
- * Drive an interactive CLI through a pseudo-TTY to extract its model list.
- * Spawns a Node.js helper that uses the system `script` command (macOS/Linux)
- * to allocate a real terminal, starts the CLI inside it, sends the slash
- * command, and captures the output. Returns [] on Windows or any failure.
- */
-export function detectPtyModels(command: string, slashCommand: string): string[] {
-  if (process.platform === 'win32') return [];
-
-  const result = childProcess.spawnSync(process.execPath, ['-e', PTY_MODEL_SCRIPT], {
-    encoding: 'utf-8',
-    timeout: 30_000,
-    env: { ...process.env, FLOWY_PTY_CMD: command, FLOWY_PTY_SLASH: slashCommand },
-  });
-
-  if (result.status !== 0) return [];
-
-  const output = typeof result.stdout === 'string' ? result.stdout : '';
-  return parseModelLines(output);
 }
 
 const ANSI_PATTERN = /\[[0-9;]*m/g;
