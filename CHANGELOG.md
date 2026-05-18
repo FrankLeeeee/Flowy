@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.12 (2026-05-18)
+
+- Fix syntax for conditional in tag-release workflow
+- Replace broken PTY model detection with claude --print (#187)
+- Fix mobile dialog and sidebar issues (#186)
+- Animate the runner detail drawer when it closes (#185)
+- Detect Claude Code models via pseudo-TTY interaction (#184) (#184)
+- Add runner detail drawer with recent tasks and CLI activity (#183)
+- Detect available CLI models and surface them in the assignment dropdown (#182)
+- Make mobile dialogs full-screen with swipe-to-dismiss (#181)
+- Add git worktree support for Codex tasks (#179)
+- Fix changelog duplication and add version tagging (#178)
+
 ## v1.0.11 (2026-05-13)
 
 - Set IS_SANDBOX=1 so Claude Code can run as root on the runner (#176)
