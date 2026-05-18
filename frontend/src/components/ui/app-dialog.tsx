@@ -37,7 +37,7 @@ export function AppDialogContent({
   return (
     <DialogContent
       className={cn(
-        'overflow-hidden border-border/40 dark:border-border/60 bg-card p-0 shadow-float',
+        'overflow-hidden border-border/40 dark:border-border/60 bg-card shadow-float',
         // Mobile is full-screen (handled by DialogContent); desktop sizing is
         // set per usage. Body scrolls when the keyboard is open.
         className
