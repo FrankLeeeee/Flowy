@@ -10,7 +10,7 @@ permissions:
 jobs:
   tag:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.head_commit.message, "chore: bump version to v")
+    if: ${{ contains(join(github.event.commits.*.message, '\n'), 'chore: bump version to v') }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
