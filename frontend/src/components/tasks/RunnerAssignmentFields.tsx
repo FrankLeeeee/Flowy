@@ -19,6 +19,7 @@ import { AI_LABELS } from '../../lib/taskConstants';
 
 const DEFAULT_SELECT = '__default__';
 const CUSTOM_BROWSE = '__browse__';
+const CUSTOM_MODEL = '__custom__';
 const FIELD_CLASSNAME = 'h-9 rounded-xl border-border/60 bg-card text-[13px] shadow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';
 const SELECT_TRIGGER_CLASSNAME = 'h-9 rounded-xl border-border/60 bg-card px-3 text-[13px] shadow-soft focus:ring-2 focus:ring-ring focus:ring-offset-0';
 
@@ -114,6 +115,78 @@ function WorkspaceField({
   );
 }
 
+function ModelField({
+  value,
+  onChange,
+  models,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  models: string[];
+  placeholder: string;
+}) {
+  const isKnown = value !== '' && models.includes(value);
+  const [showCustom, setShowCustom] = useState(models.length > 0 && value !== '' && !isKnown);
+
+  // No models reported by the runner's CLI (e.g. Claude Code's models are only
+  // available through its interactive prompt) — keep the free-text input.
+  if (models.length === 0) {
+    return (
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={FIELD_CLASSNAME}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Select
+        value={showCustom ? CUSTOM_MODEL : (value || DEFAULT_SELECT)}
+        onValueChange={(v) => {
+          if (v === CUSTOM_MODEL) {
+            setShowCustom(true);
+          } else if (v === DEFAULT_SELECT) {
+            setShowCustom(false);
+            onChange('');
+          } else {
+            setShowCustom(false);
+            onChange(v);
+          }
+        }}
+      >
+        <SelectTrigger className={SELECT_TRIGGER_CLASSNAME}>
+          <SelectValue placeholder="Default">
+            {showCustom
+              ? <span className="text-muted-foreground">Custom model…</span>
+              : (value || <span className="text-muted-foreground">Default</span>)}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+          <SelectItem value={DEFAULT_SELECT} className="rounded-lg py-2 text-[11px]">Default</SelectItem>
+          {models.map((m) => (
+            <SelectItem key={m} value={m} className="rounded-lg py-1.5 text-[11px]">{m}</SelectItem>
+          ))}
+          <SelectItem value={CUSTOM_MODEL} className="rounded-lg py-2 text-[11px] text-muted-foreground">
+            Custom model…
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      {showCustom && (
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={FIELD_CLASSNAME}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function RunnerAssignmentFields({
   runners,
   runnerId,
@@ -137,6 +210,8 @@ export default function RunnerAssignmentFields({
   const availableProviders: AiProvider[] = selectedRunner
     ? JSON.parse(selectedRunner.ai_providers || '[]')
     : [];
+  // Models the runner detected from each installed CLI, keyed by provider id.
+  const cliModels: Record<string, string[]> = JSON.parse(selectedRunner?.cli_models || '{}');
 
   const codexConfig = harnessConfig.codex ?? {};
   const claudeConfig = harnessConfig.claudeCode ?? {};
@@ -227,11 +302,11 @@ export default function RunnerAssignmentFields({
             </div>
             <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Model</Label>
-              <Input
+              <ModelField
                 value={codexConfig.model ?? ''}
-                onChange={(e) => updateCodexConfig({ model: e.target.value || undefined })}
+                onChange={(v) => updateCodexConfig({ model: v || undefined })}
+                models={cliModels['codex'] ?? []}
                 placeholder="gpt-5.4"
-                className={FIELD_CLASSNAME}
               />
             </div>
             <div className="space-y-1.5">
@@ -279,11 +354,11 @@ export default function RunnerAssignmentFields({
             </div>
             <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Model</Label>
-              <Input
+              <ModelField
                 value={claudeConfig.model ?? ''}
-                onChange={(e) => updateClaudeConfig({ model: e.target.value || undefined })}
+                onChange={(v) => updateClaudeConfig({ model: v || undefined })}
+                models={cliModels['claude-code'] ?? []}
                 placeholder="sonnet"
-                className={FIELD_CLASSNAME}
               />
             </div>
             <div className="space-y-1.5">
@@ -317,11 +392,11 @@ export default function RunnerAssignmentFields({
             </div>
             <div className="space-y-1.5">
               <Label className="text-[13px] font-medium">Model</Label>
-              <Input
+              <ModelField
                 value={cursorConfig.model ?? ''}
-                onChange={(e) => updateCursorConfig({ model: e.target.value || undefined })}
+                onChange={(v) => updateCursorConfig({ model: v || undefined })}
+                models={cliModels['cursor-agent'] ?? []}
                 placeholder="gpt-5"
-                className={FIELD_CLASSNAME}
               />
             </div>
             <div className="space-y-1.5">

@@ -7,6 +7,7 @@ export interface RunnerConfig {
   url: string;
   providers: string[];
   cliVersions: Record<string, string>;
+  cliModels: Record<string, string[]>;
   lastCliScanAt: string;
   pollInterval: number;
   token?: string;

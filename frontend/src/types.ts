@@ -38,6 +38,7 @@ export interface Runner {
   last_heartbeat: string | null;
   last_cli_scan_at: string | null;
   cli_versions: string | null;
+  cli_models: string | null;
   cli_refresh_requested_at: string | null;
   cli_update_requested_at: string | null;
   device_info: string;

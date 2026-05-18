@@ -21,8 +21,15 @@ export class RunnerApi {
     return data;
   }
 
-  async heartbeat(aiProviders: string[], lastCliScanAt?: string, cliVersions?: Record<string, string>): Promise<HeartbeatResponse> {
-    const { data } = await this.client.post<HeartbeatResponse>('/runners/heartbeat', { aiProviders, lastCliScanAt, cliVersions });
+  async heartbeat(
+    aiProviders: string[],
+    lastCliScanAt?: string,
+    cliVersions?: Record<string, string>,
+    cliModels?: Record<string, string[]>,
+  ): Promise<HeartbeatResponse> {
+    const { data } = await this.client.post<HeartbeatResponse>('/runners/heartbeat', {
+      aiProviders, lastCliScanAt, cliVersions, cliModels,
+    });
     return data;
   }
 

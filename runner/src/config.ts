@@ -19,6 +19,22 @@ const CLI_UPDATE_COMMANDS: Record<string, { cmd: string; args: string[] }> = {
   'gemini-cli':   { cmd: 'npm',   args: ['install', '-g', '@google/gemini-cli'] },
 };
 
+const PROVIDER_COMMAND: Record<string, string> = Object.fromEntries(
+  SUPPORTED_PROVIDERS.map((p) => [p.id, p.command]),
+);
+
+/**
+ * How to ask each CLI for the models it can run, without an interactive TUI.
+ * Each entry in `argSets` is tried in order until one yields a parseable,
+ * non-empty list. CLIs that only expose models through an interactive prompt
+ * (e.g. Claude Code's `/model`) are intentionally omitted here — the UI falls
+ * back to a free-text model input for those.
+ */
+const CLI_MODEL_QUERIES: Record<string, { argSets: string[][]; parse: (output: string) => string[] }> = {
+  'cursor-agent': { argSets: [['--list-models'], ['models']],                   parse: parseModelLines },
+  'codex':        { argSets: [['debug', 'models'], ['debug', 'models', '--bundled']], parse: parseCodexModels },
+};
+
 export function parseArgs(argv: string[]): RunnerConfig {
   const args = argv.slice(2);
   let name = '';
@@ -77,6 +93,7 @@ export function parseArgs(argv: string[]): RunnerConfig {
     url: url.replace(/\/$/, ''),
     providers,
     cliVersions: versions,
+    cliModels: detectAvailableModels(providers),
     lastCliScanAt: new Date().toISOString(),
     pollInterval,
     token,
@@ -129,6 +146,84 @@ function detectCliVersion(command: string): string {
   const output = [result.stdout, result.stderr].filter(Boolean).join('');
   const match = output.match(/\d+\.\d+\.\d+/);
   return match?.[0] ?? '';
+}
+
+/**
+ * Query every detected provider that exposes a non-interactive "list models"
+ * command and return the discovered model ids keyed by provider. Best-effort:
+ * any failure to spawn or parse leaves that provider out rather than throwing,
+ * so model detection never blocks heartbeats or startup.
+ */
+export function detectAvailableModels(providers: string[]): Record<string, string[]> {
+  const models: Record<string, string[]> = {};
+  for (const provider of providers) {
+    const query = CLI_MODEL_QUERIES[provider];
+    const command = PROVIDER_COMMAND[provider];
+    if (!query || !command) continue;
+
+    for (const args of query.argSets) {
+      const result = childProcess.spawnSync(command, args, {
+        encoding: 'utf-8',
+        timeout: 10_000,
+      });
+      if (result.status !== 0) continue;
+
+      const stdout = typeof result.stdout === 'string' ? result.stdout : '';
+      const stderr = typeof result.stderr === 'string' ? result.stderr : '';
+      const output = stdout.trim() ? stdout : stderr;
+
+      let parsed: string[] = [];
+      try {
+        parsed = query.parse(output);
+      } catch {
+        parsed = [];
+      }
+      if (parsed.length > 0) {
+        models[provider] = parsed;
+        break;
+      }
+    }
+  }
+  return models;
+}
+
+const ANSI_PATTERN = /\[[0-9;]*m/g;
+
+/** Parse a plain-text model listing (one model per line, tolerant of bullets/headers). */
+export function parseModelLines(output: string): string[] {
+  const models: string[] = [];
+  for (const rawLine of output.replace(ANSI_PATTERN, '').split('\n')) {
+    const line = rawLine.trim().replace(/^[-*•>]+\s*/, '');
+    if (!line || line.endsWith(':')) continue; // skip blank lines and headers
+    const token = line.split(/\s+/)[0];
+    if (/^[A-Za-z0-9][\w.\-/:]*$/.test(token)) models.push(token);
+  }
+  return [...new Set(models)];
+}
+
+/** Parse Codex's `debug models` JSON catalog, tolerant of leading log noise and shape. */
+export function parseCodexModels(output: string): string[] {
+  const start = output.search(/[[{]/);
+  if (start === -1) return [];
+
+  const data = JSON.parse(output.slice(start)) as unknown;
+  const items = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { models?: unknown })?.models)
+      ? (data as { models: unknown[] }).models
+      : [];
+
+  const models = items.map((item) => {
+    if (typeof item === 'string') return item;
+    if (item && typeof item === 'object') {
+      const record = item as Record<string, unknown>;
+      const id = record.id ?? record.slug ?? record.model ?? record.name;
+      return typeof id === 'string' ? id : '';
+    }
+    return '';
+  }).filter((id): id is string => id.length > 0);
+
+  return [...new Set(models)];
 }
 
 function isCommandAvailable(command: string): boolean {
