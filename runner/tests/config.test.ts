@@ -94,8 +94,80 @@ describe('parseModelLines', () => {
     ]);
   });
 
+  it('handles interactive selector arrows and Unicode bullets', () => {
+    const output = [
+      '❯ claude-sonnet-4-6 (current)',
+      '  claude-opus-4-6',
+      '► claude-haiku-4-5-20251001',
+      '→ claude-sonnet-4-5-20250514',
+    ].join('\n');
+
+    expect(config.parseModelLines(output)).toEqual([
+      'claude-sonnet-4-6',
+      'claude-opus-4-6',
+      'claude-haiku-4-5-20251001',
+      'claude-sonnet-4-5-20250514',
+    ]);
+  });
+
   it('dedupes and ignores prose lines without a model-like token', () => {
     expect(config.parseModelLines('gpt-5\ngpt-5\n!! pick one !!')).toEqual(['gpt-5']);
+  });
+});
+
+describe('detectPtyModels', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns parsed models from the PTY script output', () => {
+    vi.spyOn(config.childProcess, 'spawnSync').mockReturnValue({
+      status: 0,
+      stdout: '  claude-sonnet-4-6\n  claude-opus-4-6\n  claude-haiku-4-5-20251001\n',
+      stderr: '',
+    } as ReturnType<typeof config.childProcess.spawnSync>);
+
+    expect(config.detectPtyModels('claude', '/model')).toEqual([
+      'claude-sonnet-4-6',
+      'claude-opus-4-6',
+      'claude-haiku-4-5-20251001',
+    ]);
+  });
+
+  it('passes command and slash command via environment variables', () => {
+    const spy = vi.spyOn(config.childProcess, 'spawnSync').mockReturnValue({
+      status: 0,
+      stdout: '  claude-sonnet-4-6\n',
+      stderr: '',
+    } as ReturnType<typeof config.childProcess.spawnSync>);
+
+    config.detectPtyModels('claude', '/model');
+
+    expect(spy).toHaveBeenCalledWith(
+      process.execPath,
+      ['-e', expect.any(String)],
+      expect.objectContaining({
+        env: expect.objectContaining({ FLOWY_PTY_CMD: 'claude', FLOWY_PTY_SLASH: '/model' }),
+      }),
+    );
+  });
+
+  it('returns [] when the node script fails', () => {
+    vi.spyOn(config.childProcess, 'spawnSync').mockReturnValue({
+      status: 1,
+      stdout: '',
+      stderr: 'script: not found',
+    } as ReturnType<typeof config.childProcess.spawnSync>);
+
+    expect(config.detectPtyModels('claude', '/model')).toEqual([]);
+  });
+
+  it('returns [] on Windows', () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32');
+    const spawnSpy = vi.spyOn(config.childProcess, 'spawnSync');
+
+    expect(config.detectPtyModels('claude', '/model')).toEqual([]);
+    expect(spawnSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -120,7 +192,7 @@ describe('detectAvailableModels', () => {
     vi.restoreAllMocks();
   });
 
-  it('queries each CLI that supports non-interactive listing and skips the rest', () => {
+  it('queries CLIs via non-interactive flags and via PTY for interactive-only providers', () => {
     vi.spyOn(config.childProcess, 'spawnSync').mockImplementation(((cmd: string, args: string[]) => {
       if (cmd === 'agent' && args[0] === '--list-models') {
         return { status: 0, stdout: 'Available models:\n  gpt-5\n* auto\n', stderr: '' };
@@ -128,13 +200,17 @@ describe('detectAvailableModels', () => {
       if (cmd === 'codex' && args.join(' ') === 'debug models') {
         return { status: 0, stdout: '[{"id":"gpt-5.4"}]', stderr: '' };
       }
+      // PTY script for claude-code (spawned via node -e)
+      if (cmd === process.execPath && args[0] === '-e') {
+        return { status: 0, stdout: '  claude-sonnet-4-6\n  claude-opus-4-6\n', stderr: '' };
+      }
       return { status: 1 };
     }) as unknown as typeof config.childProcess.spawnSync);
 
-    // claude-code has no non-interactive listing → intentionally absent.
     expect(config.detectAvailableModels(['cursor-agent', 'codex', 'claude-code'])).toEqual({
       'cursor-agent': ['gpt-5', 'auto'],
       'codex': ['gpt-5.4'],
+      'claude-code': ['claude-sonnet-4-6', 'claude-opus-4-6'],
     });
   });
 
@@ -142,6 +218,6 @@ describe('detectAvailableModels', () => {
     vi.spyOn(config.childProcess, 'spawnSync')
       .mockReturnValue({ status: 1 } as ReturnType<typeof config.childProcess.spawnSync>);
 
-    expect(config.detectAvailableModels(['cursor-agent', 'codex'])).toEqual({});
+    expect(config.detectAvailableModels(['cursor-agent', 'codex', 'claude-code'])).toEqual({});
   });
 });
