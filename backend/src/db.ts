@@ -113,6 +113,18 @@ function migrate(): void {
       data       TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
+
+    CREATE TABLE IF NOT EXISTS runner_cli_logs (
+      id         TEXT PRIMARY KEY,
+      runner_id  TEXT NOT NULL REFERENCES runners(id) ON DELETE CASCADE,
+      event      TEXT NOT NULL CHECK (event IN ('refresh_requested','update_requested','scan_completed')),
+      source     TEXT NOT NULL DEFAULT 'manual'
+                 CHECK (source IN ('manual','periodic','refresh','update')),
+      data       TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_runner_cli_logs_runner_id ON runner_cli_logs(runner_id);
   `);
 
   db.exec(`

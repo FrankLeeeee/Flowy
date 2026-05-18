@@ -11,6 +11,7 @@ import {
   updateRunnerRegistrationSecret,
 } from "../api/client";
 import RunnerCard from "../components/runners/RunnerCard";
+import RunnerDetailDrawer from "../components/runners/RunnerDetailDrawer";
 import PageTitle from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,6 +62,8 @@ export default function Runners() {
   const [draftRegistrationSecret, setDraftRegistrationSecret] = useState("");
   const [savingSecret, setSavingSecret] = useState(false);
   const [tab, setTab] = useState<"runners" | "security">("runners");
+  const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
+  const selectedRunner = runners.find((r) => r.id === selectedRunnerId) ?? null;
 
   const loadData = useCallback(async () => {
     try {
@@ -483,6 +486,7 @@ export default function Runners() {
                       onDelete={handleDelete}
                       onRefresh={handleRefresh}
                       onUpdate={handleUpdate}
+                      onSelect={(r) => setSelectedRunnerId(r.id)}
                       refreshing={refreshingRunnerId === runner.id}
                       updating={updatingRunnerId === runner.id}
                     />
@@ -659,6 +663,14 @@ export default function Runners() {
             </ScrollArea>
         </AppDialogContent>
       </Dialog>
+
+      {selectedRunner && (
+        <RunnerDetailDrawer
+          open={!!selectedRunner}
+          runner={selectedRunner}
+          onClose={() => setSelectedRunnerId(null)}
+        />
+      )}
     </div>
   );
 }

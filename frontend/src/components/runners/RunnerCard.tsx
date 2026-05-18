@@ -7,13 +7,14 @@ import { getAiHarnessPillStyle, getRunnerStatusStyles } from '@/lib/semanticColo
 import { ArrowUpCircle, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 export default function RunnerCard({
-  runner, currentTask, onDelete, onRefresh, onUpdate, refreshing, updating,
+  runner, currentTask, onDelete, onRefresh, onUpdate, onSelect, refreshing, updating,
 }: {
   runner: Runner;
   currentTask?: Task;
   onDelete: (id: string) => void;
   onRefresh: (id: string) => void;
   onUpdate: (id: string) => void;
+  onSelect: (runner: Runner) => void;
   refreshing: boolean;
   updating: boolean;
 }) {
@@ -30,7 +31,20 @@ export default function RunnerCard({
   );
 
   return (
-    <div className="motion-card interactive-lift surface-tint relative rounded-2xl border border-border/40 dark:border-border/60 p-4 shadow-soft hover:shadow-elevated motion-safe:hover:-translate-y-1 flex flex-col gap-3 overflow-hidden">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(runner)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(runner);
+        }
+      }}
+      className="motion-card interactive-lift surface-tint relative cursor-pointer rounded-2xl border border-border/40 dark:border-border/60 p-4 shadow-soft hover:shadow-elevated motion-safe:hover:-translate-y-1 flex flex-col gap-3 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span className="sr-only">View activity for {runner.name}</span>
+
       {/* Header */}
       <div className="relative flex items-start justify-between">
         <div className="min-w-0">
@@ -90,7 +104,11 @@ export default function RunnerCard({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div
+          className="flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           <Button
             variant="ghost"
             size="icon"

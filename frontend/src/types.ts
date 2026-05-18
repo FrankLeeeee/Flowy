@@ -22,6 +22,9 @@ export type {
   Session,
   SessionMessage,
   TaskLog,
+  RunnerCliLogEvent,
+  RunnerCliLogSource,
+  RunnerCliLog,
 } from 'flowy-shared';
 
 // ── Frontend-only types ───────────────────────────────────────────────────
