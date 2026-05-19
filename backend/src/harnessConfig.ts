@@ -28,6 +28,7 @@ function normalizeConfigObject(input: unknown): RecordLike {
       model: getString(claudeCode.model),
       mode: getString(claudeCode.mode),
       worktree: getString(claudeCode.worktree),
+      useInteractiveMode: typeof claudeCode.useInteractiveMode === 'boolean' ? claudeCode.useInteractiveMode : undefined,
     }) : undefined,
     cursorAgent: cursorAgent ? pruneObject({
       workspace: getString(cursorAgent.workspace),

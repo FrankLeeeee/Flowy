@@ -16,6 +16,7 @@ export interface ClaudeCodeHarnessConfig {
   workspace?: string;
   model?: string;
   worktree?: string;
+  useInteractiveMode?: boolean;
 }
 
 export interface CursorAgentHarnessConfig {

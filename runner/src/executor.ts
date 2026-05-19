@@ -28,7 +28,8 @@ export function prepareCommandWithConfig(
   prompt: string,
   rawHarnessConfig?: string,
 ): Promise<CLICommand> {
-  return prepareProviderCommand(getProvider(aiProvider), prompt, rawHarnessConfig);
+  const provider = getProvider(aiProvider);
+  return prepareProviderCommand(provider, prompt, rawHarnessConfig);
 }
 
 /**
@@ -43,13 +44,23 @@ export function executeTask(
   let activeKill: (() => void) | null = null;
 
   const promise = (async (): Promise<ExecutionResult> => {
+    const prompt = task.description || task.title;
+    const provider = getProvider(task.ai_provider!);
+
+    // Try custom execution path (e.g. PTY-based interactive mode).
+    if (provider.execute) {
+      const customHandle = provider.execute(prompt, task.harness_config, onOutput);
+      if (customHandle) {
+        activeKill = customHandle.kill;
+        if (killed) return { success: false, output: '', sendOnComplete: true };
+        const { success, output } = await customHandle.promise;
+        return { success, output, sendOnComplete: true };
+      }
+    }
+
     let command: CLICommand;
     try {
-      command = await prepareCommandWithConfig(
-        task.ai_provider!,
-        task.description || task.title,
-        task.harness_config,
-      );
+      command = await prepareProviderCommand(provider, prompt, task.harness_config);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const errMsg = `\n[Error preparing command: ${message}]`;
