@@ -16,6 +16,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { cn } from '@/lib/utils';
 import { getTodayDateInputValue } from '@/lib/taskSchedule';
 import { getLabelColorStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
+import { shouldLoadTemplates, getAvailableTemplates, getTemplatePickerHint } from '@/lib/templatePicker';
 import DurationPicker from './DurationPicker';
 import { CalendarDays, Circle, Clock3, FolderKanban, Hourglass, Inbox, ArrowRight, X, Sparkles, FileText, Tag, Repeat } from 'lucide-react';
 
@@ -50,18 +51,20 @@ export default function CreateTaskModal({
   const [allLabels, setAllLabels] = useState<Label[]>([]);
   const [allTemplates, setAllTemplates] = useState<Template[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('_none');
+  const [templatesLoaded, setTemplatesLoaded] = useState(false);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isMobile = useIsMobile();
 
   const selectedList = lists.find((list) => list.id === listSelection);
   const priorityStyles = getTaskPriorityStyles(priority);
   const currentListId = listSelection === INBOX_VALUE ? null : listSelection;
-  const availableTemplates = allTemplates.filter((t) => !t.list_id || t.list_id === currentListId);
+  const availableTemplates = getAvailableTemplates(allTemplates, currentListId);
+  const templateHint = getTemplatePickerHint(templatesLoading, templatesLoaded, availableTemplates.length);
 
   useEffect(() => {
     if (open) {
       fetchLabels().then(setAllLabels).catch(() => {});
-      fetchTemplates().then(setAllTemplates).catch(() => {});
       setTitle('');
       setDescription('');
       setPriority('none');
@@ -71,9 +74,24 @@ export default function CreateTaskModal({
       setScheduledDurationMinutes(null);
       setRecurrenceRule(null);
       setSelectedTemplateId('_none');
+      setAllTemplates([]);
+      setTemplatesLoaded(false);
+      setTemplatesLoading(false);
       setIsSubmitting(false);
     }
   }, [open]);
+
+  const loadTemplates = () => {
+    if (!shouldLoadTemplates(templatesLoaded, templatesLoading)) return;
+    setTemplatesLoading(true);
+    fetchTemplates()
+      .then((templates) => {
+        setAllTemplates(templates);
+        setTemplatesLoaded(true);
+      })
+      .catch(() => {})
+      .finally(() => setTemplatesLoading(false));
+  };
 
   const toggleLabel = (labelName: string) => {
     setLabels((prev) => {
@@ -162,32 +180,37 @@ export default function CreateTaskModal({
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">Description</p>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-muted-foreground/75">{description.trim().length} chars</span>
-                      {availableTemplates.length > 0 && (
-                        <Select
-                          value={selectedTemplateId}
-                          onValueChange={(templateId) => {
-                            setSelectedTemplateId(templateId);
-                            if (templateId === '_none') { setDescription(''); return; }
-                            const tpl = allTemplates.find((t) => t.id === templateId);
-                            if (tpl) setDescription(tpl.content);
-                          }}
-                        >
-                          <SelectTrigger className="h-6 w-auto max-w-[180px] gap-1.5 rounded-full border-border/60 bg-card px-2.5 text-[10px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
-                            <FileText className="h-3 w-3 shrink-0 opacity-60" />
-                            <span className="truncate">{selectedTemplateId !== '_none' ? (allTemplates.find((t) => t.id === selectedTemplateId)?.name ?? 'Template') : 'Template'}</span>
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
-                            <SelectItem value="_none" className="rounded-lg py-2 text-[10px] text-muted-foreground">
-                              No template
+                      <Select
+                        value={selectedTemplateId}
+                        onOpenChange={(isOpen) => { if (isOpen) loadTemplates(); }}
+                        onValueChange={(templateId) => {
+                          setSelectedTemplateId(templateId);
+                          if (templateId === '_none') { setDescription(''); return; }
+                          const tpl = allTemplates.find((t) => t.id === templateId);
+                          if (tpl) setDescription(tpl.content);
+                        }}
+                      >
+                        <SelectTrigger className="h-6 w-auto max-w-[180px] gap-1.5 rounded-full border-border/60 bg-card px-2.5 text-[10px] font-medium shadow-soft focus:ring-0 focus:ring-offset-0">
+                          <FileText className="h-3 w-3 shrink-0 opacity-60" />
+                          <span className="truncate">{selectedTemplateId !== '_none' ? (allTemplates.find((t) => t.id === selectedTemplateId)?.name ?? 'Template') : 'Template'}</span>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover p-1 shadow-none">
+                          <SelectItem value="_none" className="rounded-lg py-2 text-[10px] text-muted-foreground">
+                            No template
+                          </SelectItem>
+                          {templateHint === 'loading' && (
+                            <div className="px-2 py-2 text-[10px] text-muted-foreground/75">Loading templates...</div>
+                          )}
+                          {templateHint === 'empty' && (
+                            <div className="px-2 py-2 text-[10px] text-muted-foreground/75">No templates available</div>
+                          )}
+                          {availableTemplates.map((tpl) => (
+                            <SelectItem key={tpl.id} value={tpl.id} className="rounded-lg py-2 text-[10px]">
+                              {tpl.name}
                             </SelectItem>
-                            {availableTemplates.map((tpl) => (
-                              <SelectItem key={tpl.id} value={tpl.id} className="rounded-lg py-2 text-[10px]">
-                                {tpl.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <MarkdownEditor
