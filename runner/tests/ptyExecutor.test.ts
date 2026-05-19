@@ -3,6 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { getProvider } from '../src/clis';
+import { buildInteractiveClaudeArgs } from '../src/clis/ptyExecutor';
 
 // These tests spawn the real `claude` binary in interactive mode, which now
 // pre-trusts its workspace in `$CLAUDE_CONFIG_DIR/.claude.json`. Point that at
@@ -68,6 +69,42 @@ describe('claudeCode provider execute method', () => {
     );
     expect(handle).not.toBeNull();
     handle!.kill();
+  });
+});
+
+describe('buildInteractiveClaudeArgs', () => {
+  it('pre-accepts the bypass permissions disclaimer via inline --settings', () => {
+    const args = buildInteractiveClaudeArgs({ sessionId: 'sid', prompt: 'hi' });
+
+    const idx = args.indexOf('--settings');
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const settings = JSON.parse(args[idx + 1]);
+    expect(settings).toEqual({ skipDangerousModePermissionPrompt: true });
+  });
+
+  it('runs in bypassPermissions mode with the prompt last', () => {
+    const args = buildInteractiveClaudeArgs({ sessionId: 'sid', prompt: 'do the thing' });
+
+    const modeIdx = args.indexOf('--permission-mode');
+    expect(args[modeIdx + 1]).toBe('bypassPermissions');
+    expect(args[args.length - 1]).toBe('do the thing');
+  });
+
+  it('omits optional model/worktree flags when not provided', () => {
+    const args = buildInteractiveClaudeArgs({ sessionId: 'sid', prompt: 'hi' });
+    expect(args).not.toContain('--model');
+    expect(args).not.toContain('--worktree');
+  });
+
+  it('includes model and worktree when provided', () => {
+    const args = buildInteractiveClaudeArgs({
+      sessionId: 'sid',
+      prompt: 'hi',
+      model: 'opus',
+      worktree: '/tmp/wt',
+    });
+    expect(args[args.indexOf('--model') + 1]).toBe('opus');
+    expect(args[args.indexOf('--worktree') + 1]).toBe('/tmp/wt');
   });
 });
 

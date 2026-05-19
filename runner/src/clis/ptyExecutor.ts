@@ -26,6 +26,16 @@ const JSONL_POLL_INTERVAL_MS = 500;
 const PTY_COLS = 200;
 const PTY_ROWS = 50;
 
+// Under a PTY, `--permission-mode bypassPermissions` surfaces a one-time
+// "you accept all responsibility ... Bypass Permissions mode" acknowledgment
+// that the runner cannot answer. Claude only shows it when none of the
+// settings tiers have `skipDangerousModePermissionPrompt`; the `--settings`
+// flag feeds the flag tier, so passing it inline pre-accepts the disclaimer
+// for this process only, without mutating the user's global config.
+const BYPASS_PERMISSIONS_SETTINGS = JSON.stringify({
+  skipDangerousModePermissionPrompt: true,
+});
+
 const ENV_KEYS_TO_STRIP = [
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN',
@@ -167,6 +177,26 @@ function buildScriptCommand(
   };
 }
 
+/**
+ * Build the `claude` argv for an interactive PTY session. Pure (no I/O) so the
+ * flag wiring — notably the bypass-permissions pre-acceptance — can be
+ * unit-tested without spawning the real binary.
+ */
+export function buildInteractiveClaudeArgs(opts: {
+  sessionId: string;
+  prompt: string;
+  model?: string;
+  worktree?: string;
+}): string[] {
+  const args: string[] = ['--session-id', opts.sessionId];
+  if (opts.model) args.push('--model', opts.model);
+  if (opts.worktree) args.push('--worktree', opts.worktree);
+  args.push('--permission-mode', 'bypassPermissions');
+  args.push('--settings', BYPASS_PERMISSIONS_SETTINGS);
+  args.push(opts.prompt);
+  return args;
+}
+
 export function spawnInteractiveClaude(options: InteractiveSpawnOptions): InteractiveSpawnHandle {
   const {
     prompt,
@@ -193,11 +223,7 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
   };
 
   const promise = new Promise<{ success: boolean; output: string }>((resolve) => {
-    const claudeArgs: string[] = ['--session-id', sessionId];
-    if (model) claudeArgs.push('--model', model);
-    if (worktree) claudeArgs.push('--worktree', worktree);
-    claudeArgs.push('--permission-mode', 'bypassPermissions');
-    claudeArgs.push(prompt);
+    const claudeArgs = buildInteractiveClaudeArgs({ sessionId, prompt, model, worktree });
 
     const { cmd, args } = buildScriptCommand(claudeArgs);
     const env = buildSanitizedEnv();
