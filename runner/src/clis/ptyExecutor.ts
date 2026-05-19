@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
+import { trustClaudeWorkspace } from './claudeTrust';
 
 export interface InteractiveSpawnOptions {
   prompt: string;
@@ -201,6 +202,13 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
     const { cmd, args } = buildScriptCommand(claudeArgs);
     const env = buildSanitizedEnv();
     env.IS_SANDBOX = '1';
+
+    // The PTY makes Claude run interactively, which surfaces the one-time
+    // "Do you trust the files in this folder?" dialog (skipped only in
+    // non-TTY/-p mode). The runner has no way to answer it, so pre-trust the
+    // working directory to make interactive mode behave like -p. Best-effort:
+    // the interactive-block detector below is the fallback if this fails.
+    trustClaudeWorkspace(cwd);
 
     console.log(`  Spawning interactive claude (session: ${sessionId.slice(0, 8)}...)`);
 

@@ -1,8 +1,26 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { getProvider } from '../src/clis';
+
+// These tests spawn the real `claude` binary in interactive mode, which now
+// pre-trusts its workspace in `$CLAUDE_CONFIG_DIR/.claude.json`. Point that at
+// a throwaway dir so the suite never mutates the developer's real config.
+let prevConfigDir: string | undefined;
+let tmpConfigDir: string;
+
+beforeAll(() => {
+  prevConfigDir = process.env.CLAUDE_CONFIG_DIR;
+  tmpConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowy-pty-cfg-'));
+  process.env.CLAUDE_CONFIG_DIR = tmpConfigDir;
+});
+
+afterAll(() => {
+  if (prevConfigDir === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+  else process.env.CLAUDE_CONFIG_DIR = prevConfigDir;
+  fs.rmSync(tmpConfigDir, { recursive: true, force: true });
+});
 
 describe('claudeCode provider execute method', () => {
   it('returns null when useInteractiveMode is not set', () => {
