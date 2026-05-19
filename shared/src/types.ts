@@ -17,6 +17,19 @@ export interface ClaudeCodeHarnessConfig {
   model?: string;
   worktree?: string;
   useInteractiveMode?: boolean;
+  /**
+   * Interactive mode only. Milliseconds the PTY may stay completely silent
+   * (no output at all, before Claude's reply is copied) before the session is
+   * abandoned as non-responsive. Resets on every output chunk, so a working
+   * Claude is never killed. Optional; a generous default is used when unset.
+   */
+  interactiveIdleTimeoutMs?: number;
+  /**
+   * Interactive mode only. Absolute ceiling in milliseconds for a single
+   * session — a safety net so a wedged session cannot run forever. Optional;
+   * a generous default is used when unset.
+   */
+  interactiveMaxSessionMs?: number;
 }
 
 export interface CursorAgentHarnessConfig {

@@ -3,7 +3,11 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { getProvider } from '../src/clis';
-import { buildInteractiveClaudeArgs, buildScriptCommand } from '../src/clis/ptyExecutor';
+import {
+  buildInteractiveClaudeArgs,
+  buildScriptCommand,
+  decideTimeout,
+} from '../src/clis/ptyExecutor';
 
 // These tests spawn the real `claude` binary in interactive mode, which now
 // pre-trusts its workspace in `$CLAUDE_CONFIG_DIR/.claude.json`. Point that at
@@ -105,6 +109,60 @@ describe('buildInteractiveClaudeArgs', () => {
     });
     expect(args[args.indexOf('--model') + 1]).toBe('opus');
     expect(args[args.indexOf('--worktree') + 1]).toBe('/tmp/wt');
+  });
+});
+
+describe('decideTimeout', () => {
+  const base = {
+    startTime: 0,
+    idleTimeoutMs: 120_000,
+    maxSessionMs: 30 * 60_000,
+  };
+
+  it('does not time out a session that is actively producing output', () => {
+    // 10 minutes in (well past the old 90s wall-clock cap) but Claude printed
+    // something 1s ago — it is working, not stuck.
+    const decision = decideTimeout({
+      ...base,
+      now: 600_000,
+      lastDataTime: 599_000,
+      copyRequested: false,
+    });
+    expect(decision).toEqual({ timedOut: false });
+  });
+
+  it('reports "no_response" when the PTY is silent past the idle timeout', () => {
+    // Claude never produced output (lastDataTime still at startTime) for
+    // longer than idleTimeoutMs and /copy was never sent → genuinely stuck.
+    const decision = decideTimeout({
+      ...base,
+      now: 121_000,
+      lastDataTime: 0,
+      copyRequested: false,
+    });
+    expect(decision).toEqual({ timedOut: true, reason: 'no_response' });
+  });
+
+  it('does not apply the idle timeout once /copy has been requested', () => {
+    // After /copy, the clipboard-wait logic owns the deadline, so a silent
+    // PTY here must not be reported as a timeout.
+    const decision = decideTimeout({
+      ...base,
+      now: 121_000,
+      lastDataTime: 0,
+      copyRequested: true,
+    });
+    expect(decision).toEqual({ timedOut: false });
+  });
+
+  it('enforces the absolute ceiling even while output is still flowing', () => {
+    const decision = decideTimeout({
+      ...base,
+      now: 30 * 60_000,
+      lastDataTime: 30 * 60_000 - 500,
+      copyRequested: false,
+    });
+    expect(decision).toEqual({ timedOut: true, reason: 'max_session' });
   });
 });
 

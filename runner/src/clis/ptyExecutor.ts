@@ -9,7 +9,8 @@ export interface InteractiveSpawnOptions {
   model?: string;
   cwd?: string;
   worktree?: string;
-  timeoutMs?: number;
+  idleTimeoutMs?: number;
+  maxSessionMs?: number;
   quietAfterMs?: number;
 }
 
@@ -18,7 +19,21 @@ export interface InteractiveSpawnHandle {
   kill: () => void;
 }
 
-const DEFAULT_TIMEOUT_MS = 90_000;
+// Inactivity ceiling: how long the PTY may stay *completely* silent — no
+// output at all, before Claude's reply has been copied — before we give up.
+// This is NOT a wall-clock cap on the whole session: it resets on every
+// output chunk, so a Claude that is actively working (and therefore
+// repainting its spinner) never trips it. It only fires when Claude produced
+// nothing for this long, i.e. it never started, crashed silently, or wedged.
+// Generous on purpose; the 3s quiet-detection below is what normally ends a
+// healthy session.
+const DEFAULT_IDLE_TIMEOUT_MS = 120_000;
+
+// Absolute safety net for a single interactive session. Real agentic tasks
+// (editing files, running test suites) routinely run for many minutes, so
+// this is deliberately large; it exists only so a genuinely wedged session
+// cannot run forever.
+const DEFAULT_MAX_SESSION_MS = 30 * 60_000;
 
 // How long the PTY must stay silent before we treat Claude's reply as done.
 // Claude renders a live spinner while it works, so a gap this long only
@@ -63,6 +78,50 @@ function classifyInteractiveBlock(text: string): string | null {
     if (pattern.test(text)) return label;
   }
   return null;
+}
+
+export interface PollTimingState {
+  /** Current timestamp (ms). */
+  now: number;
+  /** When the child was spawned (ms). */
+  startTime: number;
+  /** Timestamp of the most recent PTY output chunk (ms). */
+  lastDataTime: number;
+  /** Whether `/copy` has already been typed into the session. */
+  copyRequested: boolean;
+  idleTimeoutMs: number;
+  maxSessionMs: number;
+}
+
+export type TimeoutDecision =
+  | { timedOut: false }
+  | { timedOut: true; reason: 'max_session' | 'no_response' };
+
+/**
+ * Decide whether an interactive session should be abandoned.
+ *
+ * The previous implementation used a single ~90s wall-clock cap on the whole
+ * session. That counted the time Claude spent legitimately working: because
+ * Claude repaints its TUI spinner continuously while busy, the PTY never went
+ * quiet long enough to detect "idle" and send `/copy`, so any task longer than
+ * the cap died with "[Timeout: no response received]" despite being healthy.
+ *
+ * Instead we split the two concerns:
+ *  - `maxSessionMs` — a generous absolute ceiling so a wedged session can't
+ *    run forever.
+ *  - `idleTimeoutMs` — an *inactivity* timeout: only abandon when the PTY has
+ *    produced no output at all for this long and `/copy` has not yet been
+ *    sent. While Claude streams (i.e. is working), `lastDataTime` keeps
+ *    advancing, so this never trips for a task that is making progress.
+ */
+export function decideTimeout(s: PollTimingState): TimeoutDecision {
+  if (s.now - s.startTime >= s.maxSessionMs) {
+    return { timedOut: true, reason: 'max_session' };
+  }
+  if (!s.copyRequested && s.now - s.lastDataTime >= s.idleTimeoutMs) {
+    return { timedOut: true, reason: 'no_response' };
+  }
+  return { timedOut: false };
 }
 
 function buildSanitizedEnv(): Record<string, string> {
@@ -160,7 +219,8 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
     model,
     cwd,
     worktree,
-    timeoutMs = DEFAULT_TIMEOUT_MS,
+    idleTimeoutMs = DEFAULT_IDLE_TIMEOUT_MS,
+    maxSessionMs = DEFAULT_MAX_SESSION_MS,
     quietAfterMs = DEFAULT_QUIET_AFTER_MS,
   } = options;
 
@@ -275,10 +335,24 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
         return;
       }
 
-      const elapsed = Date.now() - startTime;
-      if (elapsed >= timeoutMs) {
-        console.log('  Interactive session timed out');
-        finish(false, '[Timeout: no response received]');
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const decision = decideTimeout({
+        now,
+        startTime,
+        lastDataTime,
+        copyRequested,
+        idleTimeoutMs,
+        maxSessionMs,
+      });
+      if (decision.timedOut) {
+        console.log(`  Interactive session timed out (${decision.reason})`);
+        finish(
+          false,
+          decision.reason === 'max_session'
+            ? '[Timeout: session exceeded maximum duration]'
+            : '[Timeout: no response received]',
+        );
         return;
       }
 
@@ -297,7 +371,7 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
           finish(false, '[Interactive claude exited before producing a reply]');
           return;
         }
-        const quiet = Date.now() - lastDataTime;
+        const quiet = now - lastDataTime;
         if (sawOutput && elapsed >= MIN_RUNTIME_MS && quiet >= quietAfterMs) {
           console.log('  Claude idle — requesting /copy');
           requestCopy();
@@ -313,7 +387,7 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
         finish(true, clip.trim());
         return;
       }
-      if (Date.now() - copyRequestedAt >= CLIPBOARD_WAIT_MS) {
+      if (now - copyRequestedAt >= CLIPBOARD_WAIT_MS) {
         finish(false, '[No output: /copy did not populate the clipboard]');
       }
     }, POLL_INTERVAL_MS);

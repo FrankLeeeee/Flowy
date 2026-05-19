@@ -51,6 +51,32 @@ describe('normalizeHarnessConfig', () => {
     expect(result.gemini.sandbox).toBe(true);
   });
 
+  it('preserves interactive timeout overrides for claudeCode', () => {
+    const result = JSON.parse(normalizeHarnessConfig({
+      claudeCode: {
+        useInteractiveMode: true,
+        interactiveIdleTimeoutMs: 180000,
+        interactiveMaxSessionMs: 3600000,
+      },
+    }));
+    expect(result.claudeCode).toEqual({
+      useInteractiveMode: true,
+      interactiveIdleTimeoutMs: 180000,
+      interactiveMaxSessionMs: 3600000,
+    });
+  });
+
+  it('drops non-positive interactive timeout overrides', () => {
+    const result = JSON.parse(normalizeHarnessConfig({
+      claudeCode: {
+        workspace: '/path',
+        interactiveIdleTimeoutMs: 0,
+        interactiveMaxSessionMs: -5,
+      },
+    }));
+    expect(result.claudeCode).toEqual({ workspace: '/path' });
+  });
+
   it('handles multiple providers', () => {
     const result = JSON.parse(normalizeHarnessConfig({
       codex: { model: 'gpt-4' },

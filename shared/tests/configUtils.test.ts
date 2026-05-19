@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { asRecord, getString, parseRootConfig, parseWorkspaces } from '../src/configUtils';
+import {
+  asRecord,
+  getPositiveNumber,
+  getString,
+  parseRootConfig,
+  parseWorkspaces,
+} from '../src/configUtils';
 
 describe('shared/configUtils', () => {
   describe('asRecord', () => {
@@ -46,6 +52,36 @@ describe('shared/configUtils', () => {
       expect(getString(null)).toBeUndefined();
       expect(getString(undefined)).toBeUndefined();
       expect(getString({})).toBeUndefined();
+    });
+  });
+
+  describe('getPositiveNumber', () => {
+    it('returns positive numbers as-is', () => {
+      expect(getPositiveNumber(1)).toBe(1);
+      expect(getPositiveNumber(120_000)).toBe(120_000);
+      expect(getPositiveNumber(0.5)).toBe(0.5);
+    });
+
+    it('parses positive numeric strings', () => {
+      expect(getPositiveNumber('5000')).toBe(5000);
+      expect(getPositiveNumber('  42  ')).toBe(42);
+    });
+
+    it('returns undefined for zero and negatives', () => {
+      expect(getPositiveNumber(0)).toBeUndefined();
+      expect(getPositiveNumber(-1)).toBeUndefined();
+      expect(getPositiveNumber('-10')).toBeUndefined();
+    });
+
+    it('returns undefined for non-finite or non-numeric values', () => {
+      expect(getPositiveNumber(NaN)).toBeUndefined();
+      expect(getPositiveNumber(Infinity)).toBeUndefined();
+      expect(getPositiveNumber('abc')).toBeUndefined();
+      expect(getPositiveNumber('')).toBeUndefined();
+      expect(getPositiveNumber(null)).toBeUndefined();
+      expect(getPositiveNumber(undefined)).toBeUndefined();
+      expect(getPositiveNumber({})).toBeUndefined();
+      expect(getPositiveNumber(true)).toBeUndefined();
     });
   });
 

@@ -1,5 +1,5 @@
 import { AiProvider, HarnessConfig } from '../types';
-import { asRecord, getString } from 'flowy-shared';
+import { asRecord, getPositiveNumber, getString } from 'flowy-shared';
 
 /** Parse a raw harness-config JSON string into a typed HarnessConfig. */
 export function parseHarnessConfig(raw: string | null | undefined): HarnessConfig {
@@ -27,6 +27,8 @@ export function parseHarnessConfig(raw: string | null | undefined): HarnessConfi
         model: getString(claudeCode.model),
         worktree: getString(claudeCode.worktree),
         useInteractiveMode: typeof claudeCode.useInteractiveMode === 'boolean' ? claudeCode.useInteractiveMode : undefined,
+        interactiveIdleTimeoutMs: getPositiveNumber(claudeCode.interactiveIdleTimeoutMs),
+        interactiveMaxSessionMs: getPositiveNumber(claudeCode.interactiveMaxSessionMs),
       } : undefined,
       cursorAgent: cursorAgent ? {
         workspace: getString(cursorAgent.workspace),
