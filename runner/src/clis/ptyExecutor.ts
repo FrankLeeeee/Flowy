@@ -81,17 +81,36 @@ function buildSanitizedEnv(): Record<string, string> {
  * Build the platform-specific command that wraps `claude` inside a PTY using
  * the system `script` utility. This avoids a hard dependency on `node-pty`.
  *
- * - macOS:  `script -q /dev/null claude [args...]`
- * - Linux:  `script -qec "claude [args...]" /dev/null`
+ * macOS BSD `script` calls `tcgetattr()` on its stdin and *fatally aborts*
+ * ("tcgetattr/ioctl: Operation not supported on socket", exit 1) when that fd
+ * is a socket — which is exactly what Node's `spawn` hands a `'pipe'` stdio.
+ * We still need a writable stdin to type `/copy`, so on macOS `script` is run
+ * inside `cat | script ...`: `cat` happily reads the socket and re-emits it
+ * down an anonymous pipe, which `script` *does* tolerate (it then allocates
+ * the PTY normally). The claude argv is passed through `"$@"` and never
+ * interpolated into the shell string, so an arbitrary prompt cannot inject
+ * shell. Linux's util-linux `script` does not abort on a non-tty stdin, so
+ * its `-qec "<cmd>" /dev/null` form is left as-is.
  *
  * The child is spawned with `stdio: pipe` so we can both observe its output
  * and type the trailing `/copy` command into it.
  */
-function buildScriptCommand(
+export function buildScriptCommand(
   claudeArgs: string[],
+  platform: NodeJS.Platform = process.platform,
 ): { cmd: string; args: string[] } {
-  if (process.platform === 'darwin') {
-    return { cmd: 'script', args: ['-q', '/dev/null', 'claude', ...claudeArgs] };
+  if (platform === 'darwin') {
+    return {
+      cmd: 'bash',
+      args: [
+        '-c',
+        'cat | script -q /dev/null "$@"',
+        // `$0` for the `-c` script, then the argv exposed as `"$@"`.
+        'flowy-pty',
+        'claude',
+        ...claudeArgs,
+      ],
+    };
   }
   // Linux: -q (quiet), -e (return child exit code), -c (command string)
   const escaped = claudeArgs.map((a) =>
@@ -149,12 +168,29 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
   let child: ChildProcess | null = null;
   let killed = false;
 
+  // The macOS path is a `cat | script | claude` pipeline under `bash`, so a
+  // plain `child.kill()` on `bash` can orphan `claude`. The child is spawned
+  // `detached`, making it its own process-group leader, so signalling the
+  // negative pid tears the whole pipeline down together.
+  const signalTree = (signal: NodeJS.Signals) => {
+    if (!child?.pid) return;
+    try {
+      process.kill(-child.pid, signal);
+    } catch {
+      try {
+        child.kill(signal);
+      } catch {
+        /* already exited */
+      }
+    }
+  };
+
   const kill = () => {
     killed = true;
     if (child) {
-      child.kill('SIGTERM');
+      signalTree('SIGTERM');
       setTimeout(() => {
-        if (child && !child.killed) child.kill('SIGKILL');
+        if (child && !child.killed) signalTree('SIGKILL');
       }, 2000);
     }
   };
@@ -178,6 +214,9 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd,
       env,
+      // Own process group so `signalTree` can kill the whole
+      // `cat | script | claude` pipeline, not just the `bash` wrapper.
+      detached: true,
     });
 
     // Accumulated PTY output, kept only so `classifyInteractiveBlock` can spot
