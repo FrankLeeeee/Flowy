@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { RegisterResponse, RunnerConfig } from './types';
@@ -7,8 +8,10 @@ import {
   deleteToken,
   detectAvailableModels,
   detectAvailableProvidersWithVersions,
+  getPackageVersion,
   saveToken,
   updateInstalledClis,
+  updateSelf,
 } from './config';
 import { executeTask } from './executor';
 import { applySkillCommand, listSkills } from './skills';
@@ -138,18 +141,40 @@ export async function startDaemon(config: RunnerConfig): Promise<void> {
     lastCliScanAt = new Date().toISOString();
   };
 
+  const respawnSelf = () => {
+    const child = spawn(process.argv[0], process.argv.slice(1), {
+      stdio: 'inherit',
+      detached: true,
+      env: process.env,
+    });
+    child.unref();
+    setTimeout(() => process.exit(0), 500);
+  };
+
+  const packageVersion = getPackageVersion();
+
   const sendHeartbeat = async () => {
-    const response = await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels);
+    const response = await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels, packageVersion);
+    if (response.updateRunner) {
+      console.log('Updating flowy-runner to latest version...');
+      const updated = updateSelf();
+      if (updated) {
+        console.log('Restarting runner with updated version...');
+        clearTimers();
+        respawnSelf();
+        return;
+      }
+    }
     if (response.updateCli) {
       console.log('Updating installed CLIs to latest versions...');
       updateInstalledClis(availableProviders);
       rescanClis();
       console.log(`CLIs updated. Available: ${availableProviders.join(', ') || '(none)'}`);
-      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels);
+      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels, packageVersion);
     } else if (response.refreshCli) {
       rescanClis();
       console.log(`Refreshing available CLIs: ${availableProviders.join(', ') || '(none)'}`);
-      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels);
+      await api.heartbeat(availableProviders, lastCliScanAt, cliVersions, cliModels, packageVersion);
     }
   };
 

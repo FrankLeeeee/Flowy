@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { Settings as SettingsIcon, Sun, Moon, Monitor, KeyRound, LogOut, Bell, BellOff } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Settings as SettingsIcon, Sun, Moon, Monitor, KeyRound, LogOut, Bell, BellOff, Download } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { useTheme } from '@/lib/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { cn } from '@/lib/utils';
+import { fetchVersion, updateApp, VersionInfo } from '@/api/client';
 
 function NotificationSection() {
   const { permission, subscribed, loading, support, subscribe, unsubscribe } = usePushNotifications();
@@ -55,6 +56,72 @@ const THEME_OPTIONS = [
   { value: 'system' as const, icon: Monitor, label: 'System' },
   { value: 'dark' as const, icon: Moon, label: 'Dark' },
 ] as const;
+
+function AppUpdateSection() {
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      setVersionInfo(await fetchVersion());
+      setError('');
+    } catch {
+      setError('Unable to check for updates');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    setError('');
+    try {
+      await updateApp();
+      setTimeout(() => window.location.reload(), 3000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+      setUpdating(false);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-[13px] text-muted-foreground/60">Checking for updates...</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 text-[13px]">
+        <span className="text-muted-foreground/70">Current version:</span>
+        <span className="font-mono font-medium text-foreground">{versionInfo?.current || 'unknown'}</span>
+      </div>
+      {versionInfo?.latest && (
+        <div className="flex items-center gap-3 text-[13px]">
+          <span className="text-muted-foreground/70">Latest version:</span>
+          <span className="font-mono font-medium text-foreground">{versionInfo.latest}</span>
+        </div>
+      )}
+      {error && <p className="text-[13px] text-destructive">{error}</p>}
+      {updating && <p className="text-[13px] text-primary">Updating... The app will restart shortly.</p>}
+      {versionInfo?.updateAvailable && !updating && (
+        <button
+          type="button"
+          onClick={() => void handleUpdate()}
+          className="inline-flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/[0.06] px-4 py-2.5 text-[13px] font-medium text-primary transition-colors duration-150 hover:bg-primary/[0.1]"
+        >
+          <Download className="h-4 w-4" />
+          Update to {versionInfo.latest}
+        </button>
+      )}
+      {!versionInfo?.updateAvailable && !error && (
+        <p className="text-[13px] text-muted-foreground/60">You&apos;re on the latest version.</p>
+      )}
+    </div>
+  );
+}
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
@@ -119,6 +186,13 @@ export default function Settings() {
               Sign out
             </button>
           </div>
+        </section>
+
+        {/* Updates */}
+        <section>
+          <h2 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">Updates</h2>
+          <p className="mb-4 text-[13px] text-muted-foreground/60">Check for and install Flowy hub updates.</p>
+          <AppUpdateSection />
         </section>
       </div>
 

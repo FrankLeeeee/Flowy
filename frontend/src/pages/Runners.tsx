@@ -6,6 +6,7 @@ import {
   deleteRunner,
   refreshRunnerProviders,
   updateRunnerProviders,
+  updateRunner,
   fetchSettings,
   fetchRunnerRegistrationSecret,
   updateRunnerRegistrationSecret,
@@ -52,6 +53,7 @@ export default function Runners() {
   const [showSetup, setShowSetup] = useState(false);
   const [refreshingRunnerId, setRefreshingRunnerId] = useState<string | null>(null);
   const [updatingRunnerId, setUpdatingRunnerId] = useState<string | null>(null);
+  const [updatingRunnerSelfId, setUpdatingRunnerSelfId] = useState<string | null>(null);
   const [registrationSecret, setRegistrationSecret] = useState("");
   const [setupSecret, setSetupSecret] = useState("");
   const [setupSecretLoading, setSetupSecretLoading] = useState(false);
@@ -132,6 +134,21 @@ export default function Runners() {
       );
     } finally {
       setUpdatingRunnerId(null);
+    }
+  };
+
+  const handleUpdateRunner = async (id: string) => {
+    try {
+      setUpdatingRunnerSelfId(id);
+      await updateRunner(id);
+      await loadData();
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to request runner upgrade",
+      );
+    } finally {
+      setUpdatingRunnerSelfId(null);
     }
   };
 
@@ -486,9 +503,11 @@ export default function Runners() {
                       onDelete={handleDelete}
                       onRefresh={handleRefresh}
                       onUpdate={handleUpdate}
+                      onUpdateRunner={handleUpdateRunner}
                       onSelect={(r) => setSelectedRunnerId(r.id)}
                       refreshing={refreshingRunnerId === runner.id}
                       updating={updatingRunnerId === runner.id}
+                      updatingRunner={updatingRunnerSelfId === runner.id}
                     />
                   </div>
                 ))}

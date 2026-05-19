@@ -221,6 +221,26 @@ router.post('/:id/update-providers', requireUserAuth, (req: Request, res: Respon
   res.json({ ok: true });
 });
 
+// POST /api/runners/:id/update-runner — ask a live runner to update itself to latest npm version
+router.post('/:id/update-runner', requireUserAuth, (req: Request, res: Response) => {
+  const db = getDb();
+  const runner = db.prepare('SELECT id, status FROM runners WHERE id = ?').get(req.params.id) as { id: string; status: string } | undefined;
+  if (!runner) { res.status(404).json({ error: 'Runner not found' }); return; }
+  if (runner.status === 'offline') {
+    res.status(409).json({ error: 'Runner is offline and cannot update itself right now' });
+    return;
+  }
+
+  const now = utcNow();
+  db.prepare(`
+    UPDATE runners
+    SET runner_update_requested_at = ?, updated_at = ?
+    WHERE id = ?
+  `).run(now, now, runner.id);
+
+  res.json({ ok: true });
+});
+
 // POST /api/runners/:id/refresh-providers — ask a live runner to rescan installed CLIs
 router.post('/:id/refresh-providers', requireUserAuth, (req: Request, res: Response) => {
   const db = getDb();
@@ -247,18 +267,25 @@ router.post('/:id/refresh-providers', requireUserAuth, (req: Request, res: Respo
 // POST /api/runners/heartbeat
 router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   const db = getDb();
-  const { aiProviders, lastCliScanAt, cliVersions, cliModels } = req.body as {
+  const { aiProviders, lastCliScanAt, cliVersions, cliModels, packageVersion } = req.body as {
     aiProviders?: string[];
     lastCliScanAt?: string;
     cliVersions?: Record<string, string>;
     cliModels?: Record<string, string[]>;
+    packageVersion?: string;
   };
   const runner = req.runner!;
   const current = db.prepare(`
-    SELECT status, cli_refresh_requested_at, cli_update_requested_at, last_cli_scan_at
+    SELECT status, cli_refresh_requested_at, cli_update_requested_at, runner_update_requested_at, last_cli_scan_at
     FROM runners
     WHERE id = ?
-  `).get(runner.id) as { status: string; cli_refresh_requested_at: string | null; cli_update_requested_at: string | null; last_cli_scan_at: string | null } | undefined;
+  `).get(runner.id) as {
+    status: string;
+    cli_refresh_requested_at: string | null;
+    cli_update_requested_at: string | null;
+    runner_update_requested_at: string | null;
+    last_cli_scan_at: string | null;
+  } | undefined;
   const currentStatus = current?.status;
   const newStatus = currentStatus === 'busy' ? 'busy' : 'online';
   const now = utcNow();
@@ -274,6 +301,7 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
   if (lastCliScanAt) { sets.push('last_cli_scan_at = ?'); params.push(lastCliScanAt); }
   if (cliVersions) { sets.push('cli_versions = ?'); params.push(JSON.stringify(cliVersions)); }
   if (cliModels) { sets.push('cli_models = ?'); params.push(JSON.stringify(cliModels)); }
+  if (packageVersion) { sets.push('package_version = ?'); params.push(packageVersion); }
   params.push(runner.id);
   db.prepare(`UPDATE runners SET ${sets.join(', ')} WHERE id = ?`).run(...params);
 
@@ -283,6 +311,7 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
 
   const refreshCli = isNewerThanScan(current?.cli_refresh_requested_at);
   const updateCli = isNewerThanScan(current?.cli_update_requested_at);
+  const updateRunner = Boolean(current?.runner_update_requested_at);
 
   // A scan completed when the runner reports a CLI scan time newer than the
   // one we last stored (startup/reconnect scans, or a finished refresh/update).
@@ -316,7 +345,15 @@ router.post('/heartbeat', authenticateRunner, (req: Request, res: Response) => {
     `).run(now, runner.id);
   }
 
-  res.json({ ok: true, status: newStatus, refreshCli, updateCli });
+  if (updateRunner) {
+    db.prepare(`
+      UPDATE runners
+      SET runner_update_requested_at = NULL, updated_at = ?
+      WHERE id = ?
+    `).run(now, runner.id);
+  }
+
+  res.json({ ok: true, status: newStatus, refreshCli, updateCli, updateRunner });
 });
 
 // GET /api/runners/browse-requests — runner fetches pending browse requests assigned to it

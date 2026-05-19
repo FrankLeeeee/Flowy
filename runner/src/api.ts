@@ -26,9 +26,10 @@ export class RunnerApi {
     lastCliScanAt?: string,
     cliVersions?: Record<string, string>,
     cliModels?: Record<string, string[]>,
+    packageVersion?: string,
   ): Promise<HeartbeatResponse> {
     const { data } = await this.client.post<HeartbeatResponse>('/runners/heartbeat', {
-      aiProviders, lastCliScanAt, cliVersions, cliModels,
+      aiProviders, lastCliScanAt, cliVersions, cliModels, packageVersion,
     });
     return data;
   }

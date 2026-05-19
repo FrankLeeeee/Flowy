@@ -1,5 +1,6 @@
 import os from 'os';
 import fs from 'fs';
+import path from 'path';
 import { spawnSync } from 'child_process';
 import { RunnerConfig } from './types';
 import { ensureConfigDir, getRunnerTokenPath } from './configDir';
@@ -260,4 +261,30 @@ export function deleteToken(name: string): void {
   } catch {
     // Ignore missing/unreadable token files.
   }
+}
+
+export function getPackageVersion(): string {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+    return pkg.version ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function updateSelf(): boolean {
+  const label = 'npm i -g @frankleeeee/flowy-runner@latest';
+  console.log(`  Running: ${label}`);
+  const result = childProcess.spawnSync('npm', ['i', '-g', '@frankleeeee/flowy-runner@latest'], {
+    encoding: 'utf-8',
+    timeout: 120_000,
+    env: { ...process.env, CI: '1' },
+  });
+  if (result.status !== 0) {
+    const output = [result.stderr, result.stdout].filter(Boolean).join('\n').trim();
+    console.warn(`  Failed to update runner: ${output || `exit ${result.status}`}`);
+    return false;
+  }
+  console.log('  Runner package updated.');
+  return true;
 }
