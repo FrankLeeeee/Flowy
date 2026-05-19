@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { getProvider } from '../src/clis';
-import { buildInteractiveClaudeArgs } from '../src/clis/ptyExecutor';
+import { buildInteractiveClaudeArgs, buildScriptCommand } from '../src/clis/ptyExecutor';
 
 // These tests spawn the real `claude` binary in interactive mode, which now
 // pre-trusts its workspace in `$CLAUDE_CONFIG_DIR/.claude.json`. Point that at
@@ -105,5 +105,46 @@ describe('buildInteractiveClaudeArgs', () => {
     });
     expect(args[args.indexOf('--model') + 1]).toBe('opus');
     expect(args[args.indexOf('--worktree') + 1]).toBe('/tmp/wt');
+  });
+});
+
+describe('buildScriptCommand', () => {
+  const claudeArgs = ['--session-id', 'sid', 'do the thing'];
+
+  it('macOS: pipes script through `cat` so its stdin is never a socket', () => {
+    // Node `spawn` hands a `'pipe'` stdio a socketpair, and BSD `script`
+    // fatally aborts ("tcgetattr/ioctl: Operation not supported on socket")
+    // on a socket stdin. The `cat |` wrapper turns it into a real pipe.
+    const { cmd, args } = buildScriptCommand(claudeArgs, 'darwin');
+    expect(cmd).toBe('bash');
+    expect(args[0]).toBe('-c');
+    expect(args[1]).toBe('cat | script -q /dev/null "$@"');
+  });
+
+  it('macOS: passes claude argv via "$@", never interpolated into the shell', () => {
+    // A prompt containing shell metacharacters must not be able to inject
+    // shell — it has to arrive as its own argv element after `claude`.
+    const evil = '$(touch /tmp/pwned); `id`; rm -rf ~';
+    const { args } = buildScriptCommand(
+      ['--session-id', 'sid', evil],
+      'darwin',
+    );
+    // The shell string is a fixed literal; the prompt is not in it.
+    expect(args[1]).not.toContain(evil);
+    expect(args[1]).toBe('cat | script -q /dev/null "$@"');
+    // `claude` then the args become the positional parameters ("$@").
+    const claudeIdx = args.indexOf('claude');
+    expect(claudeIdx).toBeGreaterThan(1);
+    expect(args[claudeIdx + 1]).toBe('--session-id');
+    expect(args[args.length - 1]).toBe(evil);
+  });
+
+  it('Linux: keeps the util-linux `-qec` command-string form', () => {
+    const { cmd, args } = buildScriptCommand(claudeArgs, 'linux');
+    expect(cmd).toBe('script');
+    expect(args[0]).toBe('-qec');
+    expect(args[2]).toBe('/dev/null');
+    // Args with spaces are single-quoted into the command string.
+    expect(args[1]).toBe("claude --session-id sid 'do the thing'");
   });
 });
