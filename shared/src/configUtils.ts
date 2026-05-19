@@ -11,6 +11,21 @@ export function getString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+/**
+ * Coerce an unknown value to a finite, strictly-positive number, or return
+ * undefined. Accepts numeric strings (e.g. from form inputs) as well as raw
+ * numbers so the same helper works for both JSON config and UI state.
+ */
+export function getPositiveNumber(value: unknown): number | undefined {
+  const num =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : NaN;
+  return Number.isFinite(num) && num > 0 ? num : undefined;
+}
+
 /** Parse a raw JSON string into a plain object, returning `{}` on any error. */
 export function parseRootConfig(raw: string | null | undefined): Record<string, unknown> {
   if (!raw) return {};

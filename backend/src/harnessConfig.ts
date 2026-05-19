@@ -1,4 +1,4 @@
-import { asRecord, getString } from 'flowy-shared';
+import { asRecord, getPositiveNumber, getString } from 'flowy-shared';
 
 type RecordLike = Record<string, unknown>;
 
@@ -29,6 +29,8 @@ function normalizeConfigObject(input: unknown): RecordLike {
       mode: getString(claudeCode.mode),
       worktree: getString(claudeCode.worktree),
       useInteractiveMode: typeof claudeCode.useInteractiveMode === 'boolean' ? claudeCode.useInteractiveMode : undefined,
+      interactiveIdleTimeoutMs: getPositiveNumber(claudeCode.interactiveIdleTimeoutMs),
+      interactiveMaxSessionMs: getPositiveNumber(claudeCode.interactiveMaxSessionMs),
     }) : undefined,
     cursorAgent: cursorAgent ? pruneObject({
       workspace: getString(cursorAgent.workspace),

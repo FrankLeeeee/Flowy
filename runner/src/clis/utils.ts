@@ -1,1 +1,1 @@
-export { asRecord, getString, parseRootConfig } from 'flowy-shared';
+export { asRecord, getPositiveNumber, getString, parseRootConfig } from 'flowy-shared';

@@ -1,5 +1,5 @@
 import { CLICommand, CLIProvider } from './index';
-import { asRecord, getString, parseRootConfig } from './utils';
+import { asRecord, getPositiveNumber, getString, parseRootConfig } from './utils';
 import { spawnInteractiveClaude } from './ptyExecutor';
 
 export interface ClaudeCodeConfig {
@@ -7,6 +7,8 @@ export interface ClaudeCodeConfig {
   model?: string;
   worktree?: string;
   useInteractiveMode?: boolean;
+  interactiveIdleTimeoutMs?: number;
+  interactiveMaxSessionMs?: number;
 }
 
 function parseConfig(raw: string | null | undefined): ClaudeCodeConfig {
@@ -21,6 +23,8 @@ function parseConfig(raw: string | null | undefined): ClaudeCodeConfig {
       typeof section.useInteractiveMode === 'boolean'
         ? section.useInteractiveMode
         : undefined,
+    interactiveIdleTimeoutMs: getPositiveNumber(section.interactiveIdleTimeoutMs),
+    interactiveMaxSessionMs: getPositiveNumber(section.interactiveMaxSessionMs),
   };
 }
 
@@ -64,6 +68,8 @@ export const claudeCodeProvider: CLIProvider = {
       model: config.model,
       cwd: config.workspace,
       worktree: config.worktree,
+      idleTimeoutMs: config.interactiveIdleTimeoutMs,
+      maxSessionMs: config.interactiveMaxSessionMs,
     });
   },
 };
