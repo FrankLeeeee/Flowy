@@ -221,6 +221,7 @@ export default function CreateTaskModal({
                     textareaClassName="min-h-[92px]"
                     ariaLabel="Task description"
                     enableRawToggle
+                    maxHeight="240px"
                   />
                 </AppDialogSection>
 

@@ -55,6 +55,7 @@ export interface MarkdownEditorProps {
   ariaLabel?: string;
   enableRawToggle?: boolean;
   defaultRawMarkdown?: boolean;
+  maxHeight?: string;
 }
 
 export function MarkdownEditor({
@@ -66,6 +67,7 @@ export function MarkdownEditor({
   ariaLabel,
   enableRawToggle = false,
   defaultRawMarkdown = false,
+  maxHeight,
 }: MarkdownEditorProps) {
   const [rawMarkdown, setRawMarkdown] = React.useState(defaultRawMarkdown);
   const isMobile = useIsMobile();
@@ -229,10 +231,16 @@ export function MarkdownEditor({
         aria-label={`${ariaLabel ?? 'Description'} (raw text)`}
         rows={rows}
         hidden={!showRawText}
-        style={{ minHeight: minH }}
-        className="w-full resize-y rounded-md border-0 bg-transparent p-0 text-[13px] leading-relaxed text-foreground/90 placeholder:text-muted-foreground/45 focus:outline-none"
+        style={{ minHeight: minH, ...(maxHeight ? { maxHeight } : {}) }}
+        className={cn(
+          'w-full resize-y rounded-md border-0 bg-transparent p-0 text-[13px] leading-relaxed text-foreground/90 placeholder:text-muted-foreground/45 focus:outline-none',
+          maxHeight && 'overflow-y-auto',
+        )}
       />
-      <div hidden={showRawText}>
+      <div
+        hidden={showRawText}
+        style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}
+      >
         <EditorContent
           editor={editor}
           className={cn(
