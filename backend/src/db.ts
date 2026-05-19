@@ -191,6 +191,9 @@ function migrate(): void {
   ensureColumn('lists', 'position', 'INTEGER NOT NULL DEFAULT 0');
   backfillListPositions();
 
+  ensureColumn('runners', 'package_version', 'TEXT');
+  ensureColumn('runners', 'runner_update_requested_at', 'TEXT');
+
   ensureColumn('lists', 'workspaces', `TEXT NOT NULL DEFAULT '[]'`);
 
   ensureTemplatesTable();

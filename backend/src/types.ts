@@ -49,6 +49,8 @@ export interface Runner {
   cli_refresh_requested_at: string | null;
   cli_models: string | null;
   cli_update_requested_at: string | null;
+  package_version: string | null;
+  runner_update_requested_at: string | null;
   device_info: string;
   created_at: string;
   updated_at: string;

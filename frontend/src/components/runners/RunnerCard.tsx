@@ -4,19 +4,21 @@ import { Button } from '@/components/ui/button';
 import RunnerStatusBadge from './RunnerStatusBadge';
 import { cn, parseUtcTimestamp, timeAgo } from '@/lib/utils';
 import { getAiHarnessPillStyle, getRunnerStatusStyles } from '@/lib/semanticColors';
-import { ArrowUpCircle, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowUpCircle, Download, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 export default function RunnerCard({
-  runner, currentTask, onDelete, onRefresh, onUpdate, onSelect, refreshing, updating,
+  runner, currentTask, onDelete, onRefresh, onUpdate, onUpdateRunner, onSelect, refreshing, updating, updatingRunner,
 }: {
   runner: Runner;
   currentTask?: Task;
   onDelete: (id: string) => void;
   onRefresh: (id: string) => void;
   onUpdate: (id: string) => void;
+  onUpdateRunner: (id: string) => void;
   onSelect: (runner: Runner) => void;
   refreshing: boolean;
   updating: boolean;
+  updatingRunner: boolean;
 }) {
   const providers: AiProvider[] = JSON.parse(runner.ai_providers || '[]');
   const versions: Record<string, string> = JSON.parse(runner.cli_versions || '{}');
@@ -29,6 +31,7 @@ export default function RunnerCard({
     runner.cli_update_requested_at &&
     (!runner.last_cli_scan_at || parseUtcTimestamp(runner.cli_update_requested_at) > parseUtcTimestamp(runner.last_cli_scan_at))
   );
+  const runnerUpdatePending = Boolean(runner.runner_update_requested_at);
 
   return (
     <div
@@ -51,6 +54,9 @@ export default function RunnerCard({
           <h3 className="text-[13px] font-semibold text-foreground truncate">{runner.name}</h3>
           {runner.device_info && (
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground/80">{runner.device_info}</p>
+          )}
+          {runner.package_version && (
+            <p className="mt-0.5 truncate text-[10px] text-muted-foreground/60 font-mono">v{runner.package_version}</p>
           )}
         </div>
         <RunnerStatusBadge status={runner.status} />
@@ -100,7 +106,12 @@ export default function RunnerCard({
           )}
           {cliUpdatePending && (
             <span className={cn('block text-[10px]', busyStyles.emphasis)}>
-              Update requested
+              CLI update requested
+            </span>
+          )}
+          {runnerUpdatePending && (
+            <span className={cn('block text-[10px]', busyStyles.emphasis)}>
+              Runner upgrade requested
             </span>
           )}
         </div>
@@ -109,6 +120,19 @@ export default function RunnerCard({
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'h-7 w-7 transition-colors duration-150',
+              updatingRunner || runnerUpdatePending ? 'text-primary' : 'text-muted-foreground/70',
+            )}
+            onClick={() => onUpdateRunner(runner.id)}
+            disabled={updatingRunner || runnerUpdatePending || runner.status === 'offline'}
+            title={runner.status === 'offline' ? 'Runner must be online to upgrade' : 'Upgrade runner to latest version'}
+          >
+            <Download className={cn('h-3.5 w-3.5', (updatingRunner || runnerUpdatePending) && 'animate-bounce')} />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

@@ -378,6 +378,10 @@ export async function updateRunnerProviders(id: string): Promise<void> {
   await api.post(`/runners/${id}/update-providers`);
 }
 
+export async function updateRunner(id: string): Promise<void> {
+  await api.post(`/runners/${id}/update-runner`);
+}
+
 export async function fetchRunnerTasks(id: string, limit = 10): Promise<Task[]> {
   const { data } = await api.get<Task[]>(`/runners/${id}/tasks`, { params: { limit } });
   return data;
@@ -508,4 +512,22 @@ export async function subscribePush(subscription: PushSubscriptionJSON): Promise
 
 export async function unsubscribePush(endpoint: string): Promise<void> {
   await api.post('/push/unsubscribe', { endpoint });
+}
+
+// ── Version ─────────────────────────────────────────────────────────────────
+
+export interface VersionInfo {
+  current: string;
+  latest: string | null;
+  updateAvailable: boolean;
+}
+
+export async function fetchVersion(): Promise<VersionInfo> {
+  const { data } = await api.get<VersionInfo>('/version');
+  return data;
+}
+
+export async function updateApp(): Promise<{ ok: boolean; message: string }> {
+  const { data } = await api.post<{ ok: boolean; message: string }>('/version/update');
+  return data;
 }

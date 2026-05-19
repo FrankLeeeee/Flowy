@@ -47,6 +47,7 @@ export interface HeartbeatResponse {
   status: string;
   refreshCli?: boolean;
   updateCli?: boolean;
+  updateRunner?: boolean;
 }
 
 export type SkillCli = 'claude-code' | 'codex' | 'cursor-agent' | 'gemini-cli';

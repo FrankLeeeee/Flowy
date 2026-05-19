@@ -14,6 +14,7 @@ import templatesRouter from './routes/templates';
 import statsRouter     from './routes/stats';
 import sessionsRouter  from './routes/sessions';
 import pushRouter      from './routes/push';
+import versionRouter   from './routes/version';
 import { initDb }      from './db';
 import { DATA_DIR }    from './dataDir';
 import { loadSettings } from './storage';
@@ -94,6 +95,7 @@ app.use('/api/templates',  requireUserAuth, templatesRouter);
 app.use('/api/stats',      requireUserAuth, statsRouter);
 app.use('/api/sessions', requireUserAuth, sessionsRouter);
 app.use('/api/push',     requireUserAuth, pushRouter);
+app.use('/api/version',  requireUserAuth, versionRouter);
 
 // Runners router manages its own auth internally (runner Bearer + user session per endpoint)
 app.use('/api/runners',  runnersRouter);
