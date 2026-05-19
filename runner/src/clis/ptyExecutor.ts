@@ -4,6 +4,7 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import { trustClaudeWorkspace } from './claudeTrust';
+import { AnsiStripper, extractAssistantFromTui, stripAnsi } from './terminalSanitizer';
 
 export interface InteractiveSpawnOptions {
   prompt: string;
@@ -135,21 +136,6 @@ function readAssistantOutput(jsonlPath: string): AssistantResult | null {
   return lastTerminal;
 }
 
-// ANSI escape sequence pattern for stripping terminal formatting.
-const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07|\x1b[()][AB012]|\r/g;
-
-function stripAnsi(text: string): string {
-  return text.replace(ANSI_RE, '');
-}
-
-function extractAssistantFromTui(raw: string): string {
-  const clean = stripAnsi(raw);
-  const marker = '⏺'; // ⏺
-  const idx = clean.lastIndexOf(marker);
-  if (idx === -1) return clean.trim();
-  return clean.slice(idx + 1).trim();
-}
-
 /**
  * Build the platform-specific command that wraps `claude` inside a PTY using
  * the system `script` utility. This avoids a hard dependency on `node-pty`.
@@ -248,22 +234,31 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
     let lastDataTime = Date.now();
     let processExited = false;
     let exitCode: number | null = null;
+    // One stripper per stream: sanitization is stateful so a control
+    // sequence split across two PTY reads is reassembled, not leaked.
+    const stdoutStripper = new AnsiStripper();
+    const stderrStripper = new AnsiStripper();
 
     const cleanup = (timers: ReturnType<typeof setInterval>[]) => {
       for (const t of timers) clearInterval(t);
+    };
+
+    const emit = (clean: string) => {
+      if (clean) onOutput(clean);
     };
 
     child.stdout?.on('data', (data: Buffer) => {
       const text = data.toString();
       tuiBuffer += text;
       lastDataTime = Date.now();
-      onOutput(stripAnsi(text));
+      emit(stdoutStripper.push(text));
     });
 
     child.stderr?.on('data', (data: Buffer) => {
       const text = data.toString();
       tuiBuffer += text;
       lastDataTime = Date.now();
+      emit(stderrStripper.push(text));
     });
 
     child.on('error', (err) => {
@@ -277,6 +272,9 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
     child.on('close', (code) => {
       processExited = true;
       exitCode = code;
+      // No more data will arrive — release any withheld partial sequence.
+      emit(stdoutStripper.flush());
+      emit(stderrStripper.flush());
     });
 
     const startTime = Date.now();
@@ -286,7 +284,7 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
     const pollTimer = setInterval(() => {
       if (killed) {
         cleanup(timers);
-        resolve({ success: false, output: tuiBuffer });
+        resolve({ success: false, output: extractAssistantFromTui(tuiBuffer) });
         return;
       }
 
