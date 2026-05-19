@@ -51,17 +51,19 @@ export const claudeCodeProvider: CLIProvider = {
   execute(
     prompt: string,
     rawHarnessConfig: string | null | undefined,
-    onOutput: (chunk: string) => void,
+    _onOutput: (chunk: string) => void,
   ) {
     const config = parseConfig(rawHarnessConfig);
     if (!config.useInteractiveMode) return null;
 
+    // Interactive mode intentionally ignores `onOutput`: the raw PTY
+    // transcript is noisy TUI chrome, so nothing is streamed back. The task
+    // receives only Claude's final reply, captured via `/copy` on completion.
     return spawnInteractiveClaude({
       prompt,
       model: config.model,
       cwd: config.workspace,
       worktree: config.worktree,
-      onOutput,
     });
   },
 };

@@ -1,17 +1,14 @@
 import { ChildProcess, spawn } from 'child_process';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import crypto from 'crypto';
 import { trustClaudeWorkspace } from './claudeTrust';
-import { AnsiStripper, extractAssistantFromTui, stripAnsi } from './terminalSanitizer';
+import { stripAnsi } from './terminalSanitizer';
+import { readClipboard, writeClipboard } from './clipboard';
 
 export interface InteractiveSpawnOptions {
   prompt: string;
   model?: string;
   cwd?: string;
   worktree?: string;
-  onOutput: (chunk: string) => void;
   timeoutMs?: number;
   quietAfterMs?: number;
 }
@@ -22,10 +19,21 @@ export interface InteractiveSpawnHandle {
 }
 
 const DEFAULT_TIMEOUT_MS = 90_000;
+
+// How long the PTY must stay silent before we treat Claude's reply as done.
+// Claude renders a live spinner while it works, so a gap this long only
+// happens once it has settled back at the idle prompt.
 const DEFAULT_QUIET_AFTER_MS = 3_000;
-const JSONL_POLL_INTERVAL_MS = 500;
-const PTY_COLS = 200;
-const PTY_ROWS = 50;
+
+// Ignore the brief start-up lull (TUI mounting, model handshake) — only arm
+// the quiet check once the session has been running at least this long.
+const MIN_RUNTIME_MS = 6_000;
+
+const POLL_INTERVAL_MS = 500;
+
+// After `/copy`, how long to wait for Claude to actually populate the
+// clipboard before giving up.
+const CLIPBOARD_WAIT_MS = 8_000;
 
 // Under a PTY, `--permission-mode bypassPermissions` surfaces a one-time
 // "you accept all responsibility ... Bypass Permissions mode" acknowledgment
@@ -69,73 +77,6 @@ function buildSanitizedEnv(): Record<string, string> {
   return env;
 }
 
-function findSessionJsonl(sessionId: string): string | null {
-  const projectsDir = path.join(os.homedir(), '.claude', 'projects');
-  if (!fs.existsSync(projectsDir)) return null;
-
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(projectsDir, { withFileTypes: true });
-  } catch {
-    return null;
-  }
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const jsonlPath = path.join(projectsDir, entry.name, `${sessionId}.jsonl`);
-    if (fs.existsSync(jsonlPath)) return jsonlPath;
-  }
-  return null;
-}
-
-interface AssistantResult {
-  text: string;
-  stopReason: string | null;
-}
-
-function readAssistantOutput(jsonlPath: string): AssistantResult | null {
-  let content: string;
-  try {
-    content = fs.readFileSync(jsonlPath, 'utf-8');
-  } catch {
-    return null;
-  }
-
-  const lines = content.split('\n').filter(Boolean);
-  let lastTerminal: AssistantResult | null = null;
-
-  for (const line of lines) {
-    let event: Record<string, unknown>;
-    try {
-      event = JSON.parse(line) as Record<string, unknown>;
-    } catch {
-      continue;
-    }
-
-    if (event.type !== 'assistant') continue;
-
-    const message = event.message as Record<string, unknown> | undefined;
-    const stopReason =
-      (event.stop_reason as string) ??
-      (message?.stop_reason as string) ??
-      null;
-
-    if (stopReason === 'tool_use' || stopReason === 'pause_turn') continue;
-
-    const contentArr = (message?.content ?? []) as Array<Record<string, unknown>>;
-    const textParts = contentArr
-      .filter((c) => c.type === 'text')
-      .map((c) => c.text as string);
-    const text = textParts.join('\n');
-
-    if (text) {
-      lastTerminal = { text, stopReason };
-    }
-  }
-
-  return lastTerminal;
-}
-
 /**
  * Build the platform-specific command that wraps `claude` inside a PTY using
  * the system `script` utility. This avoids a hard dependency on `node-pty`.
@@ -143,7 +84,8 @@ function readAssistantOutput(jsonlPath: string): AssistantResult | null {
  * - macOS:  `script -q /dev/null claude [args...]`
  * - Linux:  `script -qec "claude [args...]" /dev/null`
  *
- * The child is spawned with `stdio: pipe` so we can capture its output.
+ * The child is spawned with `stdio: pipe` so we can both observe its output
+ * and type the trailing `/copy` command into it.
  */
 function buildScriptCommand(
   claudeArgs: string[],
@@ -183,13 +125,22 @@ export function buildInteractiveClaudeArgs(opts: {
   return args;
 }
 
+/**
+ * Run a task through interactive (PTY) Claude.
+ *
+ * Unlike the standard `-p` path, the raw PTY transcript is never streamed back
+ * to the server — it is noisy TUI chrome that is unhelpful as task output. We
+ * only watch it internally to notice blocking prompts the runner cannot
+ * answer. Once Claude settles at its idle prompt we type `/copy`, which copies
+ * its last reply to the system clipboard, and return that clipboard text as
+ * the task output.
+ */
 export function spawnInteractiveClaude(options: InteractiveSpawnOptions): InteractiveSpawnHandle {
   const {
     prompt,
     model,
     cwd,
     worktree,
-    onOutput,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     quietAfterMs = DEFAULT_QUIET_AFTER_MS,
   } = options;
@@ -210,7 +161,6 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
 
   const promise = new Promise<{ success: boolean; output: string }>((resolve) => {
     const claudeArgs = buildInteractiveClaudeArgs({ sessionId, prompt, model, worktree });
-
     const { cmd, args } = buildScriptCommand(claudeArgs);
     const env = buildSanitizedEnv();
     env.IS_SANDBOX = '1';
@@ -218,138 +168,116 @@ export function spawnInteractiveClaude(options: InteractiveSpawnOptions): Intera
     // The PTY makes Claude run interactively, which surfaces the one-time
     // "Do you trust the files in this folder?" dialog (skipped only in
     // non-TTY/-p mode). The runner has no way to answer it, so pre-trust the
-    // working directory to make interactive mode behave like -p. Best-effort:
-    // the interactive-block detector below is the fallback if this fails.
+    // working directory. Best-effort: the interactive-block detector below is
+    // the fallback if this fails.
     trustClaudeWorkspace(cwd);
 
     console.log(`  Spawning interactive claude (session: ${sessionId.slice(0, 8)}...)`);
 
     child = spawn(cmd, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
       cwd,
       env,
     });
 
+    // Accumulated PTY output, kept only so `classifyInteractiveBlock` can spot
+    // a prompt the runner can't answer — it is never sent to the server.
     let tuiBuffer = '';
     let lastDataTime = Date.now();
+    let sawOutput = false;
     let processExited = false;
-    let exitCode: number | null = null;
-    // One stripper per stream: sanitization is stateful so a control
-    // sequence split across two PTY reads is reassembled, not leaked.
-    const stdoutStripper = new AnsiStripper();
-    const stderrStripper = new AnsiStripper();
 
-    const cleanup = (timers: ReturnType<typeof setInterval>[]) => {
-      for (const t of timers) clearInterval(t);
-    };
-
-    const emit = (clean: string) => {
-      if (clean) onOutput(clean);
-    };
-
-    child.stdout?.on('data', (data: Buffer) => {
-      const text = data.toString();
-      tuiBuffer += text;
+    const onData = (data: Buffer) => {
+      tuiBuffer += data.toString();
       lastDataTime = Date.now();
-      emit(stdoutStripper.push(text));
-    });
+      sawOutput = true;
+    };
+    child.stdout?.on('data', onData);
+    child.stderr?.on('data', onData);
 
-    child.stderr?.on('data', (data: Buffer) => {
-      const text = data.toString();
-      tuiBuffer += text;
-      lastDataTime = Date.now();
-      emit(stderrStripper.push(text));
-    });
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    const finish = (success: boolean, output: string) => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      if (!processExited) kill();
+      resolve({ success, output });
+    };
 
     child.on('error', (err) => {
       processExited = true;
-      const errMsg = `[Error spawning interactive claude: ${err.message}]`;
-      onOutput(errMsg);
-      cleanup(timers);
-      resolve({ success: false, output: errMsg });
+      finish(false, `[Error spawning interactive claude: ${err.message}]`);
     });
-
-    child.on('close', (code) => {
+    child.on('close', () => {
       processExited = true;
-      exitCode = code;
-      // No more data will arrive — release any withheld partial sequence.
-      emit(stdoutStripper.flush());
-      emit(stderrStripper.flush());
     });
 
     const startTime = Date.now();
-    const timers: ReturnType<typeof setInterval>[] = [];
+    // A unique marker dropped onto the clipboard *before* `/copy`, so we can
+    // tell Claude's real reply from whatever happened to be there before (or
+    // detect that `/copy` silently did nothing).
+    const sentinel = `__flowy_pending_${sessionId}__`;
+    let copyRequested = false;
+    let copyRequestedAt = 0;
 
-    // Poll for the session JSONL file and check completion conditions.
-    const pollTimer = setInterval(() => {
+    const requestCopy = () => {
+      copyRequested = true;
+      copyRequestedAt = Date.now();
+      writeClipboard(sentinel);
+      // `/copy` is Claude's slash command to copy the last assistant message
+      // to the clipboard. Send it as typed input followed by Enter (CR).
+      child?.stdin?.write('/copy\r');
+    };
+
+    pollTimer = setInterval(() => {
       if (killed) {
-        cleanup(timers);
-        resolve({ success: false, output: extractAssistantFromTui(tuiBuffer) });
+        finish(false, '[Interactive session cancelled]');
         return;
       }
 
       const elapsed = Date.now() - startTime;
       if (elapsed >= timeoutMs) {
         console.log('  Interactive session timed out');
-        cleanup(timers);
-        kill();
-        const fallback = extractAssistantFromTui(tuiBuffer);
-        resolve({ success: false, output: fallback || '[Timeout: no response received]' });
+        finish(false, '[Timeout: no response received]');
         return;
       }
 
-      // Check for interactive blocks that need human intervention.
+      // Surface prompts the runner cannot answer instead of hanging.
       const block = classifyInteractiveBlock(stripAnsi(tuiBuffer));
       if (block) {
         console.log(`  Interactive block detected: ${block}`);
-        cleanup(timers);
-        kill();
-        resolve({ success: false, output: `[Interactive block: ${block}]` });
+        finish(false, `[Interactive block: ${block}]`);
         return;
       }
 
-      // Try reading the session JSONL for the canonical output.
-      const jsonlPath = findSessionJsonl(sessionId);
-      if (jsonlPath) {
-        const result = readAssistantOutput(jsonlPath);
-        if (result) {
-          // We have a terminal assistant message — check if the process has
-          // settled (quiet timeout) or already exited.
-          const quietElapsed = Date.now() - lastDataTime;
-          if (quietElapsed >= quietAfterMs || processExited) {
-            console.log('  Interactive session completed via JSONL');
-            cleanup(timers);
-            if (!processExited) kill();
-            resolve({ success: true, output: result.text });
-            return;
-          }
+      if (!copyRequested) {
+        // Interactive Claude normally stays at its prompt; exiting before we
+        // could ask it to copy means it crashed or bailed early.
+        if (processExited) {
+          finish(false, '[Interactive claude exited before producing a reply]');
+          return;
         }
+        const quiet = Date.now() - lastDataTime;
+        if (sawOutput && elapsed >= MIN_RUNTIME_MS && quiet >= quietAfterMs) {
+          console.log('  Claude idle — requesting /copy');
+          requestCopy();
+        }
+        return;
       }
 
-      // If the process exited but no JSONL output was found, give a brief
-      // grace period then fall back to TUI-scraped output.
-      if (processExited) {
-        const postExitWait = Date.now() - lastDataTime;
-        if (postExitWait >= 1000) {
-          cleanup(timers);
-          const jsonlPath2 = findSessionJsonl(sessionId);
-          if (jsonlPath2) {
-            const result2 = readAssistantOutput(jsonlPath2);
-            if (result2) {
-              resolve({ success: exitCode === 0, output: result2.text });
-              return;
-            }
-          }
-          const fallback = extractAssistantFromTui(tuiBuffer);
-          resolve({
-            success: exitCode === 0,
-            output: fallback || '[No output captured]',
-          });
-        }
+      // `/copy` sent: wait for the clipboard to change from the sentinel,
+      // which means Claude wrote its reply there.
+      const clip = readClipboard();
+      if (clip !== null && clip !== sentinel && clip.trim() !== '') {
+        console.log('  Captured assistant reply from clipboard');
+        finish(true, clip.trim());
+        return;
       }
-    }, JSONL_POLL_INTERVAL_MS);
-
-    timers.push(pollTimer);
+      if (Date.now() - copyRequestedAt >= CLIPBOARD_WAIT_MS) {
+        finish(false, '[No output: /copy did not populate the clipboard]');
+      }
+    }, POLL_INTERVAL_MS);
   });
 
   return { promise, kill };
