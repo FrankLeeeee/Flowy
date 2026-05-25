@@ -194,6 +194,7 @@ export default function MobileInbox() {
           runners={runners}
           onTaskClick={handleTaskClick}
           onStatusChange={handleStatusChange}
+          onDeleteTask={(task) => setDeleteTarget(task)}
         />
       </div>
 
