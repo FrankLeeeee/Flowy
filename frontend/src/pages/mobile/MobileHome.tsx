@@ -151,7 +151,7 @@ export default function MobileHome({ selectedDate }: MobileHomeProps) {
       )}
 
       <div className="px-4 pt-4">
-        <TaskTodoView tasks={tasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+        <TaskTodoView tasks={tasks} allLabels={allLabels} runners={runners} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onDeleteTask={(task) => setDeleteTaskTarget(task)} />
       </div>
 
       <CreateTaskModal

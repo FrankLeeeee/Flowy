@@ -1,10 +1,12 @@
 import { memo, useState, useMemo } from 'react';
 import { Label, Runner, Task, TaskStatus } from '@/types';
-import { ChevronDown, Check, Circle, Clock3, Repeat } from 'lucide-react';
+import { ChevronDown, Check, Circle, Clock3, Repeat, Trash2 } from 'lucide-react';
 import { cn, sortByCompletedAtDesc } from '@/lib/utils';
 import { STATUS_CONFIG, PRIORITY_ICON, PRIORITY_LABEL } from '@/lib/taskConstants';
 import { getAiHarnessPillStyle, getLabelColorStyles, getTaskStatusStyles, getTaskPriorityStyles } from '@/lib/semanticColors';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
+import { useSwipeToReveal } from '@/hooks/useSwipeToReveal';
+import { REVEAL_ACTION_WIDTH } from '@/lib/swipeReveal';
 import AnimatedListItem from '@/components/AnimatedListItem';
 import { formatTaskTimeDurationPill, sortTasksBySchedule } from '@/lib/taskSchedule';
 
@@ -13,6 +15,9 @@ const TodoRow = memo(function TodoRow({
   onCheck,
   onUncheck,
   onRowClick,
+  onDelete,
+  swipeOpen = false,
+  onSwipeOpenChange,
   allLabels,
   runner,
   checked = false,
@@ -21,6 +26,11 @@ const TodoRow = memo(function TodoRow({
   onCheck?: () => void;
   onUncheck?: () => void;
   onRowClick?: () => void;
+  /** When provided, enables the mobile swipe-to-reveal delete action. */
+  onDelete?: () => void;
+  /** Controlled reveal state so the list keeps at most one row open. */
+  swipeOpen?: boolean;
+  onSwipeOpenChange?: (open: boolean) => void;
   allLabels: Label[];
   runner?: Runner;
   checked?: boolean;
@@ -50,7 +60,26 @@ const TodoRow = memo(function TodoRow({
   const isRecurring = !!task.recurrence_rule;
   const hasMetadata = true;
 
-  return (
+  const swipeEnabled = !!onDelete;
+  const { swipeHandlers, contentStyle, close, consumeClick } = useSwipeToReveal({
+    enabled: swipeEnabled,
+    open: swipeOpen,
+    onOpenChange: onSwipeOpenChange ?? (() => {}),
+    actionWidth: REVEAL_ACTION_WIDTH,
+  });
+
+  const handleRowClick = () => {
+    // Swallow the click that ends a swipe, and let a tap on an open card just
+    // tuck it closed rather than opening the task detail.
+    if (consumeClick()) return;
+    if (swipeOpen) {
+      close();
+      return;
+    }
+    onRowClick?.();
+  };
+
+  const row = (
     <div
       className={cn(
         'flex w-full min-w-0 items-start gap-2.5 overflow-hidden px-3 py-2.5 rounded-lg border transition-all duration-150 group cursor-pointer',
@@ -58,7 +87,7 @@ const TodoRow = memo(function TodoRow({
           ? 'border-border/25 bg-card/40 hover:bg-card/60'
           : 'border-border/45 bg-card shadow-soft hover:border-border/75 hover:shadow-elevated motion-safe:hover:-translate-y-px',
       )}
-      onClick={onRowClick}
+      onClick={handleRowClick}
     >
       <button
         type="button"
@@ -140,6 +169,38 @@ const TodoRow = memo(function TodoRow({
       </span>
     </div>
   );
+
+  if (!swipeEnabled) return row;
+
+  return (
+    <div className="relative">
+      {/* Trailing delete action, revealed as the card slides aside. */}
+      <div className="absolute inset-y-0 right-0 z-0 flex items-stretch">
+        <button
+          type="button"
+          aria-label={`Delete ${task.title}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            close();
+            onDelete?.();
+          }}
+          style={{ width: REVEAL_ACTION_WIDTH }}
+          className="flex flex-col items-center justify-center gap-0.5 rounded-r-lg bg-destructive text-[11px] font-semibold text-destructive-foreground transition-colors active:bg-destructive/90"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </button>
+      </div>
+      {/* Sliding layer: an opaque backdrop keeps the action hidden until revealed. */}
+      <div
+        className="relative z-10 rounded-lg bg-background"
+        style={contentStyle}
+        {...swipeHandlers}
+      >
+        {row}
+      </div>
+    </div>
+  );
 });
 
 interface TaskTodoViewProps {
@@ -148,11 +209,15 @@ interface TaskTodoViewProps {
   runners?: Runner[];
   onTaskClick: (task: Task) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
+  /** When provided, rows expose a mobile swipe-to-reveal delete action. */
+  onDeleteTask?: (task: Task) => void;
 }
 
-export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTaskClick, onStatusChange }: TaskTodoViewProps) {
+export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTaskClick, onStatusChange, onDeleteTask }: TaskTodoViewProps) {
   const runnerMap = new Map(runners.map((r) => [r.id, r]));
   const [completedOpen, setCompletedOpen] = useState(false);
+  // Only one row may be swiped open at a time, so opening one closes the rest.
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
 
   const uncompleted = useMemo(
     () => sortTasksBySchedule(tasks.filter((t) => t.status !== 'done' && t.status !== 'cancelled')),
@@ -193,6 +258,9 @@ export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTa
                   runner={task.runner_id ? runnerMap.get(task.runner_id) : undefined}
                   onCheck={() => onStatusChange(task.id, 'done')}
                   onRowClick={() => onTaskClick(task)}
+                  onDelete={onDeleteTask ? () => onDeleteTask(task) : undefined}
+                  swipeOpen={openRowId === task.id}
+                  onSwipeOpenChange={(open) => setOpenRowId(open ? task.id : null)}
                   checked={leaving}
                 />
               </AnimatedListItem>
@@ -239,6 +307,9 @@ export default function TaskTodoView({ tasks, allLabels = [], runners = [], onTa
                       checked
                       onUncheck={() => onStatusChange(task.id, 'backlog')}
                       onRowClick={() => onTaskClick(task)}
+                      onDelete={onDeleteTask ? () => onDeleteTask(task) : undefined}
+                      swipeOpen={openRowId === task.id}
+                      onSwipeOpenChange={(open) => setOpenRowId(open ? task.id : null)}
                     />
                   </AnimatedListItem>
                 ))}
