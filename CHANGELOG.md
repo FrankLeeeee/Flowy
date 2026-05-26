@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.13 (2026-05-26)
+
+- Add mobile swipe-to-reveal delete on task cards (#200)
+- Add self-update for hub app and runner packages (#196) (#199)
+- Fix interactive Claude timing out on long tasks (#196) (#196)
+- Cap task description editor height to prevent dialog overflow (#197)
+- Fix LabelPicker dropdown clipped by dialog overflow (#196) (#198)
+- Fix interactive Claude empty reply on macOS (script socket abort) (#195)
+- Capture interactive Claude output via /copy clipboard instead of streaming (#194)
+- Sanitize PTY control sequences in Claude interactive output (#193)
+- Skip bypass-permissions prompt in Claude interactive mode (#192)
+- Skip workspace trust prompt in Claude interactive mode (#191)
+- Add interactive execution mode toggle for Claude Code (#190)
+- Load task template picker eagerly and fetch templates lazily (#189)
+- Update tag-release.yml to include path filter
+- Update GitHub Actions workflow for tagging releases
+- Update tag-release.yml
+- Fix condition for tag release job
+- Fix conditional check for version bump in workflow
+- Fix syntax for conditional in tag-release workflow
+- Replace broken PTY model detection with claude --print (#187)
+- Fix mobile dialog and sidebar issues (#186)
+- Animate the runner detail drawer when it closes (#185)
+- Detect Claude Code models via pseudo-TTY interaction (#184) (#184)
+- Add runner detail drawer with recent tasks and CLI activity (#183)
+- Detect available CLI models and surface them in the assignment dropdown (#182)
+- Make mobile dialogs full-screen with swipe-to-dismiss (#181)
+- Add git worktree support for Codex tasks (#179)
+- Fix changelog duplication and add version tagging (#178)
+
 ## v1.0.12 (2026-05-18)
 
 - Fix syntax for conditional in tag-release workflow
