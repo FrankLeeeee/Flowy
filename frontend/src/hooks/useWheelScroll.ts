@@ -26,15 +26,13 @@ export function computeWheelScrollTop(metrics: WheelScrollMetrics, deltaY: numbe
  * draggable but wheel/trackpad scrolling dead. A non-passive listener lets us
  * preventDefault and scroll manually.
  *
- * Pass `enabled` reflecting when the container is mounted (e.g. popover open)
- * so the listener re-attaches each time the content remounts.
+ * Call this from the component that renders the scroll container, so the effect
+ * runs once the ref is attached. Radix portaled content mounts a commit after
+ * the popover opens (its Presence dispatches MOUNT from a layout effect), so a
+ * hook hosted in an always-mounted parent would run before the node exists.
  */
-export function useWheelScroll<T extends HTMLElement>(
-  ref: RefObject<T | null>,
-  enabled = true,
-): void {
+export function useWheelScroll<T extends HTMLElement>(ref: RefObject<T | null>): void {
   useEffect(() => {
-    if (!enabled) return;
     const container = ref.current;
     if (!container) return;
     const handleWheel = (e: WheelEvent) => {
@@ -45,5 +43,5 @@ export function useWheelScroll<T extends HTMLElement>(
     };
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, [ref, enabled]);
+  }, [ref]);
 }

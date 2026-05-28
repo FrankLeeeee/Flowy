@@ -27,9 +27,6 @@ export default function LabelPicker({
   const [search, setSearch] = useState('');
   const [creatingColor, setCreatingColor] = useState<LabelColor | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useWheelScroll(listRef, open && creatingColor === null);
 
   const trimmed = search.trim();
   const filtered = allLabels.filter((l) =>
@@ -123,48 +120,16 @@ export default function LabelPicker({
           <div className="border-t border-border/40" />
 
           {creatingColor === null ? (
-            <div ref={listRef} className="max-h-48 overflow-y-auto py-1">
-              {filtered.map((label) => {
-                const selected = selectedLabels.some(
-                  (s) => s.toLowerCase() === label.name.toLowerCase()
-                );
-                const colorStyles = getLabelColorStyles(label.name, allLabels);
-                return (
-                  <button
-                    key={label.id}
-                    type="button"
-                    onClick={() => onToggle(label.name)}
-                    className={cn(
-                      'flex w-full items-center gap-2 rounded-lg px-2 font-medium transition-colors hover:bg-accent',
-                      compact ? 'py-2.5 text-[13px]' : 'py-1.5 text-[11px]',
-                      selected && 'bg-accent'
-                    )}
-                  >
-                    <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', colorStyles.dot)} />
-                    <span className="flex-1 text-left truncate">{label.name}</span>
-                    {selected && <Check className="h-3 w-3 text-primary shrink-0" />}
-                  </button>
-                );
-              })}
-
-              {showCreate && (
-                <button
-                  type="button"
-                  onClick={() => setCreatingColor('blue')}
-                  className={cn(
-                    'flex w-full items-center gap-2 rounded-lg px-2 font-medium text-primary transition-colors hover:bg-accent',
-                    compact ? 'py-2.5 text-[13px]' : 'py-1.5 text-[11px]',
-                  )}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create "{trimmed}"
-                </button>
-              )}
-
-              {filtered.length === 0 && !showCreate && (
-                <p className={cn('px-2 py-2 text-muted-foreground/70', compact ? 'text-[13px]' : 'text-[11px]')}>No labels found</p>
-              )}
-            </div>
+            <LabelList
+              filtered={filtered}
+              selectedLabels={selectedLabels}
+              allLabels={allLabels}
+              onToggle={onToggle}
+              showCreate={showCreate}
+              trimmed={trimmed}
+              onStartCreate={() => setCreatingColor('blue')}
+              compact={compact}
+            />
           ) : (
             <div className="py-2 px-2">
               <p className="mb-2 text-[11px] font-medium text-muted-foreground">
@@ -192,5 +157,75 @@ export default function LabelPicker({
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  );
+}
+
+function LabelList({
+  filtered,
+  selectedLabels,
+  allLabels,
+  onToggle,
+  showCreate,
+  trimmed,
+  onStartCreate,
+  compact,
+}: {
+  filtered: Label[];
+  selectedLabels: string[];
+  allLabels: Label[];
+  onToggle: (labelName: string) => void;
+  showCreate: boolean;
+  trimmed: string;
+  onStartCreate: () => void;
+  compact: boolean;
+}) {
+  // Colocated with the scroll container so the wheel listener attaches when this
+  // list mounts inside the portaled popover; see useWheelScroll for why.
+  const listRef = useRef<HTMLDivElement>(null);
+  useWheelScroll(listRef);
+
+  return (
+    <div ref={listRef} className="max-h-48 overflow-y-auto py-1">
+      {filtered.map((label) => {
+        const selected = selectedLabels.some(
+          (s) => s.toLowerCase() === label.name.toLowerCase()
+        );
+        const colorStyles = getLabelColorStyles(label.name, allLabels);
+        return (
+          <button
+            key={label.id}
+            type="button"
+            onClick={() => onToggle(label.name)}
+            className={cn(
+              'flex w-full items-center gap-2 rounded-lg px-2 font-medium transition-colors hover:bg-accent',
+              compact ? 'py-2.5 text-[13px]' : 'py-1.5 text-[11px]',
+              selected && 'bg-accent'
+            )}
+          >
+            <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', colorStyles.dot)} />
+            <span className="flex-1 text-left truncate">{label.name}</span>
+            {selected && <Check className="h-3 w-3 text-primary shrink-0" />}
+          </button>
+        );
+      })}
+
+      {showCreate && (
+        <button
+          type="button"
+          onClick={onStartCreate}
+          className={cn(
+            'flex w-full items-center gap-2 rounded-lg px-2 font-medium text-primary transition-colors hover:bg-accent',
+            compact ? 'py-2.5 text-[13px]' : 'py-1.5 text-[11px]',
+          )}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Create "{trimmed}"
+        </button>
+      )}
+
+      {filtered.length === 0 && !showCreate && (
+        <p className={cn('px-2 py-2 text-muted-foreground/70', compact ? 'text-[13px]' : 'text-[11px]')}>No labels found</p>
+      )}
+    </div>
   );
 }
