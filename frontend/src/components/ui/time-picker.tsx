@@ -4,7 +4,8 @@ import { formatTimeValue, parseTimeValue } from '@/lib/datePickerHelpers';
 import { cn } from '@/lib/utils';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+const MINUTE_STEP = 5;
+const MINUTES = Array.from({ length: 60 / MINUTE_STEP }, (_, i) => i * MINUTE_STEP);
 
 function pad(n: number): string {
   return String(n).padStart(2, '0');
@@ -117,6 +118,21 @@ function TimeColumn({ label, values, selected, onSelect }: TimeColumnProps) {
       container.scrollTop = Math.max(0, offset);
     }
   }, [selected]);
+
+  // The popover is portaled outside the Dialog, whose react-remove-scroll lock
+  // swallows wheel events on the portaled content. Drive the scroll manually so
+  // trackpad/wheel scrolling works, not just dragging the scrollbar.
+  React.useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (container.scrollHeight <= container.clientHeight) return;
+      e.preventDefault();
+      container.scrollTop += e.deltaY;
+    };
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
 
   return (
     <div className="flex flex-col">
