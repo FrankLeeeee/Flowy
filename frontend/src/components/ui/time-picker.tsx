@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useWheelScroll } from '@/hooks/useWheelScroll';
 import { formatTimeValue, parseTimeValue } from '@/lib/datePickerHelpers';
 import { cn } from '@/lib/utils';
 
@@ -119,20 +120,7 @@ function TimeColumn({ label, values, selected, onSelect }: TimeColumnProps) {
     }
   }, [selected]);
 
-  // The popover is portaled outside the Dialog, whose react-remove-scroll lock
-  // swallows wheel events on the portaled content. Drive the scroll manually so
-  // trackpad/wheel scrolling works, not just dragging the scrollbar.
-  React.useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const handleWheel = (e: WheelEvent) => {
-      if (container.scrollHeight <= container.clientHeight) return;
-      e.preventDefault();
-      container.scrollTop += e.deltaY;
-    };
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
+  useWheelScroll(scrollRef);
 
   return (
     <div className="flex flex-col">
