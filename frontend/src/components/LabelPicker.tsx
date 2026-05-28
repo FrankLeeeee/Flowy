@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Label, LabelColor } from '../types';
 import { createLabel } from '../api/client';
 import { LABEL_COLORS, LABEL_COLOR_LIST, getLabelColorStyles } from '@/lib/semanticColors';
+import { useWheelScroll } from '@/hooks/useWheelScroll';
 import { cn } from '@/lib/utils';
 import { Tag, Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,9 @@ export default function LabelPicker({
   const [search, setSearch] = useState('');
   const [creatingColor, setCreatingColor] = useState<LabelColor | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useWheelScroll(listRef, open && creatingColor === null);
 
   const trimmed = search.trim();
   const filtered = allLabels.filter((l) =>
@@ -119,7 +123,7 @@ export default function LabelPicker({
           <div className="border-t border-border/40" />
 
           {creatingColor === null ? (
-            <div className="max-h-48 overflow-y-auto py-1">
+            <div ref={listRef} className="max-h-48 overflow-y-auto py-1">
               {filtered.map((label) => {
                 const selected = selectedLabels.some(
                   (s) => s.toLowerCase() === label.name.toLowerCase()
